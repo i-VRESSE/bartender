@@ -44,18 +44,18 @@ async def create_job(
     :param job_dao: JobDAO object.
     :return: redirect response.
     """
-    job_id = await job_dao.create_job(**new_job_object.dict())
+    jobid = await job_dao.create_job(**new_job_object.dict())
 
     # Setup goes here!
-    if job_id:
-        assemble_job(job_id)
+    if jobid:
+        assemble_job(jobid)
 
-    url = request.url_for("retrieve_job", id=job_id)
+    url = request.url_for("retrieve_job", jobid=jobid)
 
     return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/{id}", response_model=JobModelDTO)
+@router.get("/{jobid}", response_model=JobModelDTO)
 async def retrieve_job(
     jobid: int,
     job_dao: JobDAO = Depends(),

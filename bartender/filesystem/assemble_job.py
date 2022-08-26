@@ -11,6 +11,7 @@ def assemble_job(job_id: int) -> None:
     :param job_id: id of the job.
     """
     job_dir = settings.job_root_dir / str(job_id)
-    job_dir.mkdir(parents=True)
+    # TODO: `exist_ok` is only there for testing purposes.
+    job_dir.mkdir(parents=True, exist_ok=True)
     id_file = job_dir / "id"
     id_file.write_text(str(job_id))
