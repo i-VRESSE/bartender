@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./deploy/Dockerfile
+    image: bartender:${BARTENDER_VERSION:-latest}
+    restart: always
+    env_file:
+    - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BARTENDER_HOST: 0.0.0.0
+      BARTENDER_DB_HOST: bartender-db
+      BARTENDER_DB_PORT: 5432
+      BARTENDER_DB_USER: bartender
+      BARTENDER_DB_PASS: bartender
+      BARTENDER_DB_BASE: bartender
+
+  db:
+    image: postgres:13.6-bullseye
+    hostname: bartender-db
+    environment:
+      POSTGRES_PASSWORD: "bartender"
+      POSTGRES_USER: "bartender"
+      POSTGRES_DB: "bartender"
+    volumes:
+    - bartender-db-data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: pg_isready -U bartender
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+  migrator:
+    image: bartender:${BARTENDER_VERSION:-latest}
+    restart: "no"
+    command: alembic upgrade head
+    environment:
+      BARTENDER_DB_HOST: bartender-db
+      BARTENDER_DB_PORT: 5432
+      BARTENDER_DB_USER: bartender
+      BARTENDER_DB_PASS: bartender
+      BARTENDER_DB_BASE: bartender
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+
+volumes:
+  bartender-db-data:
+    name: bartender-db-data
