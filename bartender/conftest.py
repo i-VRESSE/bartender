@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, AsyncGenerator
 
 import pytest
@@ -105,3 +106,14 @@ async def client(
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture
+def job_root_dir(tmp_path: Path) -> Path:
+    """
+    Fixture that overrides settings.job_root_dir with temporary test directory.
+
+    :return: Path of job root dir.
+    """
+    settings.job_root_dir = tmp_path
+    return settings.job_root_dir

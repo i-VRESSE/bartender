@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # Enable uvicorn reloading
     reload: bool = False
 
+    # file system settings
+    job_root_dir: Path = TEMP_DIR / "jobs"
+
     # Current environment
     environment: str = "dev"
 

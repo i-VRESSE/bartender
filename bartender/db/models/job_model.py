@@ -4,10 +4,10 @@ from sqlalchemy.sql.sqltypes import Integer, String
 from bartender.db.base import Base
 
 
-class DummyModel(Base):
-    """Model for demo purpose."""
+class Job(Base):
+    """Model for the Job."""
 
-    __tablename__ = "dummy_model"
+    __tablename__ = "job"
 
     id = Column(Integer(), primary_key=True, autoincrement=True)
     name = Column(String(length=200))  # noqa: WPS432
