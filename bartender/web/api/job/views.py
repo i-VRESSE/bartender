@@ -67,4 +67,4 @@ async def retrieve_job(
     :param job_dao: JobDAO object.
     :return: job models.
     """
-    return await job_dao.filter(jobid=jobid)
+    return await job_dao.get_job(jobid=jobid)

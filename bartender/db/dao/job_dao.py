@@ -40,7 +40,7 @@ class JobDAO:
 
         return raw_jobs.scalars().fetchall()
 
-    async def filter(
+    async def get_job(
         self,
         jobid: int,
     ) -> Optional[Job]:
