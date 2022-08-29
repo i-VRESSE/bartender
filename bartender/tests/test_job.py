@@ -1,5 +1,6 @@
 import uuid
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 from fastapi import FastAPI
@@ -82,9 +83,44 @@ async def test_getting(
     url = fastapi_app.url_path_for("retrieve_job", jobid=str(job_id))
 
     response = await client.get(url)
-    dummies = response.json()
+    jobs = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(dummies) == 2
-    assert dummies["name"] == test_name
-    assert dummies["id"] == job_id
+    assert len(jobs) == 2
+    assert jobs["name"] == test_name
+    assert jobs["id"] == job_id
+
+
+@pytest.mark.anyio
+async def test_upload(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    dbsession: AsyncSession,
+    job_root_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """Test upload of a job archive."""
+    url = fastapi_app.url_path_for("upload_job", application="haddock3")
+    archive_fn = tmp_path / "upload.zip"
+    archive = ZipFile(archive_fn, mode="w")
+    archive.writestr("workflow.cfg", "# Example config file")
+    archive.close()
+    with open(archive_fn, "rb") as archive_file:
+        files = {
+            "upload": (
+                "upload.zip",
+                archive_file,
+                "application/zip",
+            ),
+        }
+        response = await client.put(url, files=files)
+    archive.close()
+
+    job_id = response.headers["location"].split("/")[-1]
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    job_dir = job_root_dir / job_id
+    assert job_dir.exists()
+    assert (job_dir / "id").read_text() == job_id
+    # TODO perform better comparison
+    assert (job_dir / "archive.zip").stat().st_size == archive_fn.stat().st_size

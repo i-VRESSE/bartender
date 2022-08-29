@@ -21,6 +21,8 @@ SQLAlchemy = {version = "^1.4", extras = ["mypy", "asyncio"]}
 alembic = "^1.7.7"
 asyncpg = {version = "^0.25.0", extras = ["sa"]}
 httptools = "^0.3.0"
+python-multipart = "^0.0.5"
+aiofiles = "^0.8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
@@ -37,6 +39,7 @@ pytest-cov = "^3.0.0"
 anyio = "^3.6.1"
 pytest-env = "^0.6.2"
 httpx = "^0.22.0"
+types-aiofiles = "^0.8.11"
 
 [tool.isort]
 profile = "black"

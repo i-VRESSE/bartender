@@ -68,6 +68,8 @@ ignore =
   DJ11,
   ; Found mutable module constant.
   WPS407,
+  ; Found walrus operator
+  WPS332,
 
 per-file-ignores =
   ; all tests
