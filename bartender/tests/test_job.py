@@ -95,7 +95,6 @@ async def test_getting(
 async def test_upload(
     fastapi_app: FastAPI,
     client: AsyncClient,
-    dbsession: AsyncSession,
     job_root_dir: Path,
     tmp_path: Path,
 ) -> None:
@@ -105,6 +104,7 @@ async def test_upload(
     archive = ZipFile(archive_fn, mode="w")
     archive.writestr("workflow.cfg", "# Example config file")
     archive.close()
+
     with open(archive_fn, "rb") as archive_file:
         files = {
             "upload": (
@@ -114,11 +114,9 @@ async def test_upload(
             ),
         }
         response = await client.put(url, files=files)
-    archive.close()
 
     job_id = response.headers["location"].split("/")[-1]
     assert response.status_code == status.HTTP_303_SEE_OTHER
-
     job_dir = job_root_dir / job_id
     assert job_dir.exists()
     assert (job_dir / "id").read_text() == job_id
