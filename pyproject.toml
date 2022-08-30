@@ -21,6 +21,7 @@ SQLAlchemy = {version = "^1.4", extras = ["mypy", "asyncio"]}
 alembic = "^1.7.7"
 asyncpg = {version = "^0.25.0", extras = ["sa"]}
 httptools = "^0.3.0"
+fastapi-users = {extras = ["sqlalchemy"], version = "^10.1.5"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"

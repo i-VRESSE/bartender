@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     db_base: str = "bartender"
     db_echo: bool = False
 
+    # User auth
+    secret: str = "SECRET"
+
     @property
     def db_url(self) -> URL:
         """
