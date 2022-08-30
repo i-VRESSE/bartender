@@ -255,3 +255,36 @@ docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bar
 ```bash
 pytest -vv .
 ```
+
+## User management
+
+For secure auth add `BARTENDER_SECRET=<some randome string>` to `.env` file.
+
+### GitHub login
+
+The web service can be configured to login with your GitHub account.
+
+To enable:
+
+1. Create a GitHub OAuth app
+  1. TODO switch from OAuth app to GitHub app for better control over what user has to agree to like access to email and nothing else.
+  1. Goto [https://github.com/settings/applications/new](https://github.com/settings/applications/new)
+  2. Set homepage to `http://localhost:8000/`
+  3. Set callback to `http://localhost:8000/auth/github/callback`
+  4. After creation
+2. Create `.env` file with GitHub app credentials
+  5. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of Github app>`
+  6. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client id of Github app>`
+
+To authenticate run
+```
+curl -X 'GET' \
+  'http://localhost:8000/auth/github/authorize' \
+  -H 'accept: application/json'
+```
+
+This will return an authorization URL, which should be opened in web browser.
+
+After visiting GitHub login/authorize pages you will get a JSON response with an access token.
+
+TODO figure out what to do with access token.

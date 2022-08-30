@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from uuid import UUID
 
 from fastapi import Depends
@@ -9,6 +9,7 @@ from fastapi_users.authentication import (
     JWTStrategy,
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
+from httpx_oauth.clients.github import GitHubOAuth2
 
 from bartender.db.dao.user_dao import get_user_db
 from bartender.db.models.user import User
@@ -16,6 +17,15 @@ from bartender.settings import settings
 
 # From app/users.py at
 # https://fastapi-users.github.io/fastapi-users/10.1/configuration/full-example/
+# From app/users.py
+# https://fastapi-users.github.io/fastapi-users/10.1/configuration/oauth/#sqlalchemy_1
+
+github_oauth_client: Optional[GitHubOAuth2] = None
+if settings.github_client_id != "":
+    github_oauth_client = GitHubOAuth2(
+        client_id=settings.github_client_id,
+        client_secret=settings.github_client_secret,
+    )
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):

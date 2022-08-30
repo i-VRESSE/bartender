@@ -51,7 +51,12 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     # User auth
-    secret: str = "SECRET"
+    secret: str = "SECRET"  # TODO should not have default when running in production
+
+    # Social OAuth logins
+    # must set to non '' to have GitHub social login enabled
+    github_client_id: str = ""
+    github_client_secret: str = ""
 
     @property
     def db_url(self) -> URL:

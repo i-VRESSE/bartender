@@ -6,10 +6,11 @@ from fastapi_users.db import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bartender.db.dependencies import get_db_session
-from bartender.db.models.user import User
+from bartender.db.models.user import OAuthAccount, User
 
 # From app/db.py at
 # https://fastapi-users.github.io/fastapi-users/10.1/configuration/full-example/
+# https://fastapi-users.github.io/fastapi-users/10.1/configuration/oauth/#sqlalchemy_1
 
 
 async def get_user_db(
@@ -20,4 +21,4 @@ async def get_user_db(
     :param session: SQLAlchemy session
     :yield: Database adaptor
     """
-    yield SQLAlchemyUserDatabase(session, User)
+    yield SQLAlchemyUserDatabase(session, User, OAuthAccount)
