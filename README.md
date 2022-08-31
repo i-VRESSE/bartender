@@ -266,17 +266,24 @@ The web service can be configured to login with your GitHub account.
 
 To enable:
 
-1. Create a GitHub OAuth app
-  1. TODO switch from OAuth app to GitHub app for better control over what user has to agree to like access to email and nothing else.
-  1. Goto [https://github.com/settings/applications/new](https://github.com/settings/applications/new)
-  2. Set homepage to `http://localhost:8000/`
-  3. Set callback to `http://localhost:8000/auth/github/callback`
-  4. After creation
+1. Create a GitHub app
+  1. Goto https://github.com/settings/apps/new
+  2. Set Homepage URL to `http://localhost:8000/`
+  3. Set Callback URL to `http://localhost:8000/auth/github/callback`
+  4. Check `Request user authorization (OAuth) during installation` checkbox
+  5. In Webhook section
+     1. Uncheck `Active` checkboxk
+  6. In User permissions section
+     1. Set `Email addresses` to `Read-only`
+  7. Press `Create GitHub App` button
+  8. After creation
+     1. Generate a new client secret
+     2. (Optionally) Restrict app to certain IP addresses
 2. Create `.env` file with GitHub app credentials
-  5. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of Github app>`
-  6. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client id of Github app>`
+  1.  Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of Github app>`
+  2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client id of Github app>`
 
-To authenticate run
+To authenticate against GitHub run
 ```
 curl -X 'GET' \
   'http://localhost:8000/auth/github/authorize' \
@@ -287,4 +294,11 @@ This will return an authorization URL, which should be opened in web browser.
 
 After visiting GitHub login/authorize pages you will get a JSON response with an access token.
 
-TODO figure out what to do with access token.
+This access token can be used on protected routes with
+
+```
+curl -X 'GET' \
+  'http://localhost:8000/api/users/profile' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <the access token>
+```
