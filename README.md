@@ -260,11 +260,34 @@ pytest -vv .
 
 For secure auth add `BARTENDER_SECRET=<some randome string>` to `.env` file.
 
+The web service can be configured to authenticated via GitHub and/or Orcid.
+
+After you have setup a social login described in sub chapter below then you can authenticate with
+
+```
+curl -X 'GET' \
+  'http://localhost:8000/auth/<name of social login>/authorize' \
+  -H 'accept: application/json'
+```
+
+This will return an authorization URL, which should be opened in web browser.
+
+After visiting social authentication page you will get a JSON response with an access token.
+
+This access token can be used on protected routes with
+
+```
+curl -X 'GET' \
+  'http://localhost:8000/api/users/profile' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <the access token>'
+```
+
 ### GitHub login
 
-The web service can be configured to login with your GitHub account.
+The web service can be configured to login with your [GitHub](https://gibhub.com) account.
 
-To enable:
+To enable perform following steps:
 
 1. Create a GitHub app
   1. Goto https://github.com/settings/apps/new
@@ -279,26 +302,43 @@ To enable:
   8. After creation
      1. Generate a new client secret
      2. (Optionally) Restrict app to certain IP addresses
-2. Create `.env` file with GitHub app credentials
-  1.  Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of Github app>`
-  2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client id of Github app>`
+2. Append GitHub app credentials to `.env` file
+  1. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of GitHub app>`
+  2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client secret of GitHub app>`
 
-To authenticate against GitHub run
-```
-curl -X 'GET' \
-  'http://localhost:8000/auth/github/authorize' \
-  -H 'accept: application/json'
-```
+### Orcid sandbox login
 
-This will return an authorization URL, which should be opened in web browser.
+The web service can be configured to login with your [Orcid sandbox](https://sandbox.orcid.org/) account.
 
-After visiting GitHub login/authorize pages you will get a JSON response with an access token.
+To enable perform following steps:
 
-This access token can be used on protected routes with
+1. Create Orcid account for yourself
+   1. Goto [https://sandbox.orcid.org/](https://sandbox.orcid.org/)
+       - Use `<something>@mailinator.com` as email, because to register app you need a verified email and Orcid sandbox only sends mails to `mailinator.com`.
+   2. Goto [https://www.mailinator.com/v4/public/inboxes.jsp](https://www.mailinator.com/v4/public/inboxes.jsp) and search for `<something>` and verify your email adress
+   3. Goto [https://sandbox.orcid.org/account](https://sandbox.orcid.org/account), make email public for everyone
+2. Create application
+   1. Goto [https://sandbox.orcid.org/developer-tools](https://sandbox.orcid.org/developer-tools) to register app.
+       - Only one app can be registered per orcid account, so use alternate account when primary account already has an registered app.
+       - Your website URL
+           - Does not allow localhost URL, so use `https://github.com/i-VRESSE/bartender`
+       - Redirect URI
+           - For dev deployments set to `http://localhost:8000/auth/orcidsandbox/callback`
+3. Append Orcid sandbox app credentials to `.env` file
+     1. Add `BARTENDER_ORCIDSANDBOX_CLIENT_ID=<Client id of Orcid sandbox app>`
+     2. Add `BARTENDER_ORCIDSANDBOX_CLIENT_SECRET=<Client secret of Orcid sandbox app>`
 
-```
-curl -X 'GET' \
-  'http://localhost:8000/api/users/profile' \
-  -H 'accept: application/json' \
-  -H 'Authorization: Bearer <the access token>
-```
+The `GET /api/users/profile` route will return the Orcid ID in `oauth_accounts[oauth_name=sandbox.ocrid.org].account_id`.
+
+### Orcid login
+
+The web service can be configured to login with your [Orcid](https://orcid.org/) account.
+
+Steps are similar to [Orcid sandbox login](#orcid-sandbox-login), but
+
+* Callback URL must use **https** scheme
+* Account emails don't have to be have be from `@mailinator.com` domain.
+* In steps
+  * Replace `https://sandbox.orcid.org/` with `https://orcid.org/`
+  * In redirect URL replace `orcidsandbox` with `orcid`.
+  * In `.env` replace `_ORCIDSANDBOX_` with `_ORCID_`

@@ -22,7 +22,7 @@ def upgrade() -> None:
         "oauth_account",
         sa.Column("oauth_name", sa.String(length=100), nullable=False),
         sa.Column("access_token", sa.String(length=1024), nullable=False),
-        sa.Column("expires_at", sa.Integer(), nullable=True),
+        sa.Column("expires_at", sa.BigInteger(), nullable=True),
         sa.Column("refresh_token", sa.String(length=1024), nullable=True),
         sa.Column("account_id", sa.String(length=320), nullable=False),
         sa.Column("account_email", sa.String(length=320), nullable=False),

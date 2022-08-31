@@ -14,6 +14,7 @@ from httpx_oauth.clients.github import GitHubOAuth2
 from bartender.db.dao.user_dao import get_user_db
 from bartender.db.models.user import User
 from bartender.settings import settings
+from bartender.web.api.user.orcid import OrcidOAuth2
 
 # From app/users.py at
 # https://fastapi-users.github.io/fastapi-users/10.1/configuration/full-example/
@@ -25,6 +26,21 @@ if settings.github_client_id != "":
     github_oauth_client = GitHubOAuth2(
         client_id=settings.github_client_id,
         client_secret=settings.github_client_secret,
+    )
+
+orcidsandbox_oauth_client: Optional[OrcidOAuth2] = None
+if settings.orcidsandbox_client_id != "":
+    orcidsandbox_oauth_client = OrcidOAuth2(
+        client_id=settings.orcidsandbox_client_id,
+        client_secret=settings.orcidsandbox_client_secret,
+        is_sandbox=True,
+    )
+
+orcid_oauth_client: Optional[OrcidOAuth2] = None
+if settings.orcid_client_id != "":
+    orcid_oauth_client = OrcidOAuth2(
+        client_id=settings.orcid_client_id,
+        client_secret=settings.orcid_client_secret,
     )
 
 
