@@ -31,7 +31,7 @@ poetry install
 5. Run the application and the database
 
 ```bash
-python -m bartender
+bartender serve
 ```
 
 **In another terminal**
@@ -97,7 +97,7 @@ To run the project use this set of commands:
 
 ```bash
 poetry install
-poetry run python -m bartender
+poetry run bartender serve
 ```
 
 This will start the server on the configured host.
@@ -256,6 +256,12 @@ docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bar
 pytest -vv .
 ```
 
+To get PostgreSQL terminal do
+
+```bash
+docker exec -ti <id or name of docker container> psql -U bartender
+```
+
 ## User management
 
 For secure auth add `BARTENDER_SECRET=<some randome string>` to `.env` file.
@@ -342,3 +348,13 @@ Steps are similar to [Orcid sandbox login](#orcid-sandbox-login), but
   * Replace `https://sandbox.orcid.org/` with `https://orcid.org/`
   * In redirect URL replace `orcidsandbox` with `orcid`.
   * In `.env` replace `_ORCIDSANDBOX_` with `_ORCID_`
+
+### Super user
+
+When a user has `is_superuser is True` then he/she can manage users and make other users also super users.
+
+However you need a first super user. This can be done by running
+
+```bash
+bartender super <email address of logged in user>
+```

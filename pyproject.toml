@@ -39,6 +39,9 @@ anyio = "^3.6.1"
 pytest-env = "^0.6.2"
 httpx = "^0.22.0"
 
+[tool.poetry.scripts]
+bartender = 'bartender.__main__:main'
+
 [tool.isort]
 profile = "black"
 multi_line_output = 3
