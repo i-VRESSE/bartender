@@ -14,7 +14,7 @@ from httpx_oauth.clients.github import GitHubOAuth2
 from bartender.db.dao.user_dao import get_user_db
 from bartender.db.models.user import User
 from bartender.settings import settings
-from bartender.web.api.user.orcid import OrcidOAuth2
+from bartender.web.users.orcid import OrcidOAuth2
 
 # From app/users.py at
 # https://fastapi-users.github.io/fastapi-users/10.1/configuration/full-example/
