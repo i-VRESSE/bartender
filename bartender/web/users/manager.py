@@ -129,6 +129,7 @@ fastapi_users = FastAPIUsers[User, UUID](
 current_active_user = fastapi_users.current_user(active=True)
 
 # TODO Token used by a job should be valid for as long as job can run.
+
 API_TOKEN_LIFETIME = 14400  # 4 hours
 
 
