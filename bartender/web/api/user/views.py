@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get("/profile", response_model=UserProfileInputDTO)
-async def me(
+async def profile(
     user: User = Depends(current_active_user),
 ) -> User:
     """
