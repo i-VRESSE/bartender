@@ -2,11 +2,12 @@ from fastapi import FastAPI
 
 from bartender.settings import settings
 from bartender.web.users.manager import (
-    auth_backend,
     fastapi_users,
     github_oauth_client,
+    local_auth_backend,
     orcid_oauth_client,
     orcidsandbox_oauth_client,
+    remote_auth_backend,
 )
 from bartender.web.users.schema import UserCreate, UserRead, UserUpdate
 
@@ -21,7 +22,7 @@ def _github_routes(app: FastAPI) -> None:
         app.include_router(
             fastapi_users.get_oauth_router(
                 github_oauth_client,
-                auth_backend,
+                remote_auth_backend,
                 settings.secret,
                 associate_by_email=True,
             ),
@@ -44,7 +45,7 @@ def _orcidsandbox_routes(app: FastAPI) -> None:
         app.include_router(
             fastapi_users.get_oauth_router(
                 orcidsandbox_oauth_client,
-                auth_backend,
+                remote_auth_backend,
                 settings.secret,
                 associate_by_email=True,
             ),
@@ -67,7 +68,7 @@ def _orcid_routes(app: FastAPI) -> None:
         app.include_router(
             fastapi_users.get_oauth_router(
                 orcid_oauth_client,
-                auth_backend,
+                remote_auth_backend,
                 settings.secret,
                 associate_by_email=True,
             ),
@@ -91,7 +92,7 @@ def include_users_routes(app: FastAPI) -> None:
     :param app: FastAPI app
     """
     app.include_router(
-        fastapi_users.get_auth_router(auth_backend),
+        fastapi_users.get_auth_router(local_auth_backend),
         prefix="/auth/jwt",
         tags=["auth"],
     )

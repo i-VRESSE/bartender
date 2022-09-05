@@ -1,13 +1,19 @@
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Response
+from fastapi.security import HTTPBearer
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     JWTStrategy,
 )
+from fastapi_users.authentication.transport.base import (
+    Transport,
+    TransportLogoutNotSupportedError,
+)
+from fastapi_users.authentication.transport.bearer import BearerResponse
 from fastapi_users.db import SQLAlchemyUserDatabase
 from httpx_oauth.clients.github import GitHubOAuth2
 
@@ -65,8 +71,6 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
-bearer_transport = BearerTransport(tokenUrl="/auth/jwt/login")
-
 LIFETIME = 3600  # 1 hour
 
 
@@ -78,12 +82,48 @@ def get_jwt_strategy() -> JWTStrategy[User, UUID]:
     return JWTStrategy(secret=settings.secret, lifetime_seconds=LIFETIME)
 
 
-auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
+local_auth_backend = AuthenticationBackend(
+    name="local",
+    transport=BearerTransport(tokenUrl="/auth/jwt/login"),
     get_strategy=get_jwt_strategy,
 )
 
-fastapi_users = FastAPIUsers[User, UUID](get_user_manager, [auth_backend])
+
+class HTTPBearerTransport(Transport):
+    """After social login (Orcid, GitHub) you can use the JWT token to auth yourself."""
+
+    scheme: HTTPBearer
+
+    def __init__(self) -> None:
+        self.scheme = HTTPBearer(bearerFormat="jwt", auto_error=False)
+
+    async def get_login_response(self, token: str, response: Response) -> Any:
+        """Returns token after login.
+
+        :param token: The token
+        :param response: The response
+        :return: Token as JSON
+        """
+        return BearerResponse(access_token=token, token_type="bearer")  # noqa: S106
+
+    async def get_logout_response(self, response: Response) -> Any:
+        """Logout response.
+
+        :param response: The response
+        :raises TransportLogoutNotSupportedError: Always raises as JWT can not logout
+        """
+        raise TransportLogoutNotSupportedError()
+
+
+remote_auth_backend = AuthenticationBackend(
+    name="remote",
+    transport=HTTPBearerTransport(),
+    get_strategy=get_jwt_strategy,
+)
+
+fastapi_users = FastAPIUsers[User, UUID](
+    get_user_manager,
+    [local_auth_backend, remote_auth_backend],
+)
 
 current_active_user = fastapi_users.current_user(active=True)
