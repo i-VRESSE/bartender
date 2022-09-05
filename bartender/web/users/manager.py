@@ -127,3 +127,19 @@ fastapi_users = FastAPIUsers[User, UUID](
 )
 
 current_active_user = fastapi_users.current_user(active=True)
+
+# TODO Token used by a job should be valid for as long as job can run.
+API_TOKEN_LIFETIME = 14400  # 4 hours
+
+
+async def current_api_token(user: User = Depends(current_active_user)) -> str:
+    """Generate token that job can use to talk to bartender service.
+
+    :param user: User that is currently logged in.
+    :return: The token that can be put in HTTP header `Authorization: Bearer <token>`.
+    """
+    strategy: JWTStrategy[User, UUID] = JWTStrategy(
+        secret=settings.secret,
+        lifetime_seconds=API_TOKEN_LIFETIME,
+    )
+    return await strategy.write_token(user)
