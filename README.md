@@ -358,3 +358,26 @@ However you need a first super user. This can be done by running
 ```bash
 bartender super <email address of logged in user>
 ```
+
+## Job
+
+### Calling bartender
+
+To interact with the bartender web service the job needs to authenticate itself.
+Authentication is done by passing a JWT token in the HTTP header `Authorization: Bearer <token>`.
+The job can find a token in the `./meta` file.
+This token belongs to the user that submitted it.
+
+For example to submit another job do something like
+
+```shell
+TOKEN=$(tail -1 ./meta)
+curl -X 'PUT' \
+  'http://localhost:8000/api/job/' \
+  -H 'accept: */*' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "string"
+}'
+```
