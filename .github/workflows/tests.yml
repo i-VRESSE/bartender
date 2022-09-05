@@ -15,9 +15,11 @@ jobs:
       run: |
         pip install -U pip wheel
         pip install poetry
-        poetry install --no-cache
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run black check
       run: poetry run black --check .
   flake8:
@@ -32,9 +34,11 @@ jobs:
       run: |
         pip install -U pip wheel
         pip install poetry
-        poetry install --no-cache
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run flake8 check
       run: poetry run flake8 --count .
   mypy:
@@ -49,9 +53,11 @@ jobs:
       run: |
         pip install -U pip wheel
         pip install poetry
-        poetry install --no-cache
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run mypy check
       run: poetry run mypy .
   pytest:
@@ -81,9 +87,11 @@ jobs:
       run: |
         pip install -U pip wheel
         pip install poetry
-        poetry install --no-cache
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run pytest check
       run: poetry run pytest -vv --cov="bartender" .
       env:
