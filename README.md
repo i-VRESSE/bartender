@@ -296,6 +296,8 @@ curl -X 'GET' \
 
 This will return an authorization URL, which should be opened in web browser.
 
+Make sure the authorization URL and the callback URL configured in the social platform have the same scheme, domain (like localhost or 127.0.0.1) and port.
+
 After visiting social authentication page you will get a JSON response with an access token.
 
 This access token can be used on protected routes with
