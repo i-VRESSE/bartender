@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from bartender.db.dependencies import get_db_session
 from bartender.db.utils import create_database, drop_database
-from bartender.settings import settings
+from bartender.settings import AppSetting, settings
 from bartender.web.application import get_app
 
 
@@ -90,6 +90,12 @@ def fastapi_app(
     """
     application = get_app()
     application.dependency_overrides[get_db_session] = lambda: dbsession
+    settings.applications = {
+        "app1": AppSetting(
+            command="app1 $config",
+            config="job.ini",
+        ),
+    }
     return application  # noqa: WPS331
 
 

@@ -9,6 +9,7 @@ from bartender.db.models.job_model import Job
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
+from bartender.settings import settings
 from bartender.web.api.job.schema import ApplicationName, JobModelDTO, JobModelInputDTO
 from bartender.web.users.manager import current_api_token
 
@@ -54,7 +55,11 @@ async def create_job(
     :raises JobCreationError: When job could not be created.
     :return: redirect response.
     """
-    jobid = await job_dao.create_job(**new_job_object.dict())
+    first_app_name = next(iter(settings.applications))
+    jobid = await job_dao.create_job(
+        application=first_app_name,
+        **new_job_object.dict(),
+    )
     if jobid is None:
         raise JobCreationError()
 

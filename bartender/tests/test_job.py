@@ -113,12 +113,14 @@ async def test_upload(
     client: AsyncClient,
     job_root_dir: Path,
     tmp_path: Path,
+    mock_current_api_token: str,
 ) -> None:
     """Test upload of a job archive."""
-    url = fastapi_app.url_path_for("upload_job", application="haddock3")
+    url = fastapi_app.url_path_for("upload_job", application="app1")
     archive_fn = tmp_path / "upload.zip"
     archive = ZipFile(archive_fn, mode="w")
-    archive.writestr("workflow.cfg", "# Example config file")
+    archive.writestr("job.ini", "# Example config file")
+    archive.writestr("input.csv", "# Example input data file")
     archive.close()
 
     with open(archive_fn, "rb") as archive_file:
@@ -134,7 +136,7 @@ async def test_upload(
     job_id = response.headers["location"].split("/")[-1]
     assert response.status_code == status.HTTP_303_SEE_OTHER
     job_dir = job_root_dir / job_id
-    assert job_dir.exists()
-    assert (job_dir / "id").read_text() == job_id
-    # TODO perform better comparison
-    assert (job_dir / "archive.zip").stat().st_size == archive_fn.stat().st_size
+    meta_content = (job_dir / "meta").read_text()
+    assert job_id in meta_content and mock_current_api_token in meta_content
+    assert (job_dir / "job.ini").read_text() == "# Example config file"
+    assert (job_dir / "input.csv").read_text() == "# Example input data file"
