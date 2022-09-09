@@ -11,3 +11,4 @@ class Job(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True)
     name = Column(String(length=200))  # noqa: WPS432
+    application = Column(String(length=200))  # noqa: WPS432

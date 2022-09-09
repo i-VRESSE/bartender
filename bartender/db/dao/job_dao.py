@@ -14,14 +14,15 @@ class JobDAO:
     def __init__(self, session: AsyncSession = Depends(get_db_session)):
         self.session = session
 
-    async def create_job(self, name: str) -> Optional[int]:
+    async def create_job(self, name: str, application: str) -> Optional[int]:
         """
         Add single job to session.
 
         :param name: name of a job.
+        :param application: name of application to run job for.
         :return: id of a job.
         """
-        job = Job(name=name)
+        job = Job(name=name, application=application)
         self.session.add(job)
         await self.session.commit()
         return job.id

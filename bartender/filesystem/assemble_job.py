@@ -18,7 +18,9 @@ def assemble_job(job_id: int, job_token: str) -> Path:
     :return: Directory of job.
     """
     job_dir = settings.job_root_dir / str(job_id)
+
     job_dir.mkdir()
+
     meta_file = job_dir / "meta"
     body = f"{job_id}\n{job_token}\n"
     meta_file.write_text(body)

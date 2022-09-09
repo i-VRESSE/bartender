@@ -95,7 +95,7 @@ async def test_getting(
     """Tests job instance retrieval."""
     dao = JobDAO(dbsession)
     test_name = uuid.uuid4().hex
-    job_id = await dao.create_job(name=test_name)
+    job_id = await dao.create_job(name=test_name, application="app1")
     url = fastapi_app.url_path_for("retrieve_job", jobid=str(job_id))
 
     response = await client.get(url)

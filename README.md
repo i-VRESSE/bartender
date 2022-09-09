@@ -1,20 +1,24 @@
 # bartender
 
-* [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
-* [Poetry](#poetry)
-* [Docker](#docker)
-* [Project structure](#project-structure)
-* [Configuration](#configuration)
-* [Pre-commit](#pre-commit)
-* [Migrations](#migrations)
-* [Running tests](#running-tests)
-* [User management](#user-management)
-  * [GitHub login](#github-login)
-  * [Orcid sandbox login](#orcid-sandbox-login)
-  * [Orcid login](#orcid-login)
-  * [Super user](#super-user)
-* [Job](#job)
-  * [Calling bartender](#calling-bartender)
+- [bartender](#bartender)
+  - [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
+  - [Poetry](#poetry)
+  - [Docker](#docker)
+  - [Project structure](#project-structure)
+  - [Configuration](#configuration)
+  - [Pre-commit](#pre-commit)
+  - [Migrations](#migrations)
+    - [Reverting migrations](#reverting-migrations)
+    - [Migration generation](#migration-generation)
+  - [Running tests](#running-tests)
+  - [User management](#user-management)
+    - [GitHub login](#github-login)
+    - [Orcid sandbox login](#orcid-sandbox-login)
+    - [Orcid login](#orcid-login)
+    - [Super user](#super-user)
+  - [Job](#job)
+    - [Calling bartender](#calling-bartender)
+  - [Applications](#applications)
 
 ***
 
@@ -400,4 +404,16 @@ curl -X 'PUT' \
   -d '{
   "name": "string"
 }'
+```
+
+## Applications
+
+Bartender can accept jobs for different applications.
+
+Applications can be configured with the `BARTENDER_APPLICATIONS` environment variable.
+
+For example
+
+```env
+BARTENDER_APPLICATIONS='{"app1": {"command": "app1 $config", "config": "workflow.cfg"}, "app2": {"command": "app2 $config", "config": "workflow.cfg"}}'
 ```
