@@ -9,6 +9,7 @@ from bartender.db.models.job_model import Job
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.web.api.job.schema import JobModelDTO, JobModelInputDTO
+from bartender.web.users.manager import current_api_token
 
 router = APIRouter()
 
@@ -30,12 +31,17 @@ async def retrieve_jobs(
     return await job_dao.get_all_jobs(limit=limit, offset=offset)
 
 
+class JobCreationError(Exception):
+    """When job could not be created."""
+
+
 # Q: POST or PUT?
 @router.put("/", status_code=status.HTTP_303_SEE_OTHER, response_class=RedirectResponse)
 async def create_job(
     new_job_object: JobModelInputDTO,
     request: Request,
-    job_dao: JobDAO = Depends(),
+    job_dao: JobDAO = Depends(JobDAO),
+    token: str = Depends(current_api_token),
 ) -> RedirectResponse:
     """
     Creates job model in the database.
@@ -43,13 +49,16 @@ async def create_job(
     :param new_job_object: new job model.
     :param request: request object.
     :param job_dao: JobDAO object.
+    :param token: Token that job can use to talk to bartender service.
+    :raises JobCreationError: When job could not be created.
     :return: redirect response.
     """
     jobid = await job_dao.create_job(**new_job_object.dict())
+    if jobid is None:
+        raise JobCreationError()
 
     # Setup goes here!
-    if jobid:
-        assemble_job(jobid)
+    assemble_job(jobid, token)
 
     url = request.url_for("retrieve_job", jobid=jobid)
 
@@ -84,6 +93,7 @@ async def upload_job(
         default=None,
     ),
     job_dao: JobDAO = Depends(),
+    token: str = Depends(current_api_token),
 ) -> RedirectResponse:
     """
     Creates job model in the database and stage archive.
@@ -92,6 +102,7 @@ async def upload_job(
     :param upload: Archive with config file for application.
     :param request: request object.
     :param job_dao: JobDAO object.
+    :param token: Token that job can use to talk to bartender service.
     :raises ValueError: When application is invalid
     :raises IndexError: When job could not created inside database.
 
@@ -105,7 +116,7 @@ async def upload_job(
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
 
-    job_dir = assemble_job(job_id)
+    job_dir = assemble_job(job_id, token)
     await stage_job_input(job_dir, upload)
 
     url = request.url_for("retrieve_job", jobid=job_id)

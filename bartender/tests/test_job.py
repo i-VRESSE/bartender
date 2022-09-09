@@ -9,6 +9,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from bartender.db.dao.job_dao import JobDAO
+from bartender.web.users.manager import current_api_token
+
+
+@pytest.fixture
+def mock_current_api_token(fastapi_app: FastAPI) -> str:
+    """Tests require logged in user and their api token, mock it here.
+
+    :param fastapi_app: The app to override in
+    :return: A dummy API token
+    """
+    token = "mytoken"  # noqa: S105
+    fastapi_app.dependency_overrides[current_api_token] = lambda: token
+    return token
 
 
 @pytest.mark.anyio
@@ -17,6 +30,7 @@ async def test_getting_all(
     client: AsyncClient,
     dbsession: AsyncSession,
     job_root_dir: Path,
+    mock_current_api_token: str,
 ) -> None:
     """Test the retrieval of all jobs."""
     retrieve_url = fastapi_app.url_path_for("retrieve_jobs")
@@ -48,6 +62,7 @@ async def test_creation(
     client: AsyncClient,
     dbsession: AsyncSession,
     job_root_dir: Path,
+    mock_current_api_token: str,
 ) -> None:
     """Tests job instance creation."""
     url = fastapi_app.url_path_for("create_job")
@@ -75,6 +90,7 @@ async def test_getting(
     client: AsyncClient,
     dbsession: AsyncSession,
     job_root_dir: Path,
+    mock_current_api_token: str,
 ) -> None:
     """Tests job instance retrieval."""
     dao = JobDAO(dbsession)
