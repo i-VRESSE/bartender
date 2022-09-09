@@ -6,11 +6,14 @@ from bartender.filesystem.assemble_job import assemble_job
 def test_assemble_job(job_root_dir: Path) -> None:
     """Test the assembly the job."""
     job_id = 1
+    token = "mytoken"  # noqa: S105
 
-    assemble_job(job_id)
+    assemble_job(job_id, token)
 
     job_dir = job_root_dir / str(job_id)
-    id_file = job_dir / "id"
+    meta_file = job_dir / "meta"
     assert job_dir.exists()
-    assert id_file.exists()
-    assert str(job_id) == id_file.read_text()
+    assert meta_file.exists()
+    body = meta_file.read_text()
+    assert str(job_id) in body
+    assert token in body

@@ -1,6 +1,6 @@
 FROM python:3.9.6-slim-buster
 
-RUN pip install poetry==1.1.13
+RUN pip install poetry==1.2.0
 
 # Configuring poetry
 RUN poetry config virtualenvs.create false
@@ -16,4 +16,4 @@ RUN poetry install
 COPY . /app/src/
 RUN poetry install
 
-CMD ["/usr/local/bin/python", "-m", "bartender"]
+CMD ["/usr/local/bin/bartender", "serve"]
