@@ -3,6 +3,7 @@ from typing import Awaitable, Callable
 from fastapi import FastAPI
 
 from bartender.db.session import make_engine, make_session_factory
+from bartender.filesystem import setup_job_root_dir
 
 
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
@@ -35,6 +36,7 @@ def register_startup_event(
     @app.on_event("startup")
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
+        setup_job_root_dir()
         pass  # noqa: WPS420
 
     return _startup
