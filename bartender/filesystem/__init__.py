@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from bartender.settings import settings
-from bartender.web.api.job.schema import ApplicationName
 
 
 def setup_job_root_dir() -> None:
@@ -15,7 +14,7 @@ def setup_job_root_dir() -> None:
     job_root_dir.mkdir(exist_ok=True)
 
 
-def has_config_file(application: ApplicationName, job_dir: Path) -> bool:
+def has_config_file(application: str, job_dir: Path) -> bool:
     """Check if config file required by application is present in job directory.
 
     :param application: Application to check config file for.
@@ -23,7 +22,7 @@ def has_config_file(application: ApplicationName, job_dir: Path) -> bool:
     :raises IndexError: When config file could not be found
     :return: True when found.
     """
-    app_config = settings.applications[application.name].config
+    app_config = settings.applications[application].config
     job_config = job_dir / app_config
     has = job_config.exists() and job_config.is_file()
     if not has:

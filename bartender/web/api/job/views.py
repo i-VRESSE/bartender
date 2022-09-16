@@ -10,7 +10,7 @@ from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.settings import settings
-from bartender.web.api.job.schema import ApplicationName, JobModelDTO, JobModelInputDTO
+from bartender.web.api.job.schema import JobModelDTO, JobModelInputDTO
 from bartender.web.users.manager import current_api_token
 
 router = APIRouter()
@@ -104,7 +104,7 @@ async def retrieve_job(
     },
 )
 async def upload_job(
-    application: ApplicationName,
+    application: str,
     request: Request,
     upload: UploadFile = File(
         description="Archive with config file for application",
@@ -123,10 +123,13 @@ async def upload_job(
     :param token: Token that job can use to talk to bartender service.
     :raises IndexError: When job could not created inside database or
         when config file was not found.
-
+    :raises KeyError: Application is invalid.
     :return: redirect response.
     """
-    job_id = await job_dao.create_job(upload.filename, application.name)
+    if application not in settings.applications:
+        valid = settings.applications.keys()
+        raise KeyError(f"Invalid application. Valid applications: {valid}")
+    job_id = await job_dao.create_job(upload.filename, application)
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
 
