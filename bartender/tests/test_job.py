@@ -108,7 +108,7 @@ async def test_getting(
 
 
 @pytest.mark.anyio
-async def test_upload(
+async def test_upload(  # noqa: WPS218
     fastapi_app: FastAPI,
     client: AsyncClient,
     job_root_dir: Path,
@@ -140,3 +140,6 @@ async def test_upload(
     assert job_id in meta_content and mock_current_api_token in meta_content
     assert (job_dir / "job.ini").read_text() == "# Example config file"
     assert (job_dir / "input.csv").read_text() == "# Example input data file"
+    assert (job_dir / "stdout.txt").read_text() == " 0  4 21 job.ini\n"
+    assert (job_dir / "stderr.txt").read_text() == ""
+    assert (job_dir / "returncode").read_text() == "0"

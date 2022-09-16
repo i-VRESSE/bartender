@@ -9,6 +9,7 @@ from bartender.db.models.job_model import Job
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
+from bartender.schedulers.direct import submit
 from bartender.settings import settings
 from bartender.web.api.job.schema import JobModelDTO, JobModelInputDTO
 from bartender.web.users.manager import current_api_token
@@ -138,5 +139,7 @@ async def upload_job(
     has_config_file(application, job_dir)
 
     url = request.url_for("retrieve_job", jobid=job_id)
+
+    await submit(job_dir, settings.applications[application])
 
     return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)

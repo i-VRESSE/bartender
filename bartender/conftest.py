@@ -92,7 +92,7 @@ def fastapi_app(
     application.dependency_overrides[get_db_session] = lambda: dbsession
     settings.applications = {
         "app1": AppSetting(
-            command="app1 $config",
+            command="wc $config",
             config="job.ini",
         ),
     }
