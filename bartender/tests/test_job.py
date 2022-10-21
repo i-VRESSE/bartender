@@ -1,4 +1,5 @@
 import uuid
+from asyncio import sleep
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -95,16 +96,19 @@ async def test_getting(
     """Tests job instance retrieval."""
     dao = JobDAO(dbsession)
     test_name = uuid.uuid4().hex
-    job_id = await dao.create_job(name=test_name, application="app1")
+    application = "app1"
+    job_id = await dao.create_job(name=test_name, application=application)
     url = fastapi_app.url_path_for("retrieve_job", jobid=str(job_id))
 
     response = await client.get(url)
     jobs = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(jobs) == 2
+    assert len(jobs) == 4
     assert jobs["name"] == test_name
     assert jobs["id"] == job_id
+    assert jobs["application"] == application
+    assert jobs["state"] == "new"
 
 
 @pytest.mark.anyio
@@ -135,6 +139,21 @@ async def test_upload(  # noqa: WPS218
 
     job_id = response.headers["location"].split("/")[-1]
     assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    # poll for job status until ok, error or timeout
+    jurl = fastapi_app.url_path_for("retrieve_job", jobid=job_id)
+    job = None
+    for _i in range(10):
+        jresponse = await client.get(jurl)
+        job = jresponse.json()
+        if job["state"] in {"ok", "error"}:
+            break
+        await sleep(0.1)
+    else:
+        assert job is not None
+
+    assert job["state"] == "ok"
+
     job_dir = job_root_dir / job_id
     meta_content = (job_dir / "meta").read_text()
     assert job_id in meta_content and mock_current_api_token in meta_content

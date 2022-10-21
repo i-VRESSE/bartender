@@ -417,3 +417,25 @@ For example
 ```env
 BARTENDER_APPLICATIONS='{"app1": {"command": "app1 $config", "config": "workflow.cfg"}, "app2": {"command": "app2 $config", "config": "workflow.cfg"}}'
 ```
+
+To submit a job to a certain app use
+
+```shell
+
+```
+
+To test with haddock3 use
+```shell
+export BARTENDER_APPLICATIONS='{"haddock3": {"command": "haddock3 $config", "config": "workflow.cfg"}}'
+bartender serve
+```
+Bartender expects the haddock3 executable to be in its PATH.
+
+In another terminal in a directory with a zip file with a workflow.cfg and its data files. Examples at https://github.com/haddocking/haddock3/blob/main/examples .
+```shell
+curl -X 'PUT' \
+  'http://127.0.0.1:8000/api/job/upload/haddock3' \
+  -H 'accept: */*' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'upload=@docking-protein-protein.zip;type=application/x-zip-compressed'
+```

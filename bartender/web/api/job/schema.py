@@ -12,6 +12,8 @@ class JobModelDTO(BaseModel):
 
     id: int
     name: str
+    application: str
+    state: str
 
     class Config:
         orm_mode = True

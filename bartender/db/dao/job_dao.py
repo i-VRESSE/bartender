@@ -54,3 +54,16 @@ class JobDAO:
         # This is the Asyncrhonous session;
         #  https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncSession.refresh
         return await self.session.get(Job, jobid)
+
+    async def update_job_state(self, jobid: int, state: Job.states) -> None:
+        """
+        Update state of a job.
+
+        :param jobid: name of job instance.
+        :param state: new state of job instance.
+        """
+        job = await self.session.get(Job, jobid)
+        if job is None:
+            return
+        job.state = state
+        await self.session.commit()

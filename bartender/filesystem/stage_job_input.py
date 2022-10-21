@@ -36,7 +36,7 @@ async def stage_job_input(
                 break  # type narrowing for mypy, content is always bytes
             await out_file.write(content)
 
-    if archive.content_type == "application/zip":
+    if archive.content_type in {"application/zip", "application/x-zip-compressed"}:
         # Use async subprocess to unpack file outside main thread
         # requires unzip command to be available on machine
         proc = await create_subprocess_exec("unzip", "-nqq", dest_fn, cwd=job_dir)
@@ -50,10 +50,11 @@ async def stage_job_input(
 def _is_valid_content_type(content_type: str) -> bool:
     supported_upload_content_types = {
         "application/zip",
+        "application/x-zip-compressed",
     }  # TODO add support for other formats like tar.gz, tar.bz2, .7z?
     if content_type not in supported_upload_content_types:
         raise UnsupportedContentTypeError(
-            f"Unable to stage job input wrong mime type {content_type}"
+            f"Unable to stage job input wrong mime type {content_type}, "
             + f"supported are {supported_upload_content_types}",
         )
     return True

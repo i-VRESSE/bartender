@@ -1,8 +1,11 @@
-from typing import List, Optional
+from functools import partialmethod
+from typing import Coroutine, List, Optional
+from anyio import Any
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from starlette import status
+from starlette.background import BackgroundTask
 
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
@@ -140,6 +143,23 @@ async def upload_job(
 
     url = request.url_for("retrieve_job", jobid=job_id)
 
-    await submit(job_dir, settings.applications[application])
+    # TODO submit should be an adapter,
+    # which can submit job to one of the available schedulers
+    # based on job input, application, scheduler resources, phase of moon, etc.
+    async def update_state(state: Job.states) -> Coroutine[Any, Any, None]:
+        if job_id is None:
+            raise IndexError("Failed to create database entry for job")
+        return job_dao.update_job_state(job_id, state)
 
-    return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+    task = BackgroundTask(
+        submit,
+        job_dir=job_dir,
+        app=settings.applications[application],
+        update_state=update_state,
+    )
+
+    return RedirectResponse(
+        url=url,
+        status_code=status.HTTP_303_SEE_OTHER,
+        background=task,
+    )
