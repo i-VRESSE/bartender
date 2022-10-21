@@ -149,7 +149,7 @@ async def upload_job(
     async def update_state(state: Job.states) -> Coroutine[Any, Any, None]:
         if job_id is None:
             raise IndexError("Failed to create database entry for job")
-        return job_dao.update_job_state(job_id, state)
+        await job_dao.update_job_state(job_id, state)
 
     task = BackgroundTask(
         submit,
