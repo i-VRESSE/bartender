@@ -7,6 +7,7 @@ from bartender.settings import AppSetting
 
 UpdateState = Callable[[str], Coroutine[Any, Any, None]]
 
+
 async def submit(
     job_dir: Path,
     app: AppSetting,
