@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from bartender.db.models.job_model import Job
+
 # DTO = Data Transfer Object
 
 
@@ -13,7 +15,7 @@ class JobModelDTO(BaseModel):
     id: int
     name: str
     application: str
-    state: str
+    state: Job.states
 
     class Config:
         orm_mode = True
