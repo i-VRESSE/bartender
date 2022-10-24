@@ -86,6 +86,10 @@ per-file-ignores =
   DAR101,
   ; Found too many arguments
   WPS211,
+  ; Missing docstring in public function
+  D103,
+  ; Missing docstring in public package
+  D104,
 
   ; all init files
   __init__.py:
