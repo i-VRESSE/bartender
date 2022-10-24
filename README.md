@@ -421,7 +421,11 @@ BARTENDER_APPLICATIONS='{"app1": {"command": "app1 $config", "config": "workflow
 To submit a job to a certain app use
 
 ```shell
-
+curl -X 'PUT' \
+  'http://127.0.0.1:8000/api/applications/<app name>/job' \
+  -H 'accept: */*' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'upload=@<archive file to upload>;type=application/x-zip-compressed'
 ```
 
 To test with haddock3 use
@@ -434,7 +438,7 @@ Bartender expects the haddock3 executable to be in its PATH.
 In another terminal in a directory with a zip file with a workflow.cfg and its data files. Examples at https://github.com/haddocking/haddock3/blob/main/examples .
 ```shell
 curl -X 'PUT' \
-  'http://127.0.0.1:8000/api/job/upload/haddock3' \
+  'http://127.0.0.1:8000/api/applications/haddock3/job' \
   -H 'accept: */*' \
   -H 'Content-Type: multipart/form-data' \
   -F 'upload=@docking-protein-protein.zip;type=application/x-zip-compressed'
