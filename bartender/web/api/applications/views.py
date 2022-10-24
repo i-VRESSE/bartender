@@ -22,6 +22,7 @@ def list_applications() -> list[str]:
 
     :return: The list.
     """
+    # TODO also return values or atleast the expected config file name for each app
     return list(settings.applications.keys())
 
 

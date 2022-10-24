@@ -1,6 +1,7 @@
 import enum
 from pathlib import Path
 from tempfile import gettempdir
+from typing import Dict
 
 from pydantic import BaseModel, BaseSettings
 from yarl import URL
@@ -73,7 +74,12 @@ class Settings(BaseSettings):
     orcid_client_secret: str = ""
 
     # Settings for applications
-    applications: dict[str, AppSetting] = {}
+    applications: Dict[str, AppSetting] = {
+        "wc": AppSetting(
+            command="wc $config",
+            config="job.ini",
+        ),
+    }
 
     @property
     def db_url(self) -> URL:
