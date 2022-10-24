@@ -23,6 +23,7 @@ async def submit(
 
     :param job_dir: Directory where input files for application are located.
     :param app: Which application to execute
+    :param update_state: Function to update the state of the job elsewhere like the db.
     """
     cmd = Template(app.command).substitute(config=app.config)
 

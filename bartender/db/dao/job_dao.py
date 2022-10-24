@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bartender.db.dependencies import get_db_session
-from bartender.db.models.job_model import Job
+from bartender.db.models.job_model import Job, States
+from bartender.db.models.user import User
 
 
 class JobDAO:
@@ -14,29 +15,39 @@ class JobDAO:
     def __init__(self, session: AsyncSession = Depends(get_db_session)):
         self.session = session
 
-    async def create_job(self, name: str, application: str) -> Optional[int]:
+    async def create_job(
+        self,
+        name: str,
+        application: str,
+        submitter: User,
+    ) -> Optional[int]:
         """
         Add single job to session.
 
         :param name: name of a job.
         :param application: name of application to run job for.
+        :param submitter: User who submitted the job.
         :return: id of a job.
         """
-        job = Job(name=name, application=application)
+        job = Job(name=name, application=application, submitter=submitter)
         self.session.add(job)
         await self.session.commit()
         return job.id
 
-    async def get_all_jobs(self, limit: int, offset: int) -> List[Job]:
+    async def get_all_jobs(self, limit: int, offset: int, user: User) -> List[Job]:
         """
-        Get all job models with limit/offset pagination.
+        Get all job models of user with limit/offset pagination.
 
         :param limit: limit of jobs.
         :param offset: offset of jobs.
+        :param user: Which user to get jobs from.
         :return: stream of jobs.
         """
         raw_jobs = await self.session.execute(
-            select(Job).limit(limit).offset(offset),
+            select(Job)
+            .filter(Job.submitter == user)
+            .limit(limit)
+            .offset(offset),  # TODO also return shared jobs
         )
 
         return raw_jobs.scalars().fetchall()
@@ -55,7 +66,7 @@ class JobDAO:
         #  https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncSession.refresh
         return await self.session.get(Job, jobid)
 
-    async def update_job_state(self, jobid: int, state: Job.states) -> None:
+    async def update_job_state(self, jobid: int, state: States) -> None:
         """
         Update state of a job.
 

@@ -14,7 +14,7 @@ from fastapi_users.authentication.transport.base import (
     TransportLogoutNotSupportedError,
 )
 from fastapi_users.authentication.transport.bearer import BearerResponse
-from fastapi_users.db import SQLAlchemyUserDatabase
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from httpx_oauth.clients.github import GitHubOAuth2
 
 from bartender.db.dao.user_dao import get_user_db
