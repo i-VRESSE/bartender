@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     applications: Dict[str, AppSetting] = {
         "wc": AppSetting(
             command="wc $config",
-            config="job.ini",
+            config="README.md",
         ),
     }
 

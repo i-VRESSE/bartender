@@ -52,19 +52,22 @@ class JobDAO:
 
         return raw_jobs.scalars().fetchall()
 
-    async def get_job(
-        self,
-        jobid: int,
-    ) -> Optional[Job]:
+    async def get_job(self, jobid: int, user: User) -> Job:
         """
         Get specific job model.
 
         :param jobid: name of job instance.
-        :return: job models.
+        :param user: Which user to get jobs from.
+        :return: job model.
         """
         # This is the Asyncrhonous session;
         #  https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncSession.refresh
-        return await self.session.get(Job, jobid)
+        result = await self.session.execute(
+            select(Job)
+            .filter(Job.id == jobid)
+            .filter(Job.submitter == user),  # TODO also return shared jobs
+        )
+        return result.scalar_one()
 
     async def update_job_state(self, jobid: int, state: States) -> None:
         """
