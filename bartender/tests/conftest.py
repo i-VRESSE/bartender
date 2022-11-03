@@ -128,7 +128,7 @@ def job_root_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
-    """Registers dummy user and returns is auth token.
+    """Registers dummy user and returns its auth token.
 
     :return: token
     """
