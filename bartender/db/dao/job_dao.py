@@ -69,7 +69,7 @@ class JobDAO:
         )
         return result.scalar_one()
 
-    async def update_job_state(self, jobid: int, state: States) -> None:
+    async def update_job_state(self, jobid: int, state: States | str) -> None:
         """
         Update state of a job.
 

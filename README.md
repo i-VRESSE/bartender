@@ -11,6 +11,7 @@
     - [Orcid login](#orcid-login)
     - [Super user](#super-user)
   - [Consuming web service](#consuming-web-service)
+    - [Word count example](#word-count-example)
     - [Haddock3 example](#haddock3-example)
   - [Poetry](#poetry)
   - [Docker](#docker)
@@ -258,17 +259,18 @@ Bartender is by default configured with a word count applicaton.
 To
 
 1. Create an archive to submit. The zip file should contain a file called `README.md`. A zip file could be created in a clone of this repo with `zip README.zip README.md`.
-2. Start bartender web service and postgresql server
+2. Start [bartender web service and postgresql server](#step-by-step-setup-of-proof-of-concept)
 3. Register & login account by
     1. Goto `http://127.0.0.1:8000/api/docs` and
-    2. Try out the `POST /auth/register` route. By default is will create an account with email `user@example.com` and password `string`.
-    3. Use authorize button on top of page to login.
+    2. Try out the `POST /auth/register` route.
+    3. Use default request body and press execute button. This will create an account with email `user@example.com` and password `string`.
+    4. Use authorize button on top of page to login with username `user@example.com` and password `string`.
 4. Submit archive.
     1. Try out the `POST /api/application/{application}/job` route.
     2. Use `wc` as application parameter
     3. Upload the `README.zip` as request body.
     4. Press execute button
-    5. The response contains a job identifier that can be used to fetch the job state.
+    5. The response contains a job identifier (`id` property) that can be used to fetch the job state.
 5. Fetch job state
     1. Try out the `GET /api/job/{jobid}`
     2. Use job identifier retrieved by submit request as `jobid` parameter value.
@@ -424,7 +426,7 @@ For running tests on your local machine.
     pytest -vv .
     ```
 
-To get PostgreSQL terminal do
+To get a PostgreSQL terminal do
 
 ```bash
 docker exec -ti <id or name of docker container> psql -U bartender

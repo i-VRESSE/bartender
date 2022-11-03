@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from bartender.db.models.job_model import States
@@ -16,6 +18,8 @@ class JobModelDTO(BaseModel):
     name: str
     application: str
     state: States
+    created_on: datetime
+    updated_on: datetime
 
     class Config:
         orm_mode = True

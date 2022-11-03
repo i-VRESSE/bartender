@@ -3,9 +3,11 @@ from pathlib import Path
 from string import Template
 from typing import Any, Callable, Coroutine
 
+from bartender.db.models.job_model import States
 from bartender.settings import AppSetting
 
-UpdateState = Callable[[str], Coroutine[Any, Any, None]]
+_coroutine = Coroutine[Any, Any, None]
+UpdateState = Callable[[States | str], _coroutine]
 
 
 async def submit(
@@ -14,6 +16,9 @@ async def submit(
     update_state: UpdateState,
 ) -> None:
     """Run the command of a application inside the job directory immediatly.
+
+    The direct submitter runs all jobs simultaneously in asynchronous sub processes.
+    So submitting many jobs can cause the server to become unresponsive.
 
     After executation the following files will be written to `job_dir`:
 
@@ -29,7 +34,7 @@ async def submit(
 
     with open(job_dir / "stderr.txt", "w") as stderr:
         with open(job_dir / "stdout.txt", "w") as stdout:
-            await update_state("running")
+            await update_state(States.RUNNING)
             proc = await create_subprocess_shell(
                 cmd,
                 stdout=stdout,
@@ -40,7 +45,7 @@ async def submit(
             # for slurm it would be the slurm job id that needs to be saved in db
             returncode = await proc.wait()
             if returncode == 0:
-                await update_state("ok")
+                await update_state(States.OK)
             else:
-                await update_state("error")
+                await update_state(States.ERROR)
             (job_dir / "returncode").write_text(str(returncode))

@@ -59,7 +59,11 @@ async def test_retrieve_jobs_one(
             "state": "new",
         },
     ]
-    assert jobs == expected
+    dateless_jobs = [
+        {key: job[key] for key in job if key not in {"created_on", "updated_on"}}
+        for job in jobs
+    ]
+    assert dateless_jobs == expected
 
 
 @pytest.mark.anyio
@@ -81,4 +85,7 @@ async def test_retrieve_job(
         "application": "app1",
         "state": "new",
     }
-    assert job == expected
+    dateless_job = {
+        key: job[key] for key in job if key not in {"created_on", "updated_on"}
+    }
+    assert dateless_job == expected

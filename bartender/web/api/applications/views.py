@@ -46,10 +46,7 @@ def list_applications() -> list[str]:
 async def upload_job(
     application: str,
     request: Request,
-    upload: UploadFile = File(
-        description="Archive with config file for application",
-        default=None,
-    ),
+    upload: UploadFile = File(description="Archive with config file for application"),
     job_dao: JobDAO = Depends(),
     submitter: User = Depends(current_active_user),
 ) -> RedirectResponse:
@@ -77,17 +74,17 @@ async def upload_job(
     await stage_job_input(job_dir, upload)
     has_config_file(application, job_dir)
 
-    # TODO submit should be an adapter,
-    # which can submit job to one of the available schedulers
-    # based on job input, application, scheduler resources, phase of moon, etc.
     async def update_state(  # noqa: WPS430 so scheduler does not need bartenders job id
-        state: States,
+        state: States | str,
     ) -> None:
         if job_id is None:
             raise IndexError("Failed to create database entry for job")
         await job_dao.update_job_state(job_id, state)
 
     task = BackgroundTask(
+        # TODO submit function should be an adapter,
+        # which can submit job to one of the available schedulers
+        # based on job input, application, scheduler resources, phase of moon, etc.
         submit,
         job_dir=job_dir,
         app=settings.applications[application],
