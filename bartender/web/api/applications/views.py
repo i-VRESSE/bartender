@@ -4,7 +4,7 @@ from starlette import status
 from starlette.background import BackgroundTask
 
 from bartender.db.dao.job_dao import JobDAO
-from bartender.db.models.job_model import States
+from bartender.db.models.job_model import State
 from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
@@ -75,7 +75,7 @@ async def upload_job(
     has_config_file(application, job_dir)
 
     async def update_state(  # noqa: WPS430 so scheduler does not need bartenders job id
-        state: States | str,
+        state: State,
     ) -> None:
         if job_id is None:
             raise IndexError("Failed to create database entry for job")

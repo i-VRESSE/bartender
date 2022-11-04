@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bartender.db.dependencies import get_db_session
-from bartender.db.models.job_model import Job, States
+from bartender.db.models.job_model import Job, State
 from bartender.db.models.user import User
 
 
@@ -69,7 +69,7 @@ class JobDAO:
         )
         return result.scalar_one()
 
-    async def update_job_state(self, jobid: int, state: States | str) -> None:
+    async def update_job_state(self, jobid: int, state: State) -> None:
         """
         Update state of a job.
 

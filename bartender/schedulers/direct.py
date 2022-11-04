@@ -3,11 +3,11 @@ from pathlib import Path
 from string import Template
 from typing import Any, Callable, Coroutine
 
-from bartender.db.models.job_model import States
+from bartender.db.models.job_model import State
 from bartender.settings import AppSetting
 
 _coroutine = Coroutine[Any, Any, None]
-UpdateState = Callable[[States | str], _coroutine]
+UpdateState = Callable[[State], _coroutine]
 
 
 async def submit(
@@ -34,7 +34,7 @@ async def submit(
 
     with open(job_dir / "stderr.txt", "w") as stderr:
         with open(job_dir / "stdout.txt", "w") as stdout:
-            await update_state(States.RUNNING)
+            await update_state("running")
             proc = await create_subprocess_shell(
                 cmd,
                 stdout=stdout,
@@ -45,7 +45,7 @@ async def submit(
             # for slurm it would be the slurm job id that needs to be saved in db
             returncode = await proc.wait()
             if returncode == 0:
-                await update_state(States.OK)
+                await update_state("ok")
             else:
-                await update_state(States.ERROR)
+                await update_state("error")
             (job_dir / "returncode").write_text(str(returncode))

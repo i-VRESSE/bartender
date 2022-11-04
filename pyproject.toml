@@ -24,7 +24,6 @@ httptools = "^0.3.0"
 python-multipart = "^0.0.5"
 aiofiles = "^0.8.0"
 fastapi-users = {extras = ["sqlalchemy", "oauth"], version = "^10.1.5"}
-strenum = "^0.4.8"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"

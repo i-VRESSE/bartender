@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from bartender.db.models.job_model import States
+from bartender.db.models.job_model import State
 
 # DTO = Data Transfer Object
 
@@ -17,7 +17,7 @@ class JobModelDTO(BaseModel):
     id: int
     name: str
     application: str
-    state: States
+    state: State
     created_on: datetime
     updated_on: datetime
 
