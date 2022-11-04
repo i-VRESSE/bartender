@@ -256,7 +256,7 @@ This token can be aquired by using the register+login routes or using a [socal l
 ### Word count example
 
 Bartender is by default configured with a word count applicaton.
-To
+Use the following steps to run a job:
 
 1. Create an archive to submit. The zip file should contain a file called `README.md`. A zip file could be created in a clone of this repo with `zip README.zip README.md`.
 2. Start [bartender web service and postgresql server](#step-by-step-setup-of-proof-of-concept)
@@ -290,7 +290,9 @@ bartender serve
 ```
 Bartender expects the haddock3 executable to be in its PATH.
 
-In another terminal in a directory with a zip file with a `workflow.cfg` file and its data files. Examples at https://github.com/haddocking/haddock3/blob/main/examples .
+Submit a job in another terminal in a directory with a zip file with a `workflow.cfg` file and its data files.
+
+Examples at https://github.com/haddocking/haddock3/blob/main/examples .
 ```shell
 curl -X 'PUT' \
   'http://127.0.0.1:8000/api/applications/haddock3/job' \
@@ -298,6 +300,7 @@ curl -X 'PUT' \
   -H 'Content-Type: multipart/form-data' \
   -F 'upload=@docking-protein-protein.zip;type=application/x-zip-compressed'
 ```
+Where `docking-protein-protein.zip` is the zip file to run haddock3 with.
 
 The response contains a redirect to the job url (`/api/job/<some id>`).
 
@@ -305,7 +308,7 @@ The job url should be fetched until the state property is either `ok` or `error`
 
 ## [Poetry](#poetry)
 
-This project uses poetry. It's a modern dependency management
+This project uses [poetry](https://python-poetry.org/). It's a modern dependency management
 tool.
 
 To run the project use this set of commands:
@@ -316,10 +319,6 @@ poetry run bartender serve
 ```
 
 This will start the server on the configured host.
-
-You can find swagger documentation at `/api/docs`.
-
-You can read more about poetry here: <https://python-poetry.org/>
 
 ## [Docker](#docker)
 
@@ -346,26 +345,18 @@ docker-compose -f deploy/docker-compose.yml --project-directory . build
 
 ## [Pre-commit](#pre-commit)
 
+[pre-commit](https://pre-commit.com/) is very useful to check your code before publishing it.
+It's configured using `.pre-commit-config.yaml` file.
+
 To install pre-commit simply run inside the shell:
 
 ```bash
 pre-commit install
 ```
 
-pre-commit is very useful to check your code before publishing it.
-It's configured using `.pre-commit-config.yaml` file.
-
-By default it runs:
-
-* black (formats your code);
-* mypy (validates types);
-* isort (sorts imports in all files);
-* flake8 (spots possible bugs);
-* yesqa (removes useless `# noqa` comments).
-
-You can read more about pre-commit here: <https://pre-commit.com/>
-
 ## [Migrations](#migrations)
+
+Bartender uses [alembic](https://alembic.sqlalchemy.org) to create database tables and perform migrations.
 
 If you want to migrate your database, you should run following commands:
 
