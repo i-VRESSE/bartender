@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 import pytest
@@ -10,13 +11,16 @@ from starlette import status
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.user import User
 
+somedt = datetime(2022, 1, 1, tzinfo=timezone.utc)
+
 
 @pytest.fixture
 async def mock_db_job(
     dbsession: AsyncSession,
     current_user_token: str,
 ) -> Optional[int]:
-    # Mock is incomplete as it only does db stuff, it excludes staging of files
+    """Fixture that inserts single new job into db."""
+    # This mock is incomplete as it only does db stuff, it excludes staging of files
     result = await dbsession.execute(select(User))
     user = result.unique().scalar_one()
     dao = JobDAO(dbsession)
@@ -24,6 +28,8 @@ async def mock_db_job(
         name="testjob1",
         application="app1",
         submitter=user,
+        created_on=somedt,
+        updated_on=somedt,
     )
 
 
@@ -57,13 +63,11 @@ async def test_retrieve_jobs_one(
             "name": "testjob1",
             "application": "app1",
             "state": "new",
+            "created_on": somedt.isoformat(),
+            "updated_on": somedt.isoformat(),
         },
     ]
-    dateless_jobs = [
-        {key: job[key] for key in job if key not in {"created_on", "updated_on"}}
-        for job in jobs
-    ]
-    assert dateless_jobs == expected
+    assert jobs == expected
 
 
 @pytest.mark.anyio
@@ -84,8 +88,7 @@ async def test_retrieve_job(
         "name": "testjob1",
         "application": "app1",
         "state": "new",
+        "created_on": somedt.isoformat(),
+        "updated_on": somedt.isoformat(),
     }
-    dateless_job = {
-        key: job[key] for key in job if key not in {"created_on", "updated_on"}
-    }
-    assert dateless_job == expected
+    assert job == expected

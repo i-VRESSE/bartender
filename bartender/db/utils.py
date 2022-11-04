@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -42,3 +44,11 @@ async def drop_database() -> None:
         )
         await conn.execute(text(disc_users))
         await conn.execute(text(f'DROP DATABASE "{settings.db_base}"'))
+
+
+def now() -> datetime:
+    """Return current datetime.
+
+    :return: Current datetime in UTC timezone.
+    """
+    return datetime.now(timezone.utc)

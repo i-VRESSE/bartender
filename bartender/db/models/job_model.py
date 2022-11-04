@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Literal
 
 from fastapi_users_db_sqlalchemy.generics import GUID
@@ -8,6 +7,7 @@ from sqlalchemy.sql.sqltypes import DateTime, Integer, String
 
 from bartender.db.base import Base
 from bartender.db.models.user import User
+from bartender.db.utils import now
 
 # Possible states of a job.
 State = Literal["new", "queued", "running", "ok", "error"]
@@ -24,10 +24,10 @@ class Job(Base):
     state = Column(String(length=10), default="new", nullable=False)
     submitter_id = Column(GUID(), ForeignKey("user.id"), nullable=False)
     submitter: User = relationship("User", back_populates="jobs")
-    created_on = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_on = Column(DateTime(timezone=True), default=now, nullable=False)
     updated_on = Column(
-        DateTime,
-        onupdate=datetime.utcnow,
-        default=datetime.utcnow,
+        DateTime(timezone=True),
+        onupdate=now,
+        default=now,
         nullable=False,
     )
