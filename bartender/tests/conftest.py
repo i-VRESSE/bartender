@@ -9,8 +9,11 @@ from sqlalchemy.orm import sessionmaker
 
 from bartender.db.dependencies import get_db_session
 from bartender.db.utils import create_database, drop_database
+from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.memory import MemoryScheduler
 from bartender.settings import AppSetting, settings
 from bartender.web.application import get_app
+from bartender.web.lifetime import get_scheduler
 
 
 @pytest.fixture(scope="session")
@@ -80,8 +83,18 @@ async def dbsession(
 
 
 @pytest.fixture
+async def scheduler() -> AsyncGenerator[AbstractScheduler, None]:
+    my_scheduler = MemoryScheduler()
+    try:
+        yield my_scheduler
+    finally:
+        await my_scheduler.close()
+
+
+@pytest.fixture
 def fastapi_app(
     dbsession: AsyncSession,
+    scheduler: AbstractScheduler,
 ) -> FastAPI:
     """
     Fixture for creating FastAPI app.
@@ -90,6 +103,7 @@ def fastapi_app(
     """
     application = get_app()
     application.dependency_overrides[get_db_session] = lambda: dbsession
+    application.dependency_overrides[get_scheduler] = lambda: scheduler
     settings.secret = "testsecret"  # noqa: S105
     settings.applications = {
         "app1": AppSetting(
