@@ -25,7 +25,7 @@ python-multipart = "^0.0.5"
 aiofiles = "^0.8.0"
 fastapi-users = {extras = ["sqlalchemy", "oauth"], version = "^10.1.5"}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
 flake8 = "^4.0.1"
 mypy = "^0.961"
@@ -41,6 +41,7 @@ anyio = "^3.6.1"
 pytest-env = "^0.6.2"
 httpx = "^0.22.0"
 types-aiofiles = "^0.8.11"
+testcontainers = "^3.7.0"
 
 [tool.poetry.scripts]
 bartender = 'bartender.__main__:main'
