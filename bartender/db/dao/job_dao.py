@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import Depends
@@ -15,11 +16,13 @@ class JobDAO:
     def __init__(self, session: AsyncSession = Depends(get_db_session)):
         self.session = session
 
-    async def create_job(
+    async def create_job(  # noqa: WPS211
         self,
         name: str,
         application: str,
         submitter: User,
+        updated_on: Optional[datetime] = None,
+        created_on: Optional[datetime] = None,
     ) -> Optional[int]:
         """
         Add single job to session.
@@ -27,9 +30,17 @@ class JobDAO:
         :param name: name of a job.
         :param application: name of application to run job for.
         :param submitter: User who submitted the job.
+        :param updated_on: Datetime when job was last updated.
+        :param created_on: Datetime when job was created.
         :return: id of a job.
         """
-        job = Job(name=name, application=application, submitter=submitter)
+        job = Job(
+            name=name,
+            application=application,
+            submitter=submitter,
+            created_on=created_on,
+            updated_on=updated_on,
+        )
         self.session.add(job)
         await self.session.commit()
         return job.id

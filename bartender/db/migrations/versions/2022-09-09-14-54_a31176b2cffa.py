@@ -22,7 +22,7 @@ def upgrade() -> None:
         "job",
         sa.Column("application", sa.String(length=200), nullable=False),
     )
-    op.add_column("job", sa.Column("state", sa.String(length=100), nullable=False))
+    op.add_column("job", sa.Column("state", sa.String(length=10), nullable=False))
     op.add_column(
         "job",
         sa.Column(
@@ -31,8 +31,14 @@ def upgrade() -> None:
             nullable=False,
         ),
     )
-    op.add_column("job", sa.Column("created_on", sa.DateTime(), nullable=False))
-    op.add_column("job", sa.Column("updated_on", sa.DateTime(), nullable=False))
+    op.add_column(
+        "job",
+        sa.Column("created_on", sa.DateTime(timezone=True), nullable=False),
+    )
+    op.add_column(
+        "job",
+        sa.Column("updated_on", sa.DateTime(timezone=True), nullable=False),
+    )
     op.create_foreign_key("job_submitter_fk", "job", "user", ["submitter_id"], ["id"])
     # ### end Alembic commands ###
 

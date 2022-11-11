@@ -90,7 +90,8 @@ per-file-ignores =
   D103,
   ; Missing docstring in public package
   D104,
-
+  ; Missing "Returns" in Docstring: - return
+  DAR201,
   ; all init files
   __init__.py:
   ; ignore not used imports
