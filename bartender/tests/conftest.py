@@ -10,10 +10,10 @@ from sqlalchemy.orm import sessionmaker
 from bartender.db.dependencies import get_db_session
 from bartender.db.utils import create_database, drop_database
 from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.dependencies import get_scheduler
 from bartender.schedulers.memory import MemoryScheduler
 from bartender.settings import AppSetting, settings
 from bartender.web.application import get_app
-from bartender.web.lifetime import get_scheduler
 
 
 @pytest.fixture(scope="session")

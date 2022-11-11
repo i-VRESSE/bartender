@@ -9,9 +9,9 @@ from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.dependencies import get_scheduler
 from bartender.settings import settings
 from bartender.web.api.applications.submit import submit
-from bartender.web.lifetime import get_scheduler
 from bartender.web.users.manager import current_active_user, current_api_token
 
 router = APIRouter()

@@ -81,6 +81,11 @@ class Settings(BaseSettings):
         ),
     }
 
+    # Settings for schedulers
+    scheduler_slots = 1
+    # TODO read scheduler + applications from
+    # yaml/toml formmatted config file instead of env vars.
+
     @property
     def db_url(self) -> URL:
         """

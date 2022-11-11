@@ -10,10 +10,10 @@ from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
 from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.dependencies import get_scheduler
 from bartender.settings import settings
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
-from bartender.web.lifetime import get_scheduler
 from bartender.web.users.manager import current_active_user
 
 router = APIRouter()
@@ -42,7 +42,7 @@ async def retrieve_jobs(
     # or are shared with current user
     jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
     # get current state for each job from scheduler
-    await sync_states(jobs, job_dao, scheduler)
+    await sync_states(jobs, scheduler, job_dao)
     return jobs
 
 

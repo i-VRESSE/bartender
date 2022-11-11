@@ -21,8 +21,8 @@ async def sync_state(job: Job, job_dao: JobDAO, scheduler: AbstractScheduler) ->
 
 async def sync_states(
     jobs: list[Job],
-    job_dao: JobDAO,
     scheduler: AbstractScheduler,
+    job_dao: JobDAO,
 ) -> None:
     """Sync state of jobs from scheduler to database.
 

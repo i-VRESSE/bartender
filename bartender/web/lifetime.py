@@ -1,12 +1,11 @@
 from typing import Awaitable, Callable
 
 from fastapi import FastAPI
-from starlette.requests import Request
 
 from bartender.db.session import make_engine, make_session_factory
 from bartender.filesystem import setup_job_root_dir
-from bartender.schedulers.abstract import AbstractScheduler
 from bartender.schedulers.memory import MemoryScheduler
+from bartender.settings import settings
 
 
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
@@ -68,7 +67,7 @@ def _setup_scheduler(app: FastAPI) -> None:
 
     :param app: fastAPI application.
     """
-    app.state.scheduler = MemoryScheduler()
+    app.state.scheduler = MemoryScheduler(settings.scheduler_slots)
 
 
 async def _teardown_scheduler(app: FastAPI) -> None:
@@ -77,12 +76,3 @@ async def _teardown_scheduler(app: FastAPI) -> None:
     :param app: fastAPI application.
     """
     await app.state.scheduler.close()
-
-
-def get_scheduler(request: Request) -> AbstractScheduler:
-    """Retrieve job scheduler.
-
-    :param request: current request.
-    :return: A scheduler.
-    """
-    return request.app.scheduler
