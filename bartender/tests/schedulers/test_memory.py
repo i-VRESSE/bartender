@@ -7,7 +7,7 @@ from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.memory import KILLED_RETURN_CODE, MemoryScheduler
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_ok_running_job(tmp_path: Path) -> None:
     try:
         scheduler = MemoryScheduler(slots=1)
@@ -24,7 +24,7 @@ async def test_ok_running_job(tmp_path: Path) -> None:
         await scheduler.close()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_bad_running_job(tmp_path: Path) -> None:
     try:
         scheduler = MemoryScheduler(slots=1)
@@ -40,7 +40,7 @@ async def test_bad_running_job(tmp_path: Path) -> None:
         await scheduler.close()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_cancel_running_job(tmp_path: Path) -> None:
     try:
         scheduler, jid, _ = await make_occupied_scheduler(tmp_path)
@@ -67,7 +67,7 @@ async def make_occupied_scheduler(
     return scheduler, jid, description
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_cancel_queud_job(tmp_path: Path) -> None:
     try:
         scheduler, _, description = await make_occupied_scheduler(tmp_path)
