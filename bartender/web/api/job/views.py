@@ -7,11 +7,12 @@ from sqlalchemy.exc import NoResultFound
 from starlette import status
 
 from bartender.db.dao.job_dao import JobDAO
-from bartender.db.models.job_model import CompletedStates, Job
+from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
 from bartender.schedulers.abstract import AbstractScheduler
 from bartender.settings import settings
 from bartender.web.api.job.schema import JobModelDTO
+from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.lifetime import get_scheduler
 from bartender.web.users.manager import current_active_user
 
@@ -41,8 +42,7 @@ async def retrieve_jobs(
     # or are shared with current user
     jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
     # get current state for each job from scheduler
-    for job in jobs:
-        await sync_state(job, job_dao, scheduler)
+    await sync_states(jobs, job_dao, scheduler)
     return jobs
 
 
@@ -77,22 +77,6 @@ async def retrieve_job(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Job not found",
         ) from exc
-
-
-async def sync_state(job: Job, job_dao: JobDAO, scheduler: AbstractScheduler) -> None:
-    """Sync state of job from scheduler to database.
-
-    :param job: Job instance.
-    :param job_dao: JobDAO object.
-    :param scheduler: Current job scheduler.
-    """
-    if job.state not in CompletedStates and job.internal_id is not None:
-        # TODO throttle getting state from scheduler as getting state could be expensive
-        # could add column to Job to track when state was last fetched
-        state = await scheduler.state(job.internal_id)
-        if job.state != state and job.id is not None:
-            await job_dao.update_job_state(job.id, state)
-            job.state = state
 
 
 @router.get("/{jobid}/stdout", response_class=FileResponse)

@@ -8,8 +8,9 @@ from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
-from bartender.schedulers.abstract import AbstractScheduler, JobDescription
+from bartender.schedulers.abstract import AbstractScheduler
 from bartender.settings import settings
+from bartender.web.api.applications.submit import submit
 from bartender.web.lifetime import get_scheduler
 from bartender.web.users.manager import current_active_user, current_api_token
 
@@ -24,23 +25,6 @@ def list_applications() -> list[str]:
     """
     # TODO also return values or atleast the expected config file name for each app
     return list(settings.applications.keys())
-
-
-async def submit(
-    external_job_id: int,
-    description: JobDescription,
-    job_dao: JobDAO,
-    scheduler: AbstractScheduler,
-) -> None:
-    """Submit job description to scheduler and store job id returned by scheduler in db.
-
-    :param external_job_id: External job id.
-    :param description: Description to submit.
-    :param job_dao: JobDAO object.
-    :param scheduler: Current job scheduler.
-    """
-    internal_job_id = await scheduler.submit(description)
-    await job_dao.update_internal_job_id(external_job_id, internal_job_id)
 
 
 @router.put(
@@ -94,12 +78,10 @@ async def upload_job(  # noqa: WPS211
     has_config_file(application, job_dir)
 
     task = BackgroundTask(
-        # TODO submit function should be an adapter,
-        # which can submit job to one of the available schedulers
-        # based on job input, application, scheduler resources, phase of moon, etc.
         submit,
         job_id,
-        JobDescription(job_dir=job_dir, app=application),
+        job_dir,
+        settings.applications[application],
         job_dao,
         scheduler,
     )

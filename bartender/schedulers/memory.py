@@ -1,50 +1,71 @@
-from asyncio import Queue, create_subprocess_shell, create_task, gather
-from string import Template
+from asyncio import (
+    CancelledError,
+    Queue,
+    Task,
+    create_subprocess_shell,
+    create_task,
+    gather,
+)
+from dataclasses import dataclass
+from typing import Optional
 from uuid import uuid4
 
-from pydantic import BaseModel
 from pydantic.types import PositiveInt
 
 from bartender.db.models.job_model import CompletedStates, State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
-from bartender.settings import settings
 
 
-class _Job(BaseModel):
+@dataclass
+class _Job:
     description: JobDescription
     id: str
+    state: State
+    worker_index: Optional[int] = None
 
 
-async def _exec(job: _Job, states: dict[str, State]) -> None:  # noqa: WPS210
-    description = job.description
-    job_id = job.id
-    job_dir = description.job_dir
-    app = settings.applications[description.app]
-    cmd = Template(app.command).substitute(config=app.config)
+KILLED_RETURN_CODE = "130"
+
+
+async def _exec(job: _Job) -> None:  # noqa: WPS210
+    job_dir = job.description.job_dir
     stderr_fn = job_dir / "stderr.txt"
     stdout_fn = job_dir / "stdout.txt"
 
     with open(stderr_fn, "w") as stderr:
         with open(stdout_fn, "w") as stdout:
-            states[job_id] = "running"
-            proc = await create_subprocess_shell(
-                cmd,
-                stdout=stdout,
-                stderr=stderr,
-                cwd=job_dir,
-            )
-            returncode = await proc.wait()
-            if returncode == 0:
-                states[job_id] = "ok"
-            else:
-                states[job_id] = "error"
-            (job_dir / "returncode").write_text(str(returncode))
+            job.state = "running"
+            try:
+                proc = await create_subprocess_shell(
+                    job.description.command,
+                    stdout=stdout,
+                    stderr=stderr,
+                    cwd=job_dir,
+                )
+                returncode = await proc.wait()
+                if returncode == 0:
+                    job.state = "ok"
+                else:
+                    job.state = "error"
+                (job_dir / "returncode").write_text(str(returncode))
+            except CancelledError as exc:
+                proc.kill()
+                # TODO job was killed by external action,
+                # use different state like killed?
+                job.state = "error"
+                (job_dir / "returncode").write_text(KILLED_RETURN_CODE)
+                raise exc
 
 
-async def _worker(queue: Queue[_Job], states: dict[str, State]) -> None:
+async def _worker(queue: Queue[_Job], jobs: dict[str, _Job], worker_index: int) -> None:
     while True:  # noqa: WPS457
         job = await queue.get()
-        await _exec(job, states)
+        # cannot delete job from queue to cancel it
+        # workaround is to skip job when it is not in jobs dict
+        # as MemoryScheduler.cancel() will remove job from dict
+        if job.id in jobs:
+            job.worker_index = worker_index
+            await _exec(job)
         queue.task_done()
 
 
@@ -57,42 +78,46 @@ class MemoryScheduler(AbstractScheduler):
     def __init__(self, slots: PositiveInt = 1):
         """In memory scheduler.
 
-        :param slots: Maximum number of concurrently runnning jobs.
+        :param slots: Maximum number of concurrently runnning jobs. Minimum is 1.
         """
         self.queue: Queue[_Job] = Queue()
-        self.states: dict[str, State] = {}
-        self.tasks = []
+        self.jobs: dict[str, _Job] = {}
+        self.workers: list[Task[None]] = []
         for _ in range(slots):
-            task = create_task(_worker(self.queue, self.states))
-            self.tasks.append(task)
+            self._add_worker()
 
     async def close(self) -> None:  # noqa: D102
-        for task in self.tasks:
+        for task in self.workers:
             task.cancel()
-        await gather(*self.tasks, return_exceptions=True)
+        await gather(*self.workers, return_exceptions=True)
 
     async def submit(self, description: JobDescription) -> str:  # noqa: D102
         job_id = str(uuid4())
-        self.states[job_id] = "queued"
-        job = _Job(description=description, id=job_id)
+        job = _Job(description=description, id=job_id, state="queued")
+        self.jobs[job_id] = job
         await self.queue.put(job)
         return job_id
 
     async def state(self, job_id: str) -> State:  # noqa: D102
-        state = self.states[job_id]
-        if state in CompletedStates:
-            # Forget completed jobs
-            del self.states[job_id]  # noqa: WPS420
+        state = self.jobs[job_id].state
+        self._forget_completed_job(job_id, state)
         return state
 
     async def cancel(self, job_id: str) -> None:  # noqa: D102
-        state = self.states[job_id]
+        job = self.jobs[job_id]
+        self._forget_completed_job(job_id, job.state)
+        if job.state == "running" and job.worker_index is not None:
+            self.workers[job.worker_index].cancel()
+            self._add_worker()
+        if job.state == "queued":
+            self.jobs.pop(job_id)
+
+    def _add_worker(self) -> None:
+        worker_index = len(self.workers)
+        worker = create_task(_worker(self.queue, self.jobs, worker_index))
+        self.workers.append(worker)
+        worker.add_done_callback(self.workers.remove)
+
+    def _forget_completed_job(self, job_id: str, state: State) -> None:
         if state in CompletedStates:
-            # Forget completed jobs
-            del self.states[job_id]  # noqa: WPS420
-        if state == "running":
-            # TODO find task busy with job and cancel it
-            raise NotImplementedError()
-        if state == "queued":
-            # TODO remove job from queue
-            raise NotImplementedError()
+            self.jobs.pop(job_id)

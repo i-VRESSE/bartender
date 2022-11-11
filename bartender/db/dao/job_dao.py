@@ -88,10 +88,9 @@ class JobDAO:
 
         :param jobid: name of job instance.
         :param internal_job_id: new internal job id of job instance.
-        :raises KeyError: When job is unknown to scheduler.
         """
         job = await self.session.get(Job, jobid)
         if job is None:
-            raise KeyError(jobid)
+            return
         job.internal_id = internal_job_id
         await self.session.commit()
