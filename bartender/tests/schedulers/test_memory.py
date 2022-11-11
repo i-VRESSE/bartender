@@ -15,7 +15,7 @@ async def test_ok_running_job(tmp_path: Path) -> None:
 
         jid = await scheduler.submit(description)
 
-        # Wait for job to com,plete
+        # Wait for job to complete
         await sleep(0.01)
         assert (await scheduler.state(jid)) == "ok"
         assert (tmp_path / "returncode").read_text() == "0"
