@@ -72,7 +72,7 @@ async def _worker(queue: Queue[_Job], jobs: dict[str, _Job], worker_index: int) 
 class MemoryScheduler(AbstractScheduler):
     """In memory scheduler.
 
-    When service is terminated any queud or running jobs wiil disappear.
+    When service is closed any queud or running jobs will disappear.
     """
 
     def __init__(self, slots: PositiveInt = 1):
