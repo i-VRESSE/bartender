@@ -70,6 +70,9 @@ class LocalCommandRunner(CommandRunner):
     def close(self) -> None:
         """Close any connections runner has."""
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, LocalCommandRunner)
+
 
 class SshCommandRunner(CommandRunner):
     """Run command on a remote machine using SSH."""
@@ -133,3 +136,9 @@ class SshCommandRunner(CommandRunner):
 
     def __exit__(self, *args: list[Any]) -> None:
         self.close()
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SshCommandRunner) and self.config == other.config
+
+    def __repr__(self) -> str:
+        return f"SshCommandRunner(config=${self.config})"

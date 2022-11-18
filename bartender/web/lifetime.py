@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from bartender.db.session import make_engine, make_session_factory
 from bartender.filesystem import setup_job_root_dir
+from bartender.schedulers.build import build
 from bartender.schedulers.memory import MemoryScheduler
 from bartender.settings import settings
 
@@ -39,7 +40,7 @@ def register_startup_event(
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
         setup_job_root_dir()
-        _setup_scheduler(app)
+        _setup_schedulers(app)
 
     return _startup
 
@@ -57,22 +58,24 @@ def register_shutdown_event(
     @app.on_event("shutdown")
     async def _shutdown() -> None:  # noqa: WPS430
         await app.state.db_engine.dispose()
-        await _teardown_scheduler(app)
+        await _teardown_schedulers(app)
 
     return _shutdown
 
 
-def _setup_scheduler(app: FastAPI) -> None:
-    """Create scheduler.
+def _setup_schedulers(app: FastAPI) -> None:
+    """Create schedulers.
 
     :param app: fastAPI application.
     """
-    app.state.scheduler = MemoryScheduler(settings.scheduler_slots)
+    app.state.schedulers = build(settings.config_filename)
+    # app.state.scheduler = MemoryScheduler(settings.scheduler_slots)
 
 
-async def _teardown_scheduler(app: FastAPI) -> None:
+async def _teardown_schedulers(app: FastAPI) -> None:
     """Teardown scheduler.
 
     :param app: fastAPI application.
     """
-    await app.state.scheduler.close()
+    for scheduler in app.state.schedulers.values():
+        await scheduler.close()

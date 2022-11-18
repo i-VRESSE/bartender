@@ -142,3 +142,14 @@ class SlurmScheduler(AbstractScheduler):
             echo -n $? > returncode
         """
         return dedent(script)
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            self.runner == other.runner
+            and self.partition == other.partition
+            and self.time == other.time
+            and self.extra_options == other.extra_options
+        )
+
+    def __repr__(self) -> str:
+        return f"SlurmScheduler(runner={self.runner}, partition={self.partition}, time={self.time}, extra_options={self.extra_options})"

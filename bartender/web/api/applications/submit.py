@@ -14,7 +14,7 @@ async def submit(
     job_dir: Path,
     application: AppSetting,
     job_dao: JobDAO,
-    scheduler: AbstractScheduler,
+    schedulers: dict[str, AbstractScheduler],
 ) -> None:
     """Submit job description to scheduler and store job id returned by scheduler in db.
 
@@ -26,5 +26,8 @@ async def submit(
     """
     command = Template(application.command).substitute(config=application.config)
     description = JobDescription(job_dir=job_dir, command=command)
+    # TODO dont pick first scheduler
+    scheduler = list(schedulers.values())[0]
+    # TODO if scheduler has filesystem then perform upload of job dir and localize description
     internal_job_id = await scheduler.submit(description)
     await job_dao.update_internal_job_id(external_job_id, internal_job_id)

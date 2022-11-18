@@ -121,3 +121,9 @@ class MemoryScheduler(AbstractScheduler):
     def _forget_completed_job(self, job_id: str, state: State) -> None:
         if state in CompletedStates:
             self.jobs.pop(job_id)
+
+    def __eq__(self, other: object) -> bool:
+        return len(self.workers) == len(other.workers)
+
+    def __repr__(self) -> str:
+        return f"MemoryScheduler(slots={len(self.workers)})"
