@@ -70,10 +70,12 @@ ignore =
   WPS407,
   ; Found walrus operator
   WPS332,
+  ; Found protected module import: _runner
+  WPS436,
 
 per-file-ignores =
   ; all tests
-  test_*.py,tests.py,tests_*.py,*/tests/*,conftest.py:
+  test_*.py,tests.py,tests_*.py,*/tests/*, */tests/*/*,conftest.py:
   ; Use of assert detected
   S101,
   ; Found outer scope names shadowing
@@ -86,12 +88,18 @@ per-file-ignores =
   DAR101,
   ; Found too many arguments
   WPS211,
+  ; Missing docstring in public class
+  D101,
+  ; Missing docstring in public method
+  D102,
   ; Missing docstring in public function
   D103,
   ; Missing docstring in public package
   D104,
   ; Missing "Returns" in Docstring: - return
   DAR201,
+  ; Found too long name: test_ok_running_job_with_input_and_output_file
+  WPS118,
   ; all init files
   __init__.py:
   ; ignore not used imports
@@ -100,6 +108,7 @@ per-file-ignores =
   F403,
   ; Found wrong metadata variable
   WPS410,
+
 
 exclude =
   ./.cache,
