@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +6,49 @@ from yaml import safe_load
 from bartender.schedulers.memory import MemoryScheduler
 from bartender.schedulers.runner import LocalCommandRunner, SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler
+
+"""
+
+Example config:
+```yaml
+applications:
+  haddock3:
+    command: haddock3 $config
+  recluster:
+    command: haddock3 recluster
+filesystems:
+  cluster1:
+    type: sftp  # or local -> assumes shared filesystem and same user
+    hostname: localhost
+    port: 10022
+    username: xenon
+    password: javagat
+    entry: /home/xenon
+schedulers:
+  local:
+    type: memory
+    slots: 4
+  cluster1:
+    type: slurm
+    partition: mypartition
+    time: '60' # max time is 60 minutes
+    extra_options:
+      - --nodes 1
+    runner:
+      type: ssh  # or local
+      hostname: localhost
+      port: 10022
+      username: xenon
+      password: javagat
+    filesystem: cluster1
+  cluster2:
+     type: slurm
+  grid:
+    type: grid
+    filesystem:
+      type: dirac
+```
+"""
 
 
 def build(config_filename: Path):
@@ -52,7 +94,7 @@ def assemble_scheduler(config: Any):
                 runner = SshCommandRunner(config=runner_config)
             else:
                 raise ValueError(
-                    f"Runner with type {config['runner']['type']} is unknown"
+                    f"Runner with type {config['runner']['type']} is unknown",
                 )
         else:
             runner = LocalCommandRunner()
