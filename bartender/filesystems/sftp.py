@@ -13,13 +13,13 @@ class SftpFileSystem(AbstractFileSystem):
 
     def __init__(
         self,
-        entry: Path,
         config: SshConnectConfig,
+        entry: Path = Path("/"),
     ):
         """Constructor.
 
-        :param entry: The entry directory. Used to localize description.
         :param config: SSH connection configuration.
+        :param entry: The entry directory. Used to localize description.
         """
         self.entry = entry
         self.config = config
@@ -79,3 +79,15 @@ class SftpFileSystem(AbstractFileSystem):
         """Close SSH connection."""
         if self.conn:
             self.conn.close()
+
+    # TODO add delete(description), after download you might want to delete the remote job dir
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, SftpFileSystem)
+            and str(self.entry) == str(other.entry)
+            and self.config == other.config
+        )
+
+    def __repr__(self) -> str:
+        return f"SftpFileSystem(config={self.config}, entry={self.entry})"

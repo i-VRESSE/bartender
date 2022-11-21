@@ -141,4 +141,4 @@ class SshCommandRunner(CommandRunner):
         return isinstance(other, SshCommandRunner) and self.config == other.config
 
     def __repr__(self) -> str:
-        return f"SshCommandRunner(config=${self.config})"
+        return f"SshCommandRunner(config={self.config})"

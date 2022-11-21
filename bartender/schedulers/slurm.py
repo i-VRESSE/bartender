@@ -145,7 +145,8 @@ class SlurmScheduler(AbstractScheduler):
 
     def __eq__(self, other: object) -> bool:
         return (
-            self.runner == other.runner
+            isinstance(other, SlurmScheduler)
+            and self.runner == other.runner
             and self.partition == other.partition
             and self.time == other.time
             and self.extra_options == other.extra_options

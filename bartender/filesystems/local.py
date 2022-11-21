@@ -46,3 +46,9 @@ class LocalFileSystem(AbstractFileSystem):
         :param src: Remote directory to copy from.
         :param target: Local directory to copy to.
         """
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, LocalFileSystem)
+
+    def __repr__(self) -> str:
+        return f"LocalFileSystem()"
