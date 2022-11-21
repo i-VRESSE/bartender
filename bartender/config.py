@@ -54,11 +54,23 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from fastapi import Request
 from yaml import safe_load as load_yaml
 
 from bartender.destinations import Destination
 from bartender.destinations import build as build_destinations
-from bartender.settings import AppSetting
+
+
+@dataclass
+class ApplicatonConfiguration:
+    """Command to run application.
+
+    `$config` in command string will be replaced
+    with value of ApplicatonConfiguration.config.
+    """
+
+    command: str
+    config: str
 
 
 @dataclass
@@ -69,7 +81,7 @@ class Config:
     The bartender.config.Config class is for non-FastAPI configuration.
     """
 
-    applications: dict[str, AppSetting]
+    applications: dict[str, ApplicatonConfiguration]
     destinations: dict[str, Destination]
 
 
@@ -100,8 +112,17 @@ def _load(config_filename: Path) -> Any:
         return load_yaml(handle)
 
 
-def _build_applications(config: Any) -> dict[str, AppSetting]:
+def _build_applications(config: Any) -> dict[str, ApplicatonConfiguration]:
     applications = {}
     for name, setting in config.items():
-        applications[name] = AppSetting(**setting)
+        applications[name] = ApplicatonConfiguration(**setting)
     return applications
+
+
+def get_config(request: Request) -> Config:
+    """Get config based on current request.
+
+    :param request: The current FastAPI request.
+    :return: The config.
+    """
+    return request.app.state.config

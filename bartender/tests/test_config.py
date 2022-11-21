@@ -5,14 +5,13 @@ import pytest
 from yaml import safe_dump as yaml_dump
 
 from bartender._ssh_utils import SshConnectConfig
-from bartender.config import Config, build_config, parse_config
+from bartender.config import ApplicatonConfiguration, Config, build_config, parse_config
 from bartender.destinations import Destination
 from bartender.filesystems.local import LocalFileSystem
 from bartender.filesystems.sftp import SftpFileSystem
 from bartender.schedulers.memory import MemoryScheduler
 from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler
-from bartender.settings import AppSetting
 
 
 @pytest.mark.anyio
@@ -28,7 +27,9 @@ async def test_build_minimal(tmp_path: Path) -> None:
     result = build_config(file)
 
     expected = Config(
-        applications={"app1": AppSetting(command="echo", config="/etc/passwd")},
+        applications={
+            "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+        },
         destinations={
             "": Destination(scheduler=MemoryScheduler(), filesystem=LocalFileSystem()),
         },
@@ -77,7 +78,9 @@ async def test_parse_single_destination() -> None:
     result = parse_config(config)
 
     expected = Config(
-        applications={"app1": AppSetting(command="echo", config="/etc/passwd")},
+        applications={
+            "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+        },
         destinations={
             "dest2": Destination(
                 scheduler=SlurmScheduler(

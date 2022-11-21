@@ -1,0 +1,22 @@
+applications:
+  app1:
+    command: app1 $config
+    config: workflow.cfg
+destinations:
+  local:
+    scheduler:
+      type: memory
+      slots: 1
+    ## Example of running jobs by current user on snellius.
+    # remote:
+    #     scheduler:
+    #         type: slurm
+    #         paritiion: thin
+    #         runner:
+    #             type: ssh
+    #             hostname: snellius.surf.nl
+    #     filesystem:
+    #         type: sftp
+    #         config:
+    #             hostname: snellius.surf.nl
+    #         entry: /scratch-shared/bartender/jobs

@@ -7,12 +7,12 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.db.dependencies import get_db_session
 from bartender.db.utils import create_database, drop_database
-from bartender.schedulers.abstract import AbstractScheduler
-from bartender.schedulers.dependencies import get_scheduler
+from bartender.destinations import Destination
 from bartender.schedulers.memory import MemoryScheduler
-from bartender.settings import AppSetting, settings
+from bartender.settings import settings
 from bartender.web.application import get_app
 
 
@@ -83,18 +83,23 @@ async def dbsession(
 
 
 @pytest.fixture
-async def scheduler() -> AsyncGenerator[AbstractScheduler, None]:
-    my_scheduler = MemoryScheduler()
-    try:
-        yield my_scheduler
-    finally:
-        await my_scheduler.close()
+async def config() -> AsyncGenerator[Config, None]:
+    applications = {
+        "app1": ApplicatonConfiguration(
+            command="wc $config",
+            config="job.ini",
+        ),
+    }
+    scheduler = MemoryScheduler()
+    destinations = {"dest1": Destination(scheduler=scheduler)}
+    yield Config(applications=applications, destinations=destinations)
+    await scheduler.close()
 
 
 @pytest.fixture
 def fastapi_app(
     dbsession: AsyncSession,
-    scheduler: AbstractScheduler,
+    config: Config,
 ) -> FastAPI:
     """
     Fixture for creating FastAPI app.
@@ -103,14 +108,8 @@ def fastapi_app(
     """
     application = get_app()
     application.dependency_overrides[get_db_session] = lambda: dbsession
-    application.dependency_overrides[get_scheduler] = lambda: scheduler
+    application.dependency_overrides[get_config] = lambda: config
     settings.secret = "testsecret"  # noqa: S105
-    settings.applications = {
-        "app1": AppSetting(
-            command="wc $config",
-            config="job.ini",
-        ),
-    }
     return application  # noqa: WPS331
 
 

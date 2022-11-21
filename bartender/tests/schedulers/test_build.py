@@ -16,7 +16,7 @@ def test_single_typeless_scheduler() -> None:
 
 
 def test_single_unknown_scheduler() -> None:
-    config = {type: "unknown"}
+    config = {"type": "unknown"}
     with pytest.raises(ValueError):
         build(config)
 

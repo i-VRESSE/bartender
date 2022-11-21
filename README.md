@@ -5,6 +5,7 @@
   - [Project structure](#project-structure)
   - [Configuration](#configuration)
     - [Applications](#applications)
+    - [Job destinations](#job-destinations)
   - [User management](#user-management)
     - [GitHub login](#github-login)
     - [Orcid sandbox login](#orcid-sandbox-login)
@@ -108,7 +109,10 @@ bartender
 
 ## [Configuration](#configuration)
 
-This application can be configured with environment variables.
+This application can be configured with environment variables and `config.yaml` file.
+The environment variables are for FastAPI settings like http port and user management.
+The `config.yaml` file is for non-FastAPI configuration like which [application can be submitted](#applications) and [where they should submitted](#job-destinations).
+See [config-example.yaml](config-example.yaml) for example of a `config.yaml` file.
 
 You can create `.env` file in the root directory and place all
 environment variables here.
@@ -134,17 +138,40 @@ You can read more about BaseSettings class here: <https://pydantic-docs.helpmanu
 
 Bartender accepts jobs for different applications.
 
-Applications can be configured with the `BARTENDER_APPLICATIONS` environment variable.
+Applications can be configured in the `config.yaml` file under `applications` key.
 
 For example
 
-```env
-BARTENDER_APPLICATIONS='{"app1": {"command": "app1 $config", "config": "workflow.cfg"}, "app2": {"command": "app2 $config", "config": "workflow.cfg"}}'
+```yaml
+applications:
+    app1:
+        command: app1 $config
+        config:  workflow.cfg
 ```
 
 * The key is the name of the application
 * The `config` key is the config file that must be present in the uploaded archived.
 * The `command` key is the command executed in the directory of the unpacked archive that the consumer uploaded. The `$config` in command string will be replaced with value of the config key.
+
+### [Job destinations](#job-destinations)
+
+Bartender can run job in different destinations.
+
+A destination is a combination of a scheduler and filesystem.
+Supported schedulers
+* memory, Scheduler which has queue in memory and can specified number of jobs (slots) concurrently.
+* slurm, Scheduler which calls commands of [Slurm batch scheduler](https://slurm.schedmd.com/) on either local machine or remote machine via SSH.
+
+Supported file systems
+* local: Uploading or downloading of files does nothing
+* sftp: Uploading or downloading of files is done using SFTP.
+
+When the filesystem is on a remote system with non-shared file system or a different user) then
+* the input files will be uploaded before submission to the scheduler and
+* the output files will be downloaded after the job has completed.
+
+Destinations can be configured in the `config.yaml` file under `destinations` key.
+By default a single slot in-memory scheduler with a local filesystem is used.
 
 ## [User management](#user-management)
 

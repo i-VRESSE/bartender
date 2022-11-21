@@ -1,32 +1,85 @@
 from pathlib import Path
 from string import Template
 
+from bartender.config import ApplicatonConfiguration, Config
 from bartender.db.dao.job_dao import JobDAO
-from bartender.schedulers.abstract import AbstractScheduler, JobDescription
-from bartender.settings import AppSetting
+from bartender.destinations import Destination
+from bartender.schedulers.abstract import JobDescription
+from bartender.settings import settings
 
 
-# TODO submit function should be an adapter,
-# which can submit job to one of the available schedulers
-# based on job input, application, scheduler resources, phase of moon, etc.
 async def submit(
     external_job_id: int,
     job_dir: Path,
-    application: AppSetting,
+    application: str,
     job_dao: JobDAO,
-    scheduler: AbstractScheduler,
+    config: Config,
 ) -> None:
     """Submit job description to scheduler and store job id returned by scheduler in db.
 
     :param external_job_id: External job id.
     :param job_dir: Location where job input files are located.
-    :param application: Application that should be run.
+    :param application: Application name that should be run.
     :param job_dao: JobDAO object.
-    :param scheduler: Current job scheduler.
+    :param config: Config with applications and destinations.
     """
-    command = Template(application.command).substitute(config=application.config)
-    description = JobDescription(job_dir=job_dir, command=command)
-    # TODO if scheduler has filesystem then perform upload
-    # of job dir and localize description
-    internal_job_id = await scheduler.submit(description)
-    await job_dao.update_internal_job_id(external_job_id, internal_job_id)
+    application_config = config.applications[application]
+    description = _build_description(job_dir, application_config)
+
+    destination, destinations_name = pick_destination(job_dir, application, config)
+
+    await _upload_input_files(description, destination)
+
+    internal_job_id = await destination.scheduler.submit(description)
+
+    await job_dao.update_internal_job_id(
+        external_job_id,
+        internal_job_id,
+        destinations_name,
+    )
+
+
+async def _upload_input_files(
+    description: JobDescription,
+    destination: Destination,
+) -> None:
+    if destination.filesystem is not None:
+        localized_description = destination.filesystem.localize_description(
+            description,
+            settings.job_root_dir,
+        )
+        await destination.filesystem.upload(
+            src=description,
+            target=localized_description,
+        )
+
+
+def _build_description(
+    job_dir: Path,
+    application_config: ApplicatonConfiguration,
+) -> JobDescription:
+    command = Template(application_config.command).substitute(
+        config=application_config.config,
+    )
+    return JobDescription(job_dir=job_dir, command=command)
+
+
+def pick_destination(
+    job_dir: Path,
+    application_name: str,
+    config: Config,
+) -> tuple[Destination, str]:
+    """Pick to which destination a job should be submitted.
+
+    :param job_dir: Location where job input files are located.
+    :param application_name: Application name that should be run.
+    :param config: Config with applications and destinations.
+    :return: Destination where job should be submitted to.
+    """
+    # TODO allow maintaner of service to provide Python function that
+    # returns the destination for this job
+    # for now the first destination in the configuration is picked.
+    destination_names = list(config.destinations.keys())
+    destination_name = destination_names[0]
+    destination = config.destinations[destination_name]
+    return destination, destination_name
