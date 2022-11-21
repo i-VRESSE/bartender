@@ -44,6 +44,7 @@ pytest-env = "^0.6.2"
 httpx = "^0.22.0"
 types-aiofiles = "^0.8.11"
 testcontainers = "^3.7.0"
+types-pyyaml = "^6.0.12.2"
 
 [tool.poetry.scripts]
 bartender = 'bartender.__main__:main'

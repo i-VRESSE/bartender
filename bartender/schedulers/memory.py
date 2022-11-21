@@ -112,6 +112,15 @@ class MemoryScheduler(AbstractScheduler):
         if job.state == "queued":
             self.jobs.pop(job_id)
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, MemoryScheduler) and len(self.workers) == len(
+            other.workers,
+        )
+
+    def __repr__(self) -> str:
+        slots = len(self.workers)
+        return f"MemoryScheduler(slots={slots})"
+
     def _add_worker(self) -> None:
         worker_index = len(self.workers)
         worker = create_task(_worker(self.queue, self.jobs, worker_index))
@@ -121,9 +130,3 @@ class MemoryScheduler(AbstractScheduler):
     def _forget_completed_job(self, job_id: str, state: State) -> None:
         if state in CompletedStates:
             self.jobs.pop(job_id)
-
-    def __eq__(self, other: object) -> bool:
-        return len(self.workers) == len(other.workers)
-
-    def __repr__(self) -> str:
-        return f"MemoryScheduler(slots={len(self.workers)})"

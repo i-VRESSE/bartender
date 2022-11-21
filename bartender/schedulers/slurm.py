@@ -109,6 +109,23 @@ class SlurmScheduler(AbstractScheduler):
         """Cancel all runnning jobs and make scheduler unable to work."""
         self.runner.close()
 
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, SlurmScheduler)  # noqa: WPS222
+            and self.runner == other.runner
+            and self.partition == other.partition
+            and self.time == other.time
+            and self.extra_options == other.extra_options
+        )
+
+    def __repr__(self) -> str:
+        return dedent(
+            f"""\
+            SlurmScheduler(runner={self.runner}, partition={self.partition},
+                           time={self.time}, extra_options={self.extra_options}
+            )""",
+        )
+
     async def _state_from_accounting(self, job_id: str) -> str:
         command = "sacct"
         args = ["-j", job_id, "--noheader", "--format=state"]
@@ -142,15 +159,3 @@ class SlurmScheduler(AbstractScheduler):
             echo -n $? > returncode
         """
         return dedent(script)
-
-    def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, SlurmScheduler)
-            and self.runner == other.runner
-            and self.partition == other.partition
-            and self.time == other.time
-            and self.extra_options == other.extra_options
-        )
-
-    def __repr__(self) -> str:
-        return f"SlurmScheduler(runner={self.runner}, partition={self.partition}, time={self.time}, extra_options={self.extra_options})"

@@ -51,4 +51,4 @@ class LocalFileSystem(AbstractFileSystem):
         return isinstance(other, LocalFileSystem)
 
     def __repr__(self) -> str:
-        return f"LocalFileSystem()"
+        return "LocalFileSystem()"

@@ -2,10 +2,9 @@ from typing import Awaitable, Callable
 
 from fastapi import FastAPI
 
+from bartender.config import build_config
 from bartender.db.session import make_engine, make_session_factory
 from bartender.filesystem import setup_job_root_dir
-from bartender.schedulers.build import build
-from bartender.schedulers.memory import MemoryScheduler
 from bartender.settings import settings
 
 
@@ -68,14 +67,13 @@ def _setup_schedulers(app: FastAPI) -> None:
 
     :param app: fastAPI application.
     """
-    app.state.schedulers = build(settings.config_filename)
-    # app.state.scheduler = MemoryScheduler(settings.scheduler_slots)
+    app.state.config = build_config(settings.config_filename)
 
 
 async def _teardown_schedulers(app: FastAPI) -> None:
-    """Teardown scheduler.
+    """Teardown schedulers.
 
     :param app: fastAPI application.
     """
-    for scheduler in app.state.schedulers.values():
-        await scheduler.close()
+    for destination in app.state.config.destinations.values():
+        await destination.scheduler.close()

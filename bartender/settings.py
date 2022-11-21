@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     # TODO read scheduler + applications from
     # yaml/toml formmatted config file instead of env vars.
 
-    config_filename: Path = "config.yaml"
+    config_filename: Path = Path("config.yaml")
 
     @property
     def db_url(self) -> URL:

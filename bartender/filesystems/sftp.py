@@ -80,7 +80,8 @@ class SftpFileSystem(AbstractFileSystem):
         if self.conn:
             self.conn.close()
 
-    # TODO add delete(description), after download you might want to delete the remote job dir
+    # TODO add delete(description),
+    # after download you might want to delete the remote job dir
 
     def __eq__(self, other: object) -> bool:
         return (

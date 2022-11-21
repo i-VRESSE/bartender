@@ -2,77 +2,106 @@
 Parses config file into a list of applications, schedulers and filesystems.
 
 Example config:
-```yaml
-applications:
-  haddock3:
-    command: haddock3 $config
-  recluster:
-    command: haddock3 recluster
-destinations:
-  cluster1:
-    filesystem: &cluster1fs
-        type: sftp
-        hostname: localhost
-        port: 10022
-        username: xenon
-        password: javagat
-        entry: /home/xenon
-    scheduler: &cluster1sched
-        type: slurm
-        partition: mypartition
-        time: '60' # max time is 60 minutes
-        extra_options:
-        - --nodes 1
-        runner:
-        type: ssh  # or local
-        hostname: localhost
-        port: 10022
-        username: xenon
-        password: javagat
-    local:
-        scheduler:
-            type: memory
-            slots: 4
-    cluster2: # bartender is being run on head node of cluster
-        scheduler:
+
+.. code-block: yaml
+
+    applications:
+    haddock3:
+        command: haddock3 $config
+    recluster:
+        command: haddock3 recluster
+    destinations:
+    cluster1:
+        filesystem: &cluster1fs
+            type: sftp
+            hostname: localhost
+            port: 10022
+            username: xenon
+            password: javagat
+            entry: /home/xenon
+        scheduler: &cluster1sched
             type: slurm
-    cluster3: # show of reuse using yaml anchor and aliases
-        scheduler:
-            <<: *cluster1sched
-            parition: otherpartition
-        filesystem: *cluster1fs
-    grid:
-        scheduler:
-            type: grid
-        filesystem:
-            type: dirac
-```
+            partition: mypartition
+            time: '60' # max time is 60 minutes
+            extra_options:
+            - --nodes 1
+            runner:
+            type: ssh  # or local
+            hostname: localhost
+            port: 10022
+            username: xenon
+            password: javagat
+        local:
+            scheduler:
+                type: memory
+                slots: 4
+        cluster2: # bartender is being run on head node of cluster
+            scheduler:
+                type: slurm
+        cluster3: # show of reuse using yaml anchor and aliases
+            scheduler:
+                <<: *cluster1sched
+                parition: otherpartition
+            filesystem: *cluster1fs
+        grid:
+            scheduler:
+                type: grid
+            filesystem:
+                type: dirac
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from yaml import safe_load
+from yaml import safe_load as load_yaml
 
+from bartender.destinations import Destination
 from bartender.destinations import build as build_destinations
 from bartender.settings import AppSetting
 
-def build(config_filename: Path):
-    config = load(config_filename)
-    return parse(config)
 
-def parse(config: Any):
-    return {
-        'applications': build_applications(config['applications']),
-        'destinations': build_destinations(config['destinations'])
-    }
+@dataclass
+class Config:
+    """Bartender configuration.
 
-def load(config_filename: Path) -> Any:
-    with open(config_filename) as f:
-        return safe_load(f)
+    The bartender.settings.Settings class is for FastAPI settings.
+    The bartender.config.Config class is for non-FastAPI configuration.
+    """
 
-def build_applications(config: Any) -> dict[str, AppSetting]:
+    applications: dict[str, AppSetting]
+    destinations: dict[str, Destination]
+
+
+def build_config(config_filename: Path) -> Config:
+    """Build a config instance from a yaml formatted file.
+
+    :param config_filename: File name of configuration file.
+    :return: A config instance.
+    """
+    config = _load(config_filename)
+    return parse_config(config)
+
+
+def parse_config(config: Any) -> Config:
+    """Parses a plain configuration dict to a config instance.
+
+    :param config: A plain configuration dict
+    :return: A config instance.
+    """
+    return Config(
+        applications=_build_applications(config["applications"]),
+        destinations=build_destinations(config["destinations"]),
+    )
+
+
+def _load(config_filename: Path) -> Any:
+    with open(config_filename) as handle:
+        return load_yaml(handle)
+
+
+def _build_applications(config: Any) -> dict[str, AppSetting]:
     applications = {}
-    for name, config in config.items():
-        applications[name] = AppSetting(**config)
+    for name, setting in config.items():
+        applications[name] = AppSetting(**setting)
     return applications

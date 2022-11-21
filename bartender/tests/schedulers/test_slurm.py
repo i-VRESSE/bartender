@@ -26,12 +26,12 @@ class SlurmContainer(DockerContainer):
         password = "javagat"  # noqa: S105
         hostname = self.get_container_host_ip()
         port = int(self.get_exposed_port(self.port_to_expose))
-        return {
-            "hostname": hostname,
-            "port": port,
-            "username": username,
-            "password": password,
-        }
+        return SshConnectConfig(
+            hostname=hostname,
+            port=port,
+            username=username,
+            password=password,
+        )
 
     def get_runner(self) -> SshCommandRunner:
         return SshCommandRunner(self.get_config())
