@@ -11,7 +11,7 @@ from bartender.schedulers.memory import MemoryScheduler
 
 @dataclass
 class Destination:
-    """A destination is a combination of a scheduler and filesystem."""
+    """A destination is a combination of a scheduler and optional filesystem."""
 
     scheduler: AbstractScheduler
     filesystem: AbstractFileSystem = LocalFileSystem()
@@ -36,7 +36,7 @@ def build(config: Any) -> dict[str, Destination]:
 
 def _build_destination(dest_config: Any) -> Destination:
     if not dest_config:
-        raise KeyError("Destinations needs scheduler and optional file system")
+        raise KeyError("A destination needs scheduler and optional file system")
     scheduler = build_scheduler(dest_config["scheduler"])
     filesystem: AbstractFileSystem = LocalFileSystem()
     filesystem_config = dest_config.get("filesystem")

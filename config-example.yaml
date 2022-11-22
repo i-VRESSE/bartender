@@ -1,3 +1,9 @@
+# By default the files of jobs are stored in /tmp/jobs
+# job_root_dir: /tmp/jobs
+# By default jobs are submitted to the first destination
+# destination_picker: bartender.config.pick_first
+# To use a custom picker set `destination_picker` to a `<module>.<function>`
+# The picker should have type bartender.config.DestinationPicker .
 applications:
   app1:
     command: app1 $config

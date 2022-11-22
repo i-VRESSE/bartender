@@ -96,3 +96,27 @@ async def test_parse_single_destination() -> None:
         },
     )
     assert result == expected
+
+
+@pytest.mark.anyio
+async def test_job_root_dir() -> None:
+    config = {
+        "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+        "destinations": {},
+        "job_root_dir": Path("/jobs"),
+    }
+    result = parse_config(config)
+
+    expected = Config(
+        applications={
+            "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+        },
+        destinations={
+            "": Destination(scheduler=MemoryScheduler()),
+        },
+        job_root_dir=Path("/jobs"),
+    )
+    assert result == expected
+
+
+# TODO add tests for destination picker

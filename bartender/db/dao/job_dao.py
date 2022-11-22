@@ -104,7 +104,7 @@ class JobDAO:
 
         :param jobid: name of job instance.
         :param internal_job_id: new internal job id of job instance.
-        :param destination: To which schdeduler/filesystem the job was submitted.
+        :param destination: To which scheduler/filesystem the job was submitted.
         """
         job = await self.session.get(Job, jobid)
         if job is None:

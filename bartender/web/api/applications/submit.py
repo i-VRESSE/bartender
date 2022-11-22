@@ -24,7 +24,11 @@ async def submit(
     application_config = config.applications[application]
     description = application_config.description(job_dir)
 
-    destination, destinations_name = pick_destination(job_dir, application, config)
+    destination, destinations_name = config.destination_picker(
+        job_dir,
+        application,
+        config,
+    )
 
     await _upload_input_files(description, destination, config.job_root_dir)
 
@@ -50,24 +54,3 @@ async def _upload_input_files(
         src=description,
         target=localized_description,
     )
-
-
-def pick_destination(
-    job_dir: Path,
-    application_name: str,
-    config: Config,
-) -> tuple[Destination, str]:
-    """Pick to which destination a job should be submitted.
-
-    :param job_dir: Location where job input files are located.
-    :param application_name: Application name that should be run.
-    :param config: Config with applications and destinations.
-    :return: Destination where job should be submitted to.
-    """
-    # TODO allow maintaner of service to provide Python function that
-    # returns the destination for this job
-    # for now the first destination in the configuration is picked.
-    destination_names = list(config.destinations.keys())
-    destination_name = destination_names[0]
-    destination = config.destinations[destination_name]
-    return destination, destination_name
