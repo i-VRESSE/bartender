@@ -5,7 +5,6 @@ import pytest
 from bartender._ssh_utils import SshConnectConfig
 from bartender.schedulers.build import build
 from bartender.schedulers.memory import MemoryScheduler
-from bartender.schedulers.runner import LocalCommandRunner, SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler
 
 
@@ -44,7 +43,7 @@ async def test_single_localsimplist_slurm_scheduler() -> None:
     config = {"type": "slurm"}
     result = build(config)
 
-    expected = SlurmScheduler(LocalCommandRunner())
+    expected = SlurmScheduler()
     assert result == expected
 
 
@@ -59,7 +58,6 @@ async def test_single_localcustom_slurm_scheduler() -> None:
     result = build(config)
 
     expected = SlurmScheduler(
-        runner=LocalCommandRunner(),
         partition="mypartition",
         time="60",
         extra_options=["--nodes 1"],
@@ -68,23 +66,9 @@ async def test_single_localcustom_slurm_scheduler() -> None:
 
 
 @pytest.mark.anyio
-async def test_single_typelessrunner_slurm_scheduler() -> None:
-    config = {"type": "slurm", "runner": {}}
-    with pytest.raises(ValueError):
-        build(config)
-
-
-@pytest.mark.anyio
-async def test_single_unknownrunner_slurm_scheduler() -> None:
-    config = {"type": "slurm", "runner": {"type": "unknown"}}
-    with pytest.raises(ValueError):
-        build(config)
-
-
-@pytest.mark.anyio
 async def test_single_withouthost_slurm_scheduler() -> None:
-    config = {"type": "slurm", "runner": {"type": "ssh"}}
-    with pytest.raises(ValueError):
+    config = {"type": "slurm", "ssh_config": {}}
+    with pytest.raises(TypeError):
         build(config)
 
 
@@ -92,16 +76,13 @@ async def test_single_withouthost_slurm_scheduler() -> None:
 async def test_single_sshsimplist_slurm_scheduler() -> None:
     config = {
         "type": "slurm",
-        "runner": {
-            "type": "ssh",
+        "ssh_config": {
             "hostname": "localhost",
         },
     }
     result = build(config)
 
-    expected = SlurmScheduler(
-        SshCommandRunner(config=SshConnectConfig(hostname="localhost")),
-    )
+    expected = SlurmScheduler(ssh_config=SshConnectConfig(hostname="localhost"))
     assert result == expected
 
 
@@ -109,8 +90,7 @@ async def test_single_sshsimplist_slurm_scheduler() -> None:
 async def test_single_sshcustom_slurm_scheduler() -> None:
     config = {
         "type": "slurm",
-        "runner": {
-            "type": "ssh",
+        "ssh_config": {
             "hostname": "localhost",
             "port": 10022,
             "username": "xenon",
@@ -120,13 +100,11 @@ async def test_single_sshcustom_slurm_scheduler() -> None:
     result = build(config)
 
     expected = SlurmScheduler(
-        SshCommandRunner(
-            config=SshConnectConfig(  # noqa: S106
-                hostname="localhost",
-                port=10022,
-                username="xenon",
-                password="javagat",
-            ),
+        ssh_config=SshConnectConfig(  # noqa: S106
+            hostname="localhost",
+            port=10022,
+            username="xenon",
+            password="javagat",
         ),
     )
     assert result == expected

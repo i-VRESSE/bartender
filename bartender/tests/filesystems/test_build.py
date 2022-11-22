@@ -40,7 +40,7 @@ def test_sftp_withoutconfig() -> None:
 
 
 def test_sftp_simplest() -> None:
-    config = {"type": "sftp", "config": {"hostname": "localhost"}}
+    config = {"type": "sftp", "ssh_config": {"hostname": "localhost"}}
     result = build(config)
 
     expected = SftpFileSystem(SshConnectConfig(hostname="localhost"))
@@ -50,7 +50,7 @@ def test_sftp_simplest() -> None:
 def test_sftp_entry() -> None:
     config = {
         "type": "sftp",
-        "config": {"hostname": "localhost"},
+        "ssh_config": {"hostname": "localhost"},
         "entry": "/scratch/jobs",
     }
     result = build(config)
@@ -65,7 +65,7 @@ def test_sftp_entry() -> None:
 def test_sftp_verbosist() -> None:
     config = {
         "type": "sftp",
-        "config": {
+        "ssh_config": {
             "hostname": "localhost",
             "port": 2222,
             "username": "someone",

@@ -14,10 +14,11 @@ Example config:
     cluster1:
         filesystem: &cluster1fs
             type: sftp
-            hostname: localhost
-            port: 10022
-            username: xenon
-            password: javagat
+            ssh_config:
+                hostname: localhost
+                port: 10022
+                username: xenon
+                password: javagat
             entry: /home/xenon
         scheduler: &cluster1sched
             type: slurm
@@ -25,8 +26,7 @@ Example config:
             time: '60' # max time is 60 minutes
             extra_options:
             - --nodes 1
-            runner:
-                type: ssh  # or local
+            ssh_config:
                 hostname: localhost
                 port: 10022
                 username: xenon

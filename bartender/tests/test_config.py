@@ -7,10 +7,8 @@ from yaml import safe_dump as yaml_dump
 from bartender._ssh_utils import SshConnectConfig
 from bartender.config import ApplicatonConfiguration, Config, build_config, parse_config
 from bartender.destinations import Destination
-from bartender.filesystems.local import LocalFileSystem
 from bartender.filesystems.sftp import SftpFileSystem
 from bartender.schedulers.memory import MemoryScheduler
-from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler
 
 
@@ -31,7 +29,7 @@ async def test_build_minimal(tmp_path: Path) -> None:
             "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
         },
         destinations={
-            "": Destination(scheduler=MemoryScheduler(), filesystem=LocalFileSystem()),
+            "": Destination(scheduler=MemoryScheduler()),
         },
     )
     assert result == expected
@@ -59,14 +57,13 @@ async def test_parse_single_destination() -> None:
                 "scheduler": {
                     "type": "slurm",
                     "partition": "mypartition",
-                    "runner": {
-                        "type": "ssh",
+                    "ssh_config": {
                         "hostname": "localhost",
                     },
                 },
                 "filesystem": {
                     "type": "sftp",
-                    "config": {
+                    "ssh_config": {
                         "hostname": "localhost",
                     },
                     "entry": "/scratch/jobs",
@@ -84,15 +81,13 @@ async def test_parse_single_destination() -> None:
         destinations={
             "dest2": Destination(
                 scheduler=SlurmScheduler(
-                    runner=SshCommandRunner(
-                        config=SshConnectConfig(
-                            hostname="localhost",
-                        ),
+                    ssh_config=SshConnectConfig(
+                        hostname="localhost",
                     ),
                     partition="mypartition",
                 ),
                 filesystem=SftpFileSystem(
-                    config=SshConnectConfig(
+                    ssh_config=SshConnectConfig(
                         hostname="localhost",
                     ),
                     entry=Path("/scratch/jobs"),

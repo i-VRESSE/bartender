@@ -9,14 +9,32 @@ destinations:
       slots: 1
     ## Example of running jobs by current user on snellius.
     # remote:
-    #     scheduler:
-    #         type: slurm
-    #         paritiion: thin
-    #         runner:
-    #             type: ssh
-    #             hostname: snellius.surf.nl
-    #     filesystem:
-    #         type: sftp
-    #         config:
-    #             hostname: snellius.surf.nl
-    #         entry: /scratch-shared/bartender/jobs
+    #   scheduler:
+    #     type: slurm
+    #     partition: thin
+    #     ssh_config:
+    #       hostname: snellius.surf.nl
+    #   filesystem:
+    #     type: sftp
+    #     ssh_config:
+    #       hostname: snellius.surf.nl
+    #     entry: /scratch-shared/bartender/jobs
+    ## Example of running jobs on a slurm Docker container.
+    ## Start a container with `docker run --detach --publish 10022:22 xenonmiddleware/slurm:20`
+    # slurmcontainer:
+    #   scheduler:
+    #       type: slurm
+    #       partition: mypartition
+    #       ssh_config:
+    #           port: 10022
+    #           hostname: localhost
+    #           username: xenon
+    #           password: javagat
+    #   filesystem:
+    #       type: sftp
+    #       ssh_config:
+    #           port: 10022
+    #           hostname: localhost
+    #           username: xenon
+    #           password: javagat
+    #       entry: /home/xenon

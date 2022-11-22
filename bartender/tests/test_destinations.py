@@ -8,7 +8,6 @@ from bartender.destinations import Destination, build
 from bartender.filesystems.local import LocalFileSystem
 from bartender.filesystems.sftp import SftpFileSystem
 from bartender.schedulers.memory import MemoryScheduler
-from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler
 
 
@@ -36,7 +35,7 @@ async def test_single_memory() -> None:
     result = build(config)
 
     expected = {
-        "dest1": Destination(scheduler=MemoryScheduler(), filesystem=LocalFileSystem()),
+        "dest1": Destination(scheduler=MemoryScheduler()),
     }
     assert result == expected
 
@@ -49,7 +48,7 @@ async def test_single_memory_local() -> None:
     result = build(config)
 
     expected = {
-        "dest1": Destination(scheduler=MemoryScheduler(), filesystem=LocalFileSystem()),
+        "dest1": Destination(scheduler=MemoryScheduler()),
     }
     assert result == expected
 
@@ -62,14 +61,13 @@ async def test_double() -> None:
             "scheduler": {
                 "type": "slurm",
                 "partition": "mypartition",
-                "runner": {
-                    "type": "ssh",
+                "ssh_config": {
                     "hostname": "localhost",
                 },
             },
             "filesystem": {
                 "type": "sftp",
-                "config": {
+                "ssh_config": {
                     "hostname": "localhost",
                 },
                 "entry": "/scratch/jobs",
@@ -85,11 +83,11 @@ async def test_double() -> None:
         ),
         "dest2": Destination(
             scheduler=SlurmScheduler(
-                runner=SshCommandRunner(config=SshConnectConfig(hostname="localhost")),
+                ssh_config=SshConnectConfig(hostname="localhost"),
                 partition="mypartition",
             ),
             filesystem=SftpFileSystem(
-                config=SshConnectConfig(hostname="localhost"),
+                ssh_config=SshConnectConfig(hostname="localhost"),
                 entry=Path("/scratch/jobs"),
             ),
         ),

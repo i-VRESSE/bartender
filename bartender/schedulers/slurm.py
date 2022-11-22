@@ -1,9 +1,14 @@
 from textwrap import dedent
 from typing import Optional
 
+from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
-from bartender.schedulers.runner import CommandRunner, LocalCommandRunner
+from bartender.schedulers.runner import (
+    CommandRunner,
+    LocalCommandRunner,
+    SshCommandRunner,
+)
 
 
 def _map_slurm_state(slurm_state: str) -> State:
@@ -34,21 +39,25 @@ class SlurmScheduler(AbstractScheduler):
 
     def __init__(
         self,
-        runner: CommandRunner = LocalCommandRunner(),
+        ssh_config: Optional[SshConnectConfig] = None,
         partition: Optional[str] = None,
         time: Optional[str] = None,
         extra_options: Optional[list[str]] = None,
     ):
         """Constructor.
 
-        :param runner: Runner for running commands. Can be local or ssh.
+        :param ssh_config: SSH connection configuration.
+            When set will call SLURM commands on remote system via SSH connection.
+            When not set will call SLURM commands on local system.
         :param partition: Partition in which all jobs should be submitted.
         :param time: Limit on the total run time of the job.
         :param extra_options: Escape hatch to add extra options to job script.
             The string `#SBATCH {extra_options[0]}` will be appended to job script.
         """
-        # TODO which option should be set to per scheduler or per job description?
-        self.runner = runner
+        self.runner: CommandRunner = LocalCommandRunner()
+        self.ssh_config = ssh_config
+        if ssh_config is not None:
+            self.runner = SshCommandRunner(ssh_config)
         self.partition = partition
         self.time = time
         if extra_options is None:
@@ -121,7 +130,7 @@ class SlurmScheduler(AbstractScheduler):
     def __repr__(self) -> str:
         return dedent(
             f"""\
-            SlurmScheduler(runner={self.runner}, partition={self.partition},
+            SlurmScheduler(ssh_config={self.ssh_config}, partition={self.partition},
                            time={self.time}, extra_options={self.extra_options}
             )""",
         )

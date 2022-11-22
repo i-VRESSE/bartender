@@ -22,9 +22,9 @@ def build(config: Any) -> AbstractFileSystem:
     if config["type"] == "local":
         return LocalFileSystem()
     if config["type"] == "sftp":
-        if "config" not in config:
+        if "ssh_config" not in config:
             raise KeyError("Sftp file system without SSH connection configuration.")
-        ssh_config = SshConnectConfig(**config["config"])
+        ssh_config = SshConnectConfig(**config["ssh_config"])
         entry_config = config.get("entry", "/")
         entry = Path(entry_config)
         return SftpFileSystem(ssh_config, entry)

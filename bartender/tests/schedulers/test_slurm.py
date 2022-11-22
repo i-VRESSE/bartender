@@ -33,12 +33,9 @@ class SlurmContainer(DockerContainer):
             password=password,
         )
 
-    def get_runner(self) -> SshCommandRunner:
-        return SshCommandRunner(self.get_config())
-
     def get_filesystem(self) -> SftpFileSystem:
         home_dir = Path("/home/xenon")
-        return SftpFileSystem(entry=home_dir, config=self.get_config())
+        return SftpFileSystem(entry=home_dir, ssh_config=self.get_config())
 
     def start(self) -> "SlurmContainer":
         super().start()
@@ -46,7 +43,7 @@ class SlurmContainer(DockerContainer):
         return self
 
     async def _ping(self) -> None:
-        with self.get_runner() as conn:
+        with SshCommandRunner(self.get_config()) as conn:
             await conn.run("echo", [])
 
     @wait_container_is_ready(ConnectionLost)
@@ -71,8 +68,8 @@ async def test_ok_running_job_with_input_and_output_file(
 ) -> None:
     job_dir = tmp_path
     try:
-        client = slurm_server.get_runner()
-        scheduler = SlurmScheduler(runner=client)
+        ssh_config = slurm_server.get_config()
+        scheduler = SlurmScheduler(ssh_config=ssh_config)
         (job_dir / "input").write_text("Lorem ipsum")
         description = JobDescription(
             command="echo -n hello && wc input > output",
@@ -119,8 +116,8 @@ async def test_ok_running_job_without_iofiles(
 ) -> None:
     job_dir = tmp_path
     try:
-        client = slurm_server.get_runner()
-        scheduler = SlurmScheduler(runner=client)
+        ssh_config = slurm_server.get_config()
+        scheduler = SlurmScheduler(ssh_config=ssh_config)
         description = JobDescription(command="echo -n hello", job_dir=str(job_dir))
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)
