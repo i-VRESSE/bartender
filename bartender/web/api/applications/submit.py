@@ -4,7 +4,6 @@ from bartender.config import Config
 from bartender.db.dao.job_dao import JobDAO
 from bartender.destinations import Destination
 from bartender.schedulers.abstract import JobDescription
-from bartender.settings import settings
 
 
 async def submit(
@@ -27,7 +26,7 @@ async def submit(
 
     destination, destinations_name = pick_destination(job_dir, application, config)
 
-    await _upload_input_files(description, destination)
+    await _upload_input_files(description, destination, config.job_root_dir)
 
     internal_job_id = await destination.scheduler.submit(description)
 
@@ -41,16 +40,16 @@ async def submit(
 async def _upload_input_files(
     description: JobDescription,
     destination: Destination,
+    job_root_dir: Path,
 ) -> None:
-    if destination.filesystem is not None:
-        localized_description = destination.filesystem.localize_description(
-            description,
-            settings.job_root_dir,
-        )
-        await destination.filesystem.upload(
-            src=description,
-            target=localized_description,
-        )
+    localized_description = destination.filesystem.localize_description(
+        description,
+        job_root_dir,
+    )
+    await destination.filesystem.upload(
+        src=description,
+        target=localized_description,
+    )
 
 
 def pick_destination(

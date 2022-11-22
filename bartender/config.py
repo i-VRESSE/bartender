@@ -26,11 +26,11 @@ Example config:
             extra_options:
             - --nodes 1
             runner:
-            type: ssh  # or local
-            hostname: localhost
-            port: 10022
-            username: xenon
-            password: javagat
+                type: ssh  # or local
+                hostname: localhost
+                port: 10022
+                username: xenon
+                password: javagat
         local:
             scheduler:
                 type: memory
@@ -53,6 +53,7 @@ Example config:
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
+from tempfile import gettempdir
 from typing import Any
 
 from fastapi import Request
@@ -61,6 +62,8 @@ from yaml import safe_load as load_yaml
 from bartender.destinations import Destination
 from bartender.destinations import build as build_destinations
 from bartender.schedulers.abstract import JobDescription
+
+TEMP_DIR = Path(gettempdir())
 
 
 @dataclass
@@ -96,6 +99,7 @@ class Config:
 
     applications: dict[str, ApplicatonConfiguration]
     destinations: dict[str, Destination]
+    job_root_dir: Path = TEMP_DIR / "jobs"
 
 
 def build_config(config_filename: Path) -> Config:

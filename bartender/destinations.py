@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.build import build as build_filesystem
@@ -14,7 +14,7 @@ class Destination:
     """A destination is a combination of a scheduler and filesystem."""
 
     scheduler: AbstractScheduler
-    filesystem: Optional[AbstractFileSystem] = None
+    filesystem: AbstractFileSystem = LocalFileSystem()
 
 
 def build(config: Any) -> dict[str, Destination]:
@@ -25,7 +25,7 @@ def build(config: Any) -> dict[str, Destination]:
     """
     if not config:
         return {
-            "": Destination(scheduler=MemoryScheduler(), filesystem=LocalFileSystem()),
+            "": Destination(scheduler=MemoryScheduler()),
         }
 
     destinations = {}

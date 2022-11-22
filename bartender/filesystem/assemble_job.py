@@ -5,11 +5,9 @@ from pathlib import Path
 from fastapi import HTTPException
 from starlette import status
 
-from bartender.settings import settings
-
 
 # TODO: Make this async
-def assemble_job(job_id: int, job_token: str) -> Path:
+def assemble_job(job_id: int, job_token: str, job_root_dir: Path) -> Path:
     """
     Assembly the job.
 
@@ -18,10 +16,11 @@ def assemble_job(job_id: int, job_token: str) -> Path:
 
     :param job_id: id of the job.
     :param job_token: Token that can be used to talk to bartender service.
+    :param job_root_dir: Root directory for all jobs.
     :raises HTTPException: When job directory could not be made.
     :return: Directory of job.
     """
-    job_dir: Path = settings.job_root_dir / str(job_id)
+    job_dir: Path = job_root_dir / str(job_id)
 
     try:
         job_dir.mkdir()

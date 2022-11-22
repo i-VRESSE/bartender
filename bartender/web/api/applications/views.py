@@ -72,7 +72,11 @@ async def upload_job(  # noqa: WPS211
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
 
-    job_dir = assemble_job(job_id, await current_api_token(submitter))
+    job_dir = assemble_job(
+        job_id,
+        await current_api_token(submitter),
+        config.job_root_dir,
+    )
     await stage_job_input(job_dir, upload)
     has_config_file(config.applications[application], job_dir)
 

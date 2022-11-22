@@ -34,10 +34,6 @@ class Settings(BaseSettings):
     # Enable uvicorn reloading
     reload: bool = False
 
-    # file system settings
-    job_root_dir: Path = TEMP_DIR / "jobs"
-    # TODO move job_root_dir to config.yaml
-
     # Current environment
     environment: str = "dev"
 

@@ -7,7 +7,6 @@ from fastapi import FastAPI
 from bartender.config import build_config
 from bartender.db.session import make_engine, make_session_factory
 from bartender.destinations import Destination
-from bartender.filesystem import setup_job_root_dir
 from bartender.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -43,7 +42,6 @@ def register_startup_event(
     @app.on_event("startup")
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
-        setup_job_root_dir()
         _parse_config(app)
 
     return _startup
@@ -75,7 +73,10 @@ def _parse_config(app: FastAPI) -> None:
     :param app: fastAPI application.
     """
     try:
-        app.state.config = build_config(settings.config_filename)
+        config = build_config(settings.config_filename)
+        # Make sure job root dir exists.
+        config.job_root_dir.mkdir(exist_ok=True)
+        app.state.config = config
     except FileNotFoundError:
         fn = settings.config_filename
         logger.warn(f"Unable to find {fn} falling back to config-example.yaml")

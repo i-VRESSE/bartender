@@ -83,7 +83,12 @@ async def dbsession(
 
 
 @pytest.fixture
-async def config() -> AsyncGenerator[Config, None]:
+def job_root_dir(tmp_path: Path) -> Path:
+    return tmp_path
+
+
+@pytest.fixture
+async def config(job_root_dir: Path) -> AsyncGenerator[Config, None]:
     applications = {
         "app1": ApplicatonConfiguration(
             command="wc $config",
@@ -92,7 +97,11 @@ async def config() -> AsyncGenerator[Config, None]:
     }
     scheduler = MemoryScheduler()
     destinations = {"dest1": Destination(scheduler=scheduler)}
-    yield Config(applications=applications, destinations=destinations)
+    yield Config(
+        applications=applications,
+        destinations=destinations,
+        job_root_dir=job_root_dir,
+    )
     await scheduler.close()
 
 
@@ -126,17 +135,6 @@ async def client(
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
         yield ac
-
-
-@pytest.fixture
-def job_root_dir(tmp_path: Path) -> Path:
-    """
-    Fixture that overrides settings.job_root_dir with temporary test directory.
-
-    :return: Path of job root dir.
-    """
-    settings.job_root_dir = tmp_path
-    return settings.job_root_dir
 
 
 @pytest.fixture

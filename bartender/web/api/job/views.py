@@ -10,7 +10,6 @@ from bartender.config import Config, get_config
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
-from bartender.settings import settings
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users.manager import current_active_user
@@ -41,7 +40,7 @@ async def retrieve_jobs(
     # or are shared with current user
     jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
     # get current state for each job from scheduler
-    await sync_states(jobs, config.destinations, job_dao)
+    await sync_states(jobs, config.destinations, job_dao, config.job_root_dir)
     return jobs
 
 
@@ -70,8 +69,8 @@ async def retrieve_job(
         # TODO When job has state==error then include URL to error page
         job = await job_dao.get_job(jobid=jobid, user=user)
         if job.destination is not None:
-            destination = config.destinations.get(job.destination)
-            await sync_state(job, job_dao, destination)
+            destination = config.destinations[job.destination]
+            await sync_state(job, job_dao, destination, config.job_root_dir)
         return job
     except NoResultFound as exc:
         raise HTTPException(
@@ -107,5 +106,5 @@ async def retrieve_job_stdout(
             status_code=status.HTTP_425_TOO_EARLY,
             detail="Stdout not ready. Job has not completed.",
         )
-    stdout: Path = settings.job_root_dir / str(jobid) / "stdout.txt"
+    stdout: Path = config.job_root_dir / str(jobid) / "stdout.txt"
     return FileResponse(stdout)

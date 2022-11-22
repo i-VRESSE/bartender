@@ -8,7 +8,7 @@ def test_assemble_job(job_root_dir: Path) -> None:
     job_id = 1
     token = "mytoken"  # noqa: S105
 
-    assemble_job(job_id, token)
+    assemble_job(job_id, token, job_root_dir)
 
     job_dir = job_root_dir / str(job_id)
     meta_file = job_dir / "meta"
