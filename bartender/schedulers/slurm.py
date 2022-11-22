@@ -3,7 +3,7 @@ from typing import Optional
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
-from bartender.schedulers.runner import CommandRunner
+from bartender.schedulers.runner import CommandRunner, LocalCommandRunner
 
 
 def _map_slurm_state(slurm_state: str) -> State:
@@ -34,7 +34,7 @@ class SlurmScheduler(AbstractScheduler):
 
     def __init__(
         self,
-        runner: CommandRunner,
+        runner: CommandRunner = LocalCommandRunner(),
         partition: Optional[str] = None,
         time: Optional[str] = None,
         extra_options: Optional[list[str]] = None,

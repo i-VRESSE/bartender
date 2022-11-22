@@ -52,6 +52,7 @@ Example config:
 
 from dataclasses import dataclass
 from pathlib import Path
+from string import Template
 from typing import Any
 
 from fastapi import Request
@@ -59,6 +60,7 @@ from yaml import safe_load as load_yaml
 
 from bartender.destinations import Destination
 from bartender.destinations import build as build_destinations
+from bartender.schedulers.abstract import JobDescription
 
 
 @dataclass
@@ -71,6 +73,17 @@ class ApplicatonConfiguration:
 
     command: str
     config: str
+
+    def description(self, job_dir: Path) -> JobDescription:
+        """Construct job description for this application.
+
+        :param job_dir: In which directory are the input files.
+        :return: A job description.
+        """
+        command = Template(self.command).substitute(
+            config=self.config,
+        )
+        return JobDescription(job_dir=job_dir, command=command)
 
 
 @dataclass

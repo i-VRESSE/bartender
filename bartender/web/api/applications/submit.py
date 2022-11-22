@@ -1,7 +1,6 @@
 from pathlib import Path
-from string import Template
 
-from bartender.config import ApplicatonConfiguration, Config
+from bartender.config import Config
 from bartender.db.dao.job_dao import JobDAO
 from bartender.destinations import Destination
 from bartender.schedulers.abstract import JobDescription
@@ -24,7 +23,7 @@ async def submit(
     :param config: Config with applications and destinations.
     """
     application_config = config.applications[application]
-    description = _build_description(job_dir, application_config)
+    description = application_config.description(job_dir)
 
     destination, destinations_name = pick_destination(job_dir, application, config)
 
@@ -52,16 +51,6 @@ async def _upload_input_files(
             src=description,
             target=localized_description,
         )
-
-
-def _build_description(
-    job_dir: Path,
-    application_config: ApplicatonConfiguration,
-) -> JobDescription:
-    command = Template(application_config.command).substitute(
-        config=application_config.config,
-    )
-    return JobDescription(job_dir=job_dir, command=command)
 
 
 def pick_destination(
