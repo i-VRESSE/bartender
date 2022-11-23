@@ -51,6 +51,7 @@ Example config:
 """
 
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 from string import Template
 from tempfile import gettempdir
@@ -92,6 +93,7 @@ class ApplicatonConfiguration:
 DestinationPicker = Callable[[Path, str, "Config"], tuple[Destination, str]]
 
 
+# TODO move to own module, without causing a circular import
 def pick_first(
     job_dir: Path,
     application_name: str,
@@ -114,7 +116,7 @@ DEFAULT_DESTINATION_PICKER: DestinationPicker = pick_first
 
 
 def import_picker(destination_picker_name: Optional[str]) -> DestinationPicker:
-    """Import a picker function based on a `<module>.<function>` string.
+    """Import a picker function based on a `<module>:<function>` string.
 
     :param destination_picker_name: function import as string.
     :return: Function that can be used to pick to
@@ -122,10 +124,9 @@ def import_picker(destination_picker_name: Optional[str]) -> DestinationPicker:
     """
     if destination_picker_name is None:
         return DEFAULT_DESTINATION_PICKER
-    modules = destination_picker_name.split(".")
-    function_name = modules.pop()
-    module_name = ".".join(modules)
-    module = __import__(module_name)  # noqa: WPS421
+    # TODO allow somedir/somefile.py:pick_round_robin
+    (module_name, function_name) = destination_picker_name.split(":")
+    module = import_module(module_name)
     return getattr(module, function_name)
 
 
