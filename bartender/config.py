@@ -99,7 +99,7 @@ def pick_first(
     application_name: str,
     config: "Config",
 ) -> tuple[Destination, str]:
-    """Pick to which destination a job should be submitted.
+    """Always picks first destination to where a job should be submitted to.
 
     :param job_dir: Location where job input files are located.
     :param application_name: Application name that should be run.
@@ -111,6 +111,44 @@ def pick_first(
     destination = config.destinations[destination_name]
     return destination, destination_name
 
+
+class PickRound:
+    """Builder for round robin destination picker."""
+
+    def __init__(self) -> None:
+        self.last = ""
+
+    def __call__(
+        self,
+        job_dir: Path,
+        application_name: str,
+        config: "Config",
+    ) -> tuple[Destination, str]:
+        """Always picks the next destination to where a job should be submitted to.
+
+        Takes list of destinations and each time it is called will
+        pick the next destination in the destination list.
+        Going around to start when end is reached.
+
+        :param job_dir: Location where job input files are located.
+        :param application_name: Application name that should be run.
+        :param config: Config with applications and destinations.
+        :return: Destination where job should be submitted to.
+        """
+        destination_names = list(config.destinations.keys())
+        if self.last == "":
+            self.last = destination_names[0]
+        else:
+            for index, name in enumerate(destination_names):
+                if name == self.last:
+                    new_index = (index + 1) % len(destination_names)
+                    self.last = destination_names[new_index]
+                    break
+
+        return config.destinations[self.last], self.last
+
+
+pick_round: DestinationPicker = PickRound()
 
 DEFAULT_DESTINATION_PICKER: DestinationPicker = pick_first
 
