@@ -1,95 +1,123 @@
-from pathlib import Path
-from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import ValidationError
 
-from bartender._ssh_utils import SshConnectConfig
-from bartender.destinations import Destination, build
-from bartender.filesystems.local import LocalFileSystem
-from bartender.filesystems.sftp import SftpFileSystem
-from bartender.schedulers.memory import MemoryScheduler
-from bartender.schedulers.slurm import SlurmScheduler
-
-
-@pytest.mark.anyio
-async def test_empty() -> None:
-    config: Any = {}
-    result = build(config)
-
-    expected = {
-        "": Destination(scheduler=MemoryScheduler(), filesystem=LocalFileSystem()),
-    }
-    assert result == expected
+from bartender.destinations import (
+    Destination,
+    DestinationConfig,
+    build,
+    default_destinations,
+)
+from bartender.filesystems.abstract import AbstractFileSystem
+from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
+from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.memory import MemoryScheduler, MemorySchedulerConfig
 
 
-@pytest.mark.anyio
-async def test_single_empty() -> None:
-    config: Any = {"dest1": {}}
-    with pytest.raises(KeyError):
-        build(config)
+class TestDestinationConfig:
+    def test_unknown_scheduler_type(self) -> None:
+        with pytest.raises(ValidationError):
+            raw_config = {
+                "scheduler": {"type": "XYZscheduler"},
+                "filesystem": {"type": "local"},
+            }
+            DestinationConfig(**raw_config)
+
+    def test_unknown_filesystem_type(self) -> None:
+        with pytest.raises(ValidationError):
+            raw_config = {
+                "scheduler": {"type": "memory"},
+                "filesystem": {"type": "XYZfilesystem"},
+            }
+            DestinationConfig(**raw_config)
 
 
-@pytest.mark.anyio
-async def test_single_memory() -> None:
-    config: Any = {"dest1": {"scheduler": {"type": "memory"}}}
-    result = build(config)
-
-    expected = {
-        "dest1": Destination(scheduler=MemoryScheduler()),
-    }
-    assert result == expected
-
-
-@pytest.mark.anyio
-async def test_single_memory_local() -> None:
-    config: Any = {
-        "dest1": {"scheduler": {"type": "memory"}, "filesystem": {"type": "local"}},
-    }
-    result = build(config)
+def test_default_destinations() -> None:
+    destinations = default_destinations()
 
     expected = {
-        "dest1": Destination(scheduler=MemoryScheduler()),
-    }
-    assert result == expected
-
-
-@pytest.mark.anyio
-async def test_double() -> None:
-    config: Any = {
-        "dest1": {"scheduler": {"type": "memory", "slots": 42}},
-        "dest2": {
-            "scheduler": {
-                "type": "slurm",
-                "partition": "mypartition",
-                "ssh_config": {
-                    "hostname": "localhost",
-                },
-            },
-            "filesystem": {
-                "type": "sftp",
-                "ssh_config": {
-                    "hostname": "localhost",
-                },
-                "entry": "/scratch/jobs",
-            },
-        },
-    }
-    result = build(config)
-
-    expected = {
-        "dest1": Destination(
-            scheduler=MemoryScheduler(slots=42),
-            filesystem=LocalFileSystem(),
-        ),
-        "dest2": Destination(
-            scheduler=SlurmScheduler(
-                ssh_config=SshConnectConfig(hostname="localhost"),
-                partition="mypartition",
-            ),
-            filesystem=SftpFileSystem(
-                ssh_config=SshConnectConfig(hostname="localhost"),
-                entry=Path("/scratch/jobs"),
-            ),
+        "": DestinationConfig(
+            scheduler=MemorySchedulerConfig(),
+            filesystem=LocalFileSystemConfig(),
         ),
     }
-    assert result == expected
+    assert destinations == expected
+
+
+class TestDestination:
+    @pytest.mark.anyio
+    async def test_close(self) -> None:
+        scheduler = AsyncMock(AbstractScheduler)
+        filesystem = MagicMock(AbstractFileSystem)
+
+        destination = Destination(scheduler=scheduler, filesystem=filesystem)
+
+        await destination.close()
+
+        filesystem.close.assert_called_once_with()
+        scheduler.close.assert_called_once_with()
+
+
+class TestBuild:
+    def test_empty(self) -> None:
+        config: dict[str, DestinationConfig] = {}
+
+        destinations = build(config)
+
+        expected: dict[str, Destination] = {}
+        assert destinations == expected
+
+    @pytest.mark.anyio
+    async def test_one_destination(self) -> None:
+        try:
+            config = {
+                "dest1": DestinationConfig(
+                    scheduler=MemorySchedulerConfig(),
+                    filesystem=LocalFileSystemConfig(),
+                ),
+            }
+
+            destinations = build(config)
+
+            expected = {
+                "dest1": Destination(
+                    scheduler=MemoryScheduler(MemorySchedulerConfig()),
+                    filesystem=LocalFileSystem(),
+                ),
+            }
+            assert destinations == expected
+        finally:
+            await destinations["dest1"].close()
+            await expected["dest1"].close()
+
+    @pytest.mark.anyio
+    async def test_two_destinations(self) -> None:
+        try:
+            config = {
+                "dest1": DestinationConfig(
+                    scheduler=MemorySchedulerConfig(),
+                    filesystem=LocalFileSystemConfig(),
+                ),
+                "dest2": DestinationConfig(
+                    scheduler=MemorySchedulerConfig(slots=2),
+                    filesystem=LocalFileSystemConfig(),
+                ),
+            }
+
+            destinations = build(config)
+
+            expected = {
+                "dest1": Destination(
+                    scheduler=MemoryScheduler(MemorySchedulerConfig()),
+                    filesystem=LocalFileSystem(),
+                ),
+                "dest2": Destination(
+                    scheduler=MemoryScheduler(MemorySchedulerConfig(slots=2)),
+                    filesystem=LocalFileSystem(),
+                ),
+            }
+            assert destinations == expected
+        finally:
+            await destinations["dest1"].close()
+            await expected["dest1"].close()

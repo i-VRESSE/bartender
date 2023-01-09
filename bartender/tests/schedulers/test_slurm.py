@@ -9,10 +9,10 @@ from testcontainers.core.waiting_utils import wait_container_is_ready
 
 from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import CompletedStates
-from bartender.filesystems.sftp import SftpFileSystem
+from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.runner import SshCommandRunner
-from bartender.schedulers.slurm import SlurmScheduler
+from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
 
 
 class SlurmContainer(DockerContainer):
@@ -35,7 +35,9 @@ class SlurmContainer(DockerContainer):
 
     def get_filesystem(self) -> SftpFileSystem:
         home_dir = Path("/home/xenon")
-        return SftpFileSystem(entry=home_dir, ssh_config=self.get_config())
+        return SftpFileSystem(
+            SftpFileSystemConfig(entry=home_dir, ssh_config=self.get_config()),
+        )
 
     def start(self) -> "SlurmContainer":
         super().start()
@@ -69,7 +71,7 @@ async def test_ok_running_job_with_input_and_output_file(
     job_dir = tmp_path
     try:
         ssh_config = slurm_server.get_config()
-        scheduler = SlurmScheduler(ssh_config=ssh_config)
+        scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
         (job_dir / "input").write_text("Lorem ipsum")
         description = JobDescription(
             command="echo -n hello && wc input > output",
@@ -117,7 +119,7 @@ async def test_ok_running_job_without_iofiles(
     job_dir = tmp_path
     try:
         ssh_config = slurm_server.get_config()
-        scheduler = SlurmScheduler(ssh_config=ssh_config)
+        scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
         description = JobDescription(command="echo -n hello", job_dir=str(job_dir))
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)

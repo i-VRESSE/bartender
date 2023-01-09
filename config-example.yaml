@@ -5,9 +5,13 @@
 # To use a custom picker set `destination_picker` to a `<module>:<function>`
 # The picker should have type bartender.config.DestinationPicker .
 applications:
-  app1:
-    command: app1 $config
-    config: workflow.cfg
+  # The label of the application
+  wc:
+    # Command line interface command to run application.
+    # `$config` occurences will be replaced value of config parameter.
+    command: wc $config
+    # Name of config file that the application needs
+    config: README.md
 destinations:
   local:
     scheduler:

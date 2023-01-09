@@ -1,35 +1,21 @@
-from pathlib import Path
-from typing import Any
+from typing import Union
 
-from bartender._ssh_utils import SshConnectConfig
 from bartender.filesystems.abstract import AbstractFileSystem
-from bartender.filesystems.local import LocalFileSystem
-from bartender.filesystems.sftp import SftpFileSystem
+from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
+from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
+
+FileSystemConfig = Union[LocalFileSystemConfig, SftpFileSystemConfig]
 
 
-def build(config: Any) -> AbstractFileSystem:
+def build(config: FileSystemConfig) -> AbstractFileSystem:
     """Build a file system from a configuration.
 
     :param config: The configuration
-    :raises KeyError: When a key is missing
-    :raises ValueError: When a value is incorrect.
+    :raises ValueError: When unknown config is given.
     :return: A file system instance.
     """
-    if config is None:
+    if isinstance(config, LocalFileSystemConfig):
         return LocalFileSystem()
-    if "type" not in config:
-        raise KeyError("File system without type")
-    if config["type"] == "local":
-        return LocalFileSystem()
-    if config["type"] == "sftp":
-        return _build_sftp_filesystem(config)
-    raise ValueError(f'File system with type {config["type"]} is unknown')
-
-
-def _build_sftp_filesystem(config: Any) -> SftpFileSystem:
-    if "ssh_config" not in config:
-        raise KeyError("Sftp file system without SSH connection configuration.")
-    ssh_config = SshConnectConfig(**config["ssh_config"])
-    entry_config = config.get("entry", "/")
-    entry = Path(entry_config)
-    return SftpFileSystem(ssh_config, entry)
+    if isinstance(config, SftpFileSystemConfig):
+        return SftpFileSystem(config)
+    raise ValueError(f"Unknown filesystem, recieved config is {config}")

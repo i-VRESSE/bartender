@@ -1,30 +1,104 @@
 from pathlib import Path
+from tempfile import gettempdir
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 from yaml import safe_dump as yaml_dump
 
 from bartender._ssh_utils import SshConnectConfig
-from bartender.config import (
-    ApplicatonConfiguration,
-    Config,
-    PickRound,
-    build_config,
-    parse_config,
-    pick_first,
-)
-from bartender.destinations import Destination
-from bartender.filesystems.sftp import SftpFileSystem
-from bartender.schedulers.memory import MemoryScheduler
-from bartender.schedulers.slurm import SlurmScheduler
+from bartender.config import ApplicatonConfiguration, Config, build_config, get_config
+from bartender.destinations import DestinationConfig
+from bartender.filesystems.local import LocalFileSystemConfig
+from bartender.filesystems.sftp import SftpFileSystemConfig
+from bartender.schedulers.abstract import JobDescription
+from bartender.schedulers.memory import MemorySchedulerConfig
+from bartender.schedulers.slurm import SlurmSchedulerConfig
+
+
+class TestApplicatonConfiguration:
+    def test_description_with_config(self, tmp_path: Path) -> None:
+        conf = ApplicatonConfiguration(command="wc $config", config="foo.bar")
+
+        description = conf.description(tmp_path)
+
+        expected = JobDescription(job_dir=tmp_path, command="wc foo.bar")
+        assert description == expected
+
+
+class TestConfig:
+    def test_zero_apps(self) -> None:
+        raw_config: Any = {"applications": {}}
+        with pytest.raises(
+            ValidationError,
+            match="must contain a at least one application",
+        ):
+            Config(**raw_config)
+
+    def test_minimal(self) -> None:
+        raw_config: Any = {
+            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+        }
+        config = Config(**raw_config)
+
+        expected = Config(
+            destination_picker="bartender.picker:pick_first",
+            job_root_dir=Path(gettempdir()) / "jobs",
+            applications={
+                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+            },
+            destinations={
+                "": DestinationConfig(
+                    scheduler=MemorySchedulerConfig(),
+                    filesystem=LocalFileSystemConfig(),
+                ),
+            },
+        )
+        assert config == expected
+
+    def test_no_defaults(self, tmp_path: Path) -> None:
+        raw_config: Any = {
+            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "destinations": {
+                "dest1": {
+                    "scheduler": {"type": "slurm", "partition": "normal"},
+                    "filesystem": {
+                        "type": "sftp",
+                        "entry": "/scratch",
+                        "ssh_config": {"hostname": "remotehost"},
+                    },
+                },
+            },
+            "job_root_dir": str(tmp_path),
+            "destination_picker": "bartender.picker:pick_round",
+        }
+        config = Config(**raw_config)
+
+        expected = Config(
+            destination_picker="bartender.picker:pick_round",
+            job_root_dir=tmp_path,
+            applications={
+                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+            },
+            destinations={
+                "dest1": DestinationConfig(
+                    scheduler=SlurmSchedulerConfig(partition="normal"),
+                    filesystem=SftpFileSystemConfig(
+                        entry=Path("/scratch"),
+                        ssh_config=SshConnectConfig(hostname="remotehost"),
+                    ),
+                ),
+            },
+        )
+        assert config == expected
 
 
 @pytest.mark.anyio
-async def test_build_minimal(tmp_path: Path) -> None:
+async def test_build_config_minimal(tmp_path: Path) -> None:
     file = tmp_path / "config.yaml"
-    config = {
+    config: Any = {
         "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
-        "destinations": {},
     }
     with file.open("w") as handle:
         yaml_dump(config, handle)
@@ -32,169 +106,26 @@ async def test_build_minimal(tmp_path: Path) -> None:
     result = build_config(file)
 
     expected = Config(
+        destination_picker="bartender.picker:pick_first",
+        job_root_dir=Path(gettempdir()) / "jobs",
         applications={
             "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
         },
         destinations={
-            "": Destination(scheduler=MemoryScheduler()),
-        },
-    )
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "test_input",
-    [
-        ({}),
-        ({"applications": {}}),
-        ({"destinations": {}}),
-    ],
-)
-def test_parse_keyerrors(test_input: Any) -> None:
-    with pytest.raises(KeyError):
-        parse_config(test_input)
-
-
-@pytest.mark.anyio
-async def test_parse_single_destination() -> None:
-    config = {
-        "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
-        "destinations": {
-            "dest2": {
-                "scheduler": {
-                    "type": "slurm",
-                    "partition": "mypartition",
-                    "ssh_config": {
-                        "hostname": "localhost",
-                    },
-                },
-                "filesystem": {
-                    "type": "sftp",
-                    "ssh_config": {
-                        "hostname": "localhost",
-                    },
-                    "entry": "/scratch/jobs",
-                },
-            },
-        },
-    }
-
-    result = parse_config(config)
-
-    expected = Config(
-        applications={
-            "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
-        },
-        destinations={
-            "dest2": Destination(
-                scheduler=SlurmScheduler(
-                    ssh_config=SshConnectConfig(
-                        hostname="localhost",
-                    ),
-                    partition="mypartition",
-                ),
-                filesystem=SftpFileSystem(
-                    ssh_config=SshConnectConfig(
-                        hostname="localhost",
-                    ),
-                    entry=Path("/scratch/jobs"),
-                ),
+            "": DestinationConfig(
+                scheduler=MemorySchedulerConfig(),
+                filesystem=LocalFileSystemConfig(),
             ),
         },
     )
     assert result == expected
 
 
-@pytest.mark.anyio
-async def test_job_root_dir() -> None:
-    config = {
-        "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
-        "destinations": {},
-        "job_root_dir": Path("/jobs"),
-    }
-    result = parse_config(config)
+def test_get_config(demo_config: Config) -> None:
+    fake_request = MagicMock()
+    fake_request.app.state.config = demo_config
 
-    expected = Config(
-        applications={
-            "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
-        },
-        destinations={
-            "": Destination(scheduler=MemoryScheduler()),
-        },
-        job_root_dir=Path("/jobs"),
-    )
-    assert result == expected
+    config = get_config(fake_request)
 
-
-class TestPickFirst:
-    @pytest.mark.anyio
-    async def test_with2destinations_returns_first(self) -> None:
-        config = Config(
-            applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
-            },
-            destinations={
-                "d1": Destination(scheduler=MemoryScheduler()),
-                "d2": Destination(scheduler=MemoryScheduler()),
-            },
-            job_root_dir=Path("/jobs"),
-        )
-        actual = pick_first(config.job_root_dir / "job1", "app1", config)
-
-        expected = (config.destinations["d1"], "d1")
-        assert actual == expected
-
-    @pytest.mark.anyio
-    async def test_nodestintations_returns_indexerror(self) -> None:
-        config = Config(
-            applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
-            },
-            destinations={},
-            job_root_dir=Path("/jobs"),
-        )
-
-        with pytest.raises(IndexError):
-            pick_first(config.job_root_dir / "job1", "app1", config)
-
-
-class TestPickRoundWith2Destinations:
-    @pytest.fixture
-    async def config(self) -> Config:
-        return Config(
-            applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
-            },
-            destinations={
-                "d1": Destination(scheduler=MemoryScheduler()),
-                "d2": Destination(scheduler=MemoryScheduler()),
-            },
-            job_root_dir=Path("/jobs"),
-        )
-
-    @pytest.mark.anyio
-    async def test_firstcall_returns_first(self, config: Config) -> None:
-        picker = PickRound()
-        actual = picker(config.job_root_dir / "job1", "app1", config)
-
-        expected = (config.destinations["d1"], "d1")
-        assert actual == expected
-
-    @pytest.mark.anyio
-    async def test_secondcall_returns_second(self, config: Config) -> None:
-        picker = PickRound()
-        picker(config.job_root_dir / "job1", "app1", config)
-        actual = picker(config.job_root_dir / "job1", "app1", config)
-
-        expected = (config.destinations["d2"], "d2")
-        assert actual == expected
-
-    @pytest.mark.anyio
-    async def test_thirdcall_returns_first(self, config: Config) -> None:
-        picker = PickRound()
-        picker(config.job_root_dir / "job1", "app1", config)
-        picker(config.job_root_dir / "job1", "app1", config)
-        actual = picker(config.job_root_dir / "job1", "app1", config)
-
-        expected = (config.destinations["d1"], "d1")
-        assert actual == expected
+    expected = demo_config
+    assert config == expected

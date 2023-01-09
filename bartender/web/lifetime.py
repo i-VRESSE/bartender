@@ -1,15 +1,11 @@
-import logging
-from pathlib import Path
 from typing import Awaitable, Callable
 
 from fastapi import FastAPI
 
 from bartender.config import build_config
+from bartender.context import build_context, close_context
 from bartender.db.session import make_engine, make_session_factory
-from bartender.destinations import Destination
 from bartender.settings import settings
-
-logger = logging.getLogger(__name__)
 
 
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
@@ -42,7 +38,7 @@ def register_startup_event(
     @app.on_event("startup")
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
-        _parse_config(app)
+        _parse_context(app)
 
     return _startup
 
@@ -60,36 +56,26 @@ def register_shutdown_event(
     @app.on_event("shutdown")
     async def _shutdown() -> None:  # noqa: WPS430
         await app.state.db_engine.dispose()
-        await _teardown_confg(app)
+        await _teardown_context(app)
 
     return _shutdown
 
 
-def _parse_config(app: FastAPI) -> None:
+def _parse_context(app: FastAPI) -> None:
     """Parse configuration and instantiate applications, schedulers and filesystems.
 
-    Sets `app.state.config`.
+    Sets `app.state.config` and `app.state.context`.
 
     :param app: fastAPI application.
     """
-    try:
-        config = build_config(settings.config_filename)
-        # Make sure job root dir exists.
-        config.job_root_dir.mkdir(exist_ok=True)
-        app.state.config = config
-    except FileNotFoundError:
-        fn = settings.config_filename
-        logger.warn(f"Unable to find {fn} falling back to config-example.yaml")
-        app.state.config = build_config(Path("config-example.yaml"))
+    config = build_config(settings.config_filename)
+    app.state.config = config
+    app.state.context = build_context(config)
 
 
-async def _teardown_confg(app: FastAPI) -> None:
+async def _teardown_context(app: FastAPI) -> None:
     """Teardown schedulers and file systems.
 
     :param app: fastAPI application.
     """
-    destinations: dict[str, Destination] = app.state.config.destinations
-    for destination in destinations.values():
-        await destination.scheduler.close()
-        if destination.filesystem is not None:
-            destination.filesystem.close()
+    await close_context(app.state.context)

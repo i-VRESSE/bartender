@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from textwrap import dedent
-from typing import Optional
+from typing import Literal, Optional
 
 from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import State
@@ -34,36 +35,44 @@ def _map_slurm_state(slurm_state: str) -> State:
         return "error"
 
 
+@dataclass
+class SlurmSchedulerConfig:
+    """Configuration for Slurm scheduler.
+
+    :param ssh_config: SSH connection configuration.
+        When set will call SLURM commands on remote system via SSH connection.
+        When not set will call SLURM commands on local system.
+    :param partition: Partition in which all jobs should be submitted.
+    :param time: Limit on the total run time of the job.
+    :param extra_options: Escape hatch to add extra options to job script.
+        The string `#SBATCH {extra_options[0]}` will be appended to job script.
+    """
+
+    type: Literal["slurm"] = "slurm"
+    ssh_config: Optional[SshConnectConfig] = None
+    partition: Optional[str] = None
+    time: Optional[str] = None
+    extra_options: Optional[list[str]] = None
+
+
 class SlurmScheduler(AbstractScheduler):
     """Slurm batch scheduler."""
 
-    def __init__(
-        self,
-        ssh_config: Optional[SshConnectConfig] = None,
-        partition: Optional[str] = None,
-        time: Optional[str] = None,
-        extra_options: Optional[list[str]] = None,
-    ):
+    def __init__(self, config: SlurmSchedulerConfig):
         """Constructor.
 
-        :param ssh_config: SSH connection configuration.
-            When set will call SLURM commands on remote system via SSH connection.
-            When not set will call SLURM commands on local system.
-        :param partition: Partition in which all jobs should be submitted.
-        :param time: Limit on the total run time of the job.
-        :param extra_options: Escape hatch to add extra options to job script.
-            The string `#SBATCH {extra_options[0]}` will be appended to job script.
+        :param config: Config for scheduler.
         """
         self.runner: CommandRunner = LocalCommandRunner()
-        self.ssh_config = ssh_config
-        if ssh_config is not None:
-            self.runner = SshCommandRunner(ssh_config)
-        self.partition = partition
-        self.time = time
-        if extra_options is None:
+        self.ssh_config = config.ssh_config
+        if config.ssh_config is not None:
+            self.runner = SshCommandRunner(config.ssh_config)
+        self.partition = config.partition
+        self.time = config.time
+        if config.extra_options is None:
             self.extra_options = []
         else:
-            self.extra_options = extra_options
+            self.extra_options = config.extra_options
 
     async def submit(self, description: JobDescription) -> str:  # noqa: D102):
         # TODO if runner is a SSHCommandRunner then description.jobdir

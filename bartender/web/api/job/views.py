@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
-from bartender.config import Config, get_config
+from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
@@ -23,7 +23,7 @@ async def retrieve_jobs(
     offset: int = 0,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
-    config: Config = Depends(get_config),
+    context: Context = Depends(get_context),
 ) -> List[Job]:
     """
     Retrieve all jobs of user from the database.
@@ -32,7 +32,7 @@ async def retrieve_jobs(
     :param offset: offset of jobs.
     :param job_dao: JobDAO object.
     :param user: Current active user.
-    :param config: Config with destinations.
+    :param context: Context with destinations.
     :return: stream of jobs.
     """
     # TODO now list jobs that user submitted,
@@ -40,7 +40,7 @@ async def retrieve_jobs(
     # or are shared with current user
     jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
     # get current state for each job from scheduler
-    await sync_states(jobs, config.destinations, job_dao, config.job_root_dir)
+    await sync_states(jobs, context.destinations, job_dao, context.job_root_dir)
     return jobs
 
 
@@ -49,7 +49,7 @@ async def retrieve_job(
     jobid: int,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
-    config: Config = Depends(get_config),
+    context: Context = Depends(get_context),
 ) -> Job:
     """
     Retrieve specific job from the database.
@@ -57,7 +57,7 @@ async def retrieve_job(
     :param jobid: identifier of job instance.
     :param job_dao: JobDAO object.
     :param user: Current active user.
-    :param config: Config with destinations.
+    :param context: Context with destinations.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: job models.
     """
@@ -69,8 +69,8 @@ async def retrieve_job(
         # TODO When job has state==error then include URL to error page
         job = await job_dao.get_job(jobid=jobid, user=user)
         if job.destination is not None:
-            destination = config.destinations[job.destination]
-            await sync_state(job, job_dao, destination, config.job_root_dir)
+            destination = context.destinations[job.destination]
+            await sync_state(job, job_dao, destination, context.job_root_dir)
         return job
     except NoResultFound as exc:
         raise HTTPException(
@@ -84,14 +84,14 @@ async def retrieve_job_stdout(
     jobid: int,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
-    config: Config = Depends(get_config),
+    context: Context = Depends(get_context),
 ) -> FileResponse:
     """Retrieve stdout of a job.
 
     :param jobid: identifier of job instance.
     :param job_dao: JobDAO object.
     :param user: Current active user.
-    :param config: Config with destinations.
+    :param context: Context with destinations.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: stdout of job.
     """
@@ -99,12 +99,12 @@ async def retrieve_job_stdout(
         jobid=jobid,
         job_dao=job_dao,
         user=user,
-        config=config,
+        context=context,
     )
     if job.state not in {"ok", "error"}:
         raise HTTPException(
             status_code=status.HTTP_425_TOO_EARLY,
             detail="Stdout not ready. Job has not completed.",
         )
-    stdout: Path = config.job_root_dir / str(jobid) / "stdout.txt"
+    stdout: Path = context.job_root_dir / str(jobid) / "stdout.txt"
     return FileResponse(stdout)

@@ -6,9 +6,14 @@ from asyncio import (
     create_task,
     gather,
 )
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass as pydataclass
+from typing import TYPE_CHECKING, Literal, Optional
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from dataclasses import dataclass
+else:
+    from pydantic.dataclasses import dataclass  # noqa: WPS440
 
 from pydantic.types import PositiveInt
 
@@ -16,7 +21,7 @@ from bartender.db.models.job_model import CompletedStates, State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
 
-@dataclass
+@pydataclass
 class _Job:
     description: JobDescription
     id: str
@@ -69,21 +74,33 @@ async def _worker(queue: Queue[_Job], jobs: dict[str, _Job], worker_index: int) 
         queue.task_done()
 
 
+@dataclass
+class MemorySchedulerConfig:
+    """Configuration for in memory scheduler.
+
+    :param slots: Maximum number of concurrently runnning jobs. Minimum is 1.
+    """
+
+    type: Literal["memory"] = "memory"
+    slots: PositiveInt = 1
+
+
 class MemoryScheduler(AbstractScheduler):
     """In memory scheduler.
 
     When service is closed any queud or running jobs will disappear.
+
     """
 
-    def __init__(self, slots: PositiveInt = 1):
+    def __init__(self, config: MemorySchedulerConfig):
         """In memory scheduler.
 
-        :param slots: Maximum number of concurrently runnning jobs. Minimum is 1.
+        :param config: The config.
         """
         self.queue: Queue[_Job] = Queue()
         self.jobs: dict[str, _Job] = {}
         self.workers: list[Task[None]] = []
-        for _ in range(slots):
+        for _ in range(config.slots):
             self._add_worker()
 
     async def close(self) -> None:  # noqa: D102

@@ -6,6 +6,7 @@
   - [Configuration](#configuration)
     - [Applications](#applications)
     - [Job destinations](#job-destinations)
+    - [Destination picker](#destination-picker)
   - [User management](#user-management)
     - [GitHub login](#github-login)
     - [Orcid sandbox login](#orcid-sandbox-login)
@@ -173,6 +174,18 @@ When the filesystem is on a remote system with non-shared file system or a diffe
 Destinations can be configured in the `config.yaml` file under `destinations` key.
 By default a single slot in-memory scheduler with a local filesystem is used.
 
+### [Destination picker](#destination-picker)
+
+If you have multiple applications and job destinations you need some way to specify to which job submission should go.
+
+A Python function can be used to pick to which destination a job should go.
+
+To use a custom picker function set `destination_picker` in `config.yaml` file.
+The value should be formatted as `<module>:<function>`, for example to rotate over each destination use `bartender.picker.pick_round` as value.
+The picker function should have type `bartender.picker.DestinationPicker`.
+
+By default jobs are submitted to the first destination.
+
 ## [User management](#user-management)
 
 For secure auth add `BARTENDER_SECRET=<some random string>` to `.env` file.
@@ -305,7 +318,7 @@ Use the following steps to run a job:
 6. Retrieve result. The word count application (`wc`) outputs to the stdout.
     1. Try out the `GET /api/job/{jobid}/stdout`
     2. Use job identifier retrieved by submit request as `jobid` parameter value.
-    3. Should see something like `404  1556 12928 README.md`.
+    3. Should see something like `433  1793 14560 README.md`.
         Where numbers are counts for newlines, words, bytes.
 
 ### Haddock3 example

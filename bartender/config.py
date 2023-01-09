@@ -6,31 +6,32 @@ Example config:
 .. code-block: yaml
 
     applications:
-    haddock3:
-        command: haddock3 $config
-    recluster:
-        command: haddock3 recluster
+        haddock3:
+            command: haddock3 $config
+            config: workflow.cfg
+        recluster:
+            command: haddock3 recluster
     destinations:
-    cluster1:
-        filesystem: &cluster1fs
-            type: sftp
-            ssh_config:
-                hostname: localhost
-                port: 10022
-                username: xenon
-                password: javagat
-            entry: /home/xenon
-        scheduler: &cluster1sched
-            type: slurm
-            partition: mypartition
-            time: '60' # max time is 60 minutes
-            extra_options:
-            - --nodes 1
-            ssh_config:
-                hostname: localhost
-                port: 10022
-                username: xenon
-                password: javagat
+        cluster1:
+            filesystem: &cluster1fs
+                type: sftp
+                ssh_config:
+                    hostname: localhost
+                    port: 10022
+                    username: xenon
+                    password: javagat
+                entry: /home/xenon
+            scheduler: &cluster1sched
+                type: slurm
+                partition: mypartition
+                time: '60' # max time is 60 minutes
+                extra_options:
+                - --nodes 1
+                ssh_config:
+                    hostname: localhost
+                    port: 10022
+                    username: xenon
+                    password: javagat
         local:
             scheduler:
                 type: memory
@@ -50,21 +51,23 @@ Example config:
                 type: dirac
 """
 
-from dataclasses import dataclass
-from importlib import import_module
 from pathlib import Path
 from string import Template
 from tempfile import gettempdir
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from dataclasses import dataclass
+else:
+    from pydantic.dataclasses import dataclass  # noqa: WPS440
 
 from fastapi import Request
+from pydantic import Field, validator
+from pydantic.types import DirectoryPath
 from yaml import safe_load as load_yaml
 
-from bartender.destinations import Destination
-from bartender.destinations import build as build_destinations
+from bartender.destinations import DestinationConfig, default_destinations
 from bartender.schedulers.abstract import JobDescription
-
-DEFAULT_JOB_ROOT_DIR = Path(gettempdir()) / "jobs"
 
 
 @dataclass
@@ -77,6 +80,8 @@ class ApplicatonConfiguration:
 
     command: str
     config: str
+    # TODO make config optional,
+    # as some commands don't need a config file name as argument
 
     def description(self, job_dir: Path) -> JobDescription:
         """Construct job description for this application.
@@ -90,96 +95,43 @@ class ApplicatonConfiguration:
         return JobDescription(job_dir=job_dir, command=command)
 
 
-DestinationPicker = Callable[[Path, str, "Config"], tuple[Destination, str]]
-
-
-# TODO move to own module, without causing a circular import
-def pick_first(
-    job_dir: Path,
-    application_name: str,
-    config: "Config",
-) -> tuple[Destination, str]:
-    """Always picks first destination to where a job should be submitted to.
-
-    :param job_dir: Location where job input files are located.
-    :param application_name: Application name that should be run.
-    :param config: Config with applications and destinations.
-    :return: Destination where job should be submitted to.
-    """
-    destination_names = list(config.destinations.keys())
-    destination_name = destination_names[0]
-    destination = config.destinations[destination_name]
-    return destination, destination_name
-
-
-class PickRound:
-    """Builder for round robin destination picker."""
-
-    def __init__(self) -> None:
-        self.last = ""
-
-    def __call__(
-        self,
-        job_dir: Path,
-        application_name: str,
-        config: "Config",
-    ) -> tuple[Destination, str]:
-        """Always picks the next destination to where a job should be submitted to.
-
-        Takes list of destinations and each time it is called will
-        pick the next destination in the destination list.
-        Going around to start when end is reached.
-
-        :param job_dir: Location where job input files are located.
-        :param application_name: Application name that should be run.
-        :param config: Config with applications and destinations.
-        :return: Destination where job should be submitted to.
-        """
-        destination_names = list(config.destinations.keys())
-        if self.last == "":
-            self.last = destination_names[0]
-        else:
-            for index, name in enumerate(destination_names):
-                if name == self.last:
-                    new_index = (index + 1) % len(destination_names)
-                    self.last = destination_names[new_index]
-                    break
-
-        return config.destinations[self.last], self.last
-
-
-pick_round: DestinationPicker = PickRound()
-
-DEFAULT_DESTINATION_PICKER: DestinationPicker = pick_first
-
-
-def import_picker(destination_picker_name: Optional[str]) -> DestinationPicker:
-    """Import a picker function based on a `<module>:<function>` string.
-
-    :param destination_picker_name: function import as string.
-    :return: Function that can be used to pick to
-        which destination a job should be submitted.
-    """
-    if destination_picker_name is None:
-        return DEFAULT_DESTINATION_PICKER
-    # TODO allow somedir/somefile.py:pick_round_robin
-    (module_name, function_name) = destination_picker_name.split(":")
-    module = import_module(module_name)
-    return getattr(module, function_name)
-
-
 @dataclass
 class Config:
     """Bartender configuration.
 
     The bartender.settings.Settings class is for FastAPI settings.
     The bartender.config.Config class is for non-FastAPI configuration.
+
+    If config is empty will create a single slot in memory scheduler
+    with a local file system.
+
     """
 
     applications: dict[str, ApplicatonConfiguration]
-    destinations: dict[str, Destination]
-    job_root_dir: Path = DEFAULT_JOB_ROOT_DIR
-    destination_picker: DestinationPicker = DEFAULT_DESTINATION_PICKER
+    destinations: dict[str, DestinationConfig] = Field(
+        default_factory=default_destinations,
+    )
+    job_root_dir: DirectoryPath = Path(gettempdir()) / "jobs"
+    destination_picker: str = "bartender.picker:pick_first"
+
+    @validator("applications")
+    def applications_non_empty(
+        cls,  # noqa: N805 following pydantic docs
+        v: dict[str, ApplicatonConfiguration],  # noqa: WPS111 following pydantic docs
+    ) -> dict[str, ApplicatonConfiguration]:
+        """Validates that applications dict is filled.
+
+        :param v: The given dict.
+        :raises ValueError: When dict is empty.
+        :returns: The given dict.
+        """
+        if not v:
+            raise ValueError("must contain a at least one application")
+        return v
+
+    # TODO validate destination_picker
+    # check string format
+    # optionally check if it can be imported
 
 
 def build_config(config_filename: Path) -> Config:
@@ -188,35 +140,13 @@ def build_config(config_filename: Path) -> Config:
     :param config_filename: File name of configuration file.
     :return: A config instance.
     """
-    config = _load(config_filename)
-    return parse_config(config)
-
-
-def parse_config(config: Any) -> Config:
-    """Parses a plain configuration dict to a config instance.
-
-    :param config: A plain configuration dict
-    :return: A config instance.
-    """
-    destination_picker_fn = import_picker(config.get("destination_picker"))
-    return Config(
-        applications=_build_applications(config["applications"]),
-        destinations=build_destinations(config["destinations"]),
-        job_root_dir=config.get("job_root_dir", DEFAULT_JOB_ROOT_DIR),
-        destination_picker=destination_picker_fn,
-    )
+    raw_config = _load(config_filename)
+    return Config(**raw_config)
 
 
 def _load(config_filename: Path) -> Any:
     with open(config_filename) as handle:
         return load_yaml(handle)
-
-
-def _build_applications(config: Any) -> dict[str, ApplicatonConfiguration]:
-    applications = {}
-    for name, setting in config.items():
-        applications[name] = ApplicatonConfiguration(**setting)
-    return applications
 
 
 def get_config(request: Request) -> Config:

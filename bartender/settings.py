@@ -1,9 +1,13 @@
 import enum
+import logging
 from pathlib import Path
 from tempfile import gettempdir
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings, Field
+from pydantic.types import FilePath
 from yarl import URL
+
+logger = logging.getLogger(__name__)
 
 TEMP_DIR = Path(gettempdir())
 
@@ -17,6 +21,21 @@ class LogLevel(str, enum.Enum):  # noqa: WPS600
     WARNING = "WARNING"
     ERROR = "ERROR"
     FATAL = "FATAL"
+
+
+def default_config_filename() -> Path:
+    """The default configuration filename.
+
+    Depends on whether default or fallback files exist.
+
+    :returns: Default file name for configuration file.
+    """
+    default = Path("config.yaml")
+    fallback = Path("config-example.yaml")
+    if not default.exists() and fallback.exists():
+        logger.warn(f"Unable to find {default} falling back to {fallback}")
+        return fallback
+    return default
 
 
 class Settings(BaseSettings):
@@ -60,7 +79,7 @@ class Settings(BaseSettings):
     orcid_client_secret: str = ""
 
     # Settings for configuration
-    config_filename: Path = Path("config.yaml")
+    config_filename: FilePath = Field(default_factory=default_config_filename)
 
     @property
     def db_url(self) -> URL:

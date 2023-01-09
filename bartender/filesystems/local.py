@@ -1,7 +1,16 @@
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
+
+
+@dataclass
+class LocalFileSystemConfig:
+    """Configuration for local file system."""
+
+    type: Literal["local"] = "local"
 
 
 class LocalFileSystem(AbstractFileSystem):

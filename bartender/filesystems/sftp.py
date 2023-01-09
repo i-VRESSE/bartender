@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from asyncssh import SSHClientConnection
 
@@ -8,21 +9,32 @@ from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
 
 
+@dataclass
+class SftpFileSystemConfig:
+    """Configuration for SFTP file system.
+
+    :param ssh_config: SSH connection configuration.
+    :param entry: The entry directory. Used to localize description.
+    """
+
+    ssh_config: SshConnectConfig
+    entry: Path = Path("/")
+    type: Literal["sftp"] = "sftp"
+
+
 class SftpFileSystem(AbstractFileSystem):
     """Remote filesystem using SFTP protocol."""
 
     def __init__(
         self,
-        ssh_config: SshConnectConfig,
-        entry: Path = Path("/"),
+        config: SftpFileSystemConfig,
     ):
         """Constructor.
 
-        :param ssh_config: SSH connection configuration.
-        :param entry: The entry directory. Used to localize description.
+        :param config: The config.
         """
-        self.entry = entry
-        self.ssh_config = ssh_config
+        self.entry = config.entry
+        self.ssh_config = config.ssh_config
         self.conn: Optional[SSHClientConnection] = None
 
     def localize_description(

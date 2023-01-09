@@ -4,6 +4,7 @@ from starlette import status
 from starlette.background import BackgroundTask
 
 from bartender.config import Config, get_config
+from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
@@ -49,7 +50,7 @@ async def upload_job(  # noqa: WPS211
     upload: UploadFile = File(description="Archive with config file for application"),
     job_dao: JobDAO = Depends(),
     submitter: User = Depends(current_active_user),
-    config: Config = Depends(get_config),
+    context: Context = Depends(get_context),
 ) -> RedirectResponse:
     """
     Creates job model in the database, stage archive locally and submit to scheduler.
@@ -59,14 +60,14 @@ async def upload_job(  # noqa: WPS211
     :param request: request object.
     :param job_dao: JobDAO object.
     :param submitter: User who submitted job.
-    :param config: Configuration with applications and destinations.
+    :param context: Context with applications and destinations.
     :raises IndexError: When job could not created inside database or
         when config file was not found.
     :raises KeyError: Application is invalid.
     :return: redirect response.
     """
-    if application not in config.applications:
-        valid = config.applications.keys()
+    if application not in context.applications:
+        valid = context.applications.keys()
         raise KeyError(f"Invalid application. Valid applications: {valid}")
     job_id = await job_dao.create_job(upload.filename, application, submitter)
     if job_id is None:
@@ -75,10 +76,10 @@ async def upload_job(  # noqa: WPS211
     job_dir = assemble_job(
         job_id,
         await current_api_token(submitter),
-        config.job_root_dir,
+        context.job_root_dir,
     )
     await stage_job_input(job_dir, upload)
-    has_config_file(config.applications[application], job_dir)
+    has_config_file(context.applications[application], job_dir)
 
     task = BackgroundTask(
         submit,
@@ -86,7 +87,7 @@ async def upload_job(  # noqa: WPS211
         job_dir,
         application,
         job_dao,
-        config,
+        context,
     )
 
     url = request.url_for("retrieve_job", jobid=job_id)
