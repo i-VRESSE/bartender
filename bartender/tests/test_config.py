@@ -1,5 +1,4 @@
 from pathlib import Path
-from tempfile import gettempdir
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -36,15 +35,16 @@ class TestConfig:
         ):
             Config(**raw_config)
 
-    def test_minimal(self) -> None:
+    def test_minimal(self, tmp_path: Path) -> None:
         raw_config: Any = {
+            "job_root_dir": str(tmp_path),
             "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
         }
         config = Config(**raw_config)
 
         expected = Config(
             destination_picker="bartender.picker:pick_first",
-            job_root_dir=Path(gettempdir()) / "jobs",
+            job_root_dir=tmp_path,
             applications={
                 "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
             },
@@ -98,6 +98,7 @@ class TestConfig:
 async def test_build_config_minimal(tmp_path: Path) -> None:
     file = tmp_path / "config.yaml"
     config: Any = {
+        "job_root_dir": str(tmp_path),
         "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
     }
     with file.open("w") as handle:
@@ -107,7 +108,7 @@ async def test_build_config_minimal(tmp_path: Path) -> None:
 
     expected = Config(
         destination_picker="bartender.picker:pick_first",
-        job_root_dir=Path(gettempdir()) / "jobs",
+        job_root_dir=tmp_path,
         applications={
             "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
         },
