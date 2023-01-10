@@ -11,6 +11,7 @@ from bartender.db.utils import now
 
 # Possible states of a job.
 State = Literal["new", "queued", "running", "ok", "error"]
+CompletedStates: set[State] = {"ok", "error"}
 
 
 class Job(Base):
@@ -24,6 +25,8 @@ class Job(Base):
     state = Column(String(length=10), default="new", nullable=False)
     submitter_id = Column(GUID(), ForeignKey("user.id"), nullable=False)
     submitter: User = relationship("User", back_populates="jobs")
+    # Identifier for job used by the scheduler
+    internal_id = Column(String(length=200))  # noqa: WPS432
     created_on = Column(DateTime(timezone=True), default=now, nullable=False)
     updated_on = Column(
         DateTime(timezone=True),
