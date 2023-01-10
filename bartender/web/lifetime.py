@@ -2,9 +2,9 @@ from typing import Awaitable, Callable
 
 from fastapi import FastAPI
 
+from bartender.config import build_config
+from bartender.context import build_context, close_context
 from bartender.db.session import make_engine, make_session_factory
-from bartender.filesystem import setup_job_root_dir
-from bartender.schedulers.memory import MemoryScheduler
 from bartender.settings import settings
 
 
@@ -38,8 +38,7 @@ def register_startup_event(
     @app.on_event("startup")
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
-        setup_job_root_dir()
-        _setup_scheduler(app)
+        _parse_context(app)
 
     return _startup
 
@@ -57,22 +56,26 @@ def register_shutdown_event(
     @app.on_event("shutdown")
     async def _shutdown() -> None:  # noqa: WPS430
         await app.state.db_engine.dispose()
-        await _teardown_scheduler(app)
+        await _teardown_context(app)
 
     return _shutdown
 
 
-def _setup_scheduler(app: FastAPI) -> None:
-    """Create scheduler.
+def _parse_context(app: FastAPI) -> None:
+    """Parse configuration and instantiate applications, schedulers and filesystems.
+
+    Sets `app.state.config` and `app.state.context`.
 
     :param app: fastAPI application.
     """
-    app.state.scheduler = MemoryScheduler(settings.scheduler_slots)
+    config = build_config(settings.config_filename)
+    app.state.config = config
+    app.state.context = build_context(config)
 
 
-async def _teardown_scheduler(app: FastAPI) -> None:
-    """Teardown scheduler.
+async def _teardown_context(app: FastAPI) -> None:
+    """Teardown schedulers and file systems.
 
     :param app: fastAPI application.
     """
-    await app.state.scheduler.close()
+    await close_context(app.state.context)

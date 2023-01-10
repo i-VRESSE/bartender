@@ -1,7 +1,16 @@
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
+
+
+@dataclass
+class LocalFileSystemConfig:
+    """Configuration for local file system."""
+
+    type: Literal["local"] = "local"
 
 
 class LocalFileSystem(AbstractFileSystem):
@@ -46,3 +55,12 @@ class LocalFileSystem(AbstractFileSystem):
         :param src: Remote directory to copy from.
         :param target: Local directory to copy to.
         """
+
+    def close(self) -> None:
+        """Close filesystem."""
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, LocalFileSystem)
+
+    def __repr__(self) -> str:
+        return "LocalFileSystem()"

@@ -4,13 +4,17 @@ from pathlib import Path
 import pytest
 
 from bartender.schedulers.abstract import JobDescription
-from bartender.schedulers.memory import KILLED_RETURN_CODE, MemoryScheduler
+from bartender.schedulers.memory import (
+    KILLED_RETURN_CODE,
+    MemoryScheduler,
+    MemorySchedulerConfig,
+)
 
 
 @pytest.mark.anyio
 async def test_ok_running_job(tmp_path: Path) -> None:
     try:
-        scheduler = MemoryScheduler(slots=1)
+        scheduler = MemoryScheduler(MemorySchedulerConfig(slots=1))
         description = JobDescription(command="echo -n hello", job_dir=str(tmp_path))
 
         jid = await scheduler.submit(description)
@@ -27,7 +31,7 @@ async def test_ok_running_job(tmp_path: Path) -> None:
 @pytest.mark.anyio
 async def test_bad_running_job(tmp_path: Path) -> None:
     try:
-        scheduler = MemoryScheduler(slots=1)
+        scheduler = MemoryScheduler(MemorySchedulerConfig(slots=1))
         description = JobDescription(command="exit 42", job_dir=str(tmp_path))
 
         jid = await scheduler.submit(description)
@@ -58,7 +62,7 @@ async def test_cancel_running_job(tmp_path: Path) -> None:
 async def make_occupied_scheduler(
     tmp_path: Path,
 ) -> tuple[MemoryScheduler, str, JobDescription]:
-    scheduler = MemoryScheduler(slots=1)
+    scheduler = MemoryScheduler(MemorySchedulerConfig(slots=1))
     description = JobDescription(command="sleep 5", job_dir=str(tmp_path))
     jid = await scheduler.submit(description)
     # Wait for job to start running

@@ -9,10 +9,10 @@ from testcontainers.core.waiting_utils import wait_container_is_ready
 
 from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import CompletedStates
-from bartender.filesystems.sftp import SftpFileSystem
+from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.runner import SshCommandRunner
-from bartender.schedulers.slurm import SlurmScheduler
+from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
 
 
 class SlurmContainer(DockerContainer):
@@ -26,19 +26,18 @@ class SlurmContainer(DockerContainer):
         password = "javagat"  # noqa: S105
         hostname = self.get_container_host_ip()
         port = int(self.get_exposed_port(self.port_to_expose))
-        return {
-            "hostname": hostname,
-            "port": port,
-            "username": username,
-            "password": password,
-        }
-
-    def get_runner(self) -> SshCommandRunner:
-        return SshCommandRunner(self.get_config())
+        return SshConnectConfig(
+            hostname=hostname,
+            port=port,
+            username=username,
+            password=password,
+        )
 
     def get_filesystem(self) -> SftpFileSystem:
         home_dir = Path("/home/xenon")
-        return SftpFileSystem(entry=home_dir, config=self.get_config())
+        return SftpFileSystem(
+            SftpFileSystemConfig(entry=home_dir, ssh_config=self.get_config()),
+        )
 
     def start(self) -> "SlurmContainer":
         super().start()
@@ -46,7 +45,7 @@ class SlurmContainer(DockerContainer):
         return self
 
     async def _ping(self) -> None:
-        with self.get_runner() as conn:
+        with SshCommandRunner(self.get_config()) as conn:
             await conn.run("echo", [])
 
     @wait_container_is_ready(ConnectionLost)
@@ -71,8 +70,8 @@ async def test_ok_running_job_with_input_and_output_file(
 ) -> None:
     job_dir = tmp_path
     try:
-        client = slurm_server.get_runner()
-        scheduler = SlurmScheduler(runner=client)
+        ssh_config = slurm_server.get_config()
+        scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
         (job_dir / "input").write_text("Lorem ipsum")
         description = JobDescription(
             command="echo -n hello && wc input > output",
@@ -119,8 +118,8 @@ async def test_ok_running_job_without_iofiles(
 ) -> None:
     job_dir = tmp_path
     try:
-        client = slurm_server.get_runner()
-        scheduler = SlurmScheduler(runner=client)
+        ssh_config = slurm_server.get_config()
+        scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
         description = JobDescription(command="echo -n hello", job_dir=str(job_dir))
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)

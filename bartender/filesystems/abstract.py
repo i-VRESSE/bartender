@@ -36,3 +36,6 @@ class AbstractFileSystem(Protocol):
         :param src: Remote directory to copy from.
         :param target: Local directory to copy to.
         """
+
+    def close(self) -> None:
+        """Close filesystem."""

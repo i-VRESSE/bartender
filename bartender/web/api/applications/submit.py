@@ -1,30 +1,57 @@
 from pathlib import Path
-from string import Template
 
+from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
-from bartender.schedulers.abstract import AbstractScheduler, JobDescription
-from bartender.settings import AppSetting
+from bartender.filesystems.abstract import AbstractFileSystem
+from bartender.schedulers.abstract import JobDescription
 
 
-# TODO submit function should be an adapter,
-# which can submit job to one of the available schedulers
-# based on job input, application, scheduler resources, phase of moon, etc.
 async def submit(
     external_job_id: int,
     job_dir: Path,
-    application: AppSetting,
+    application: str,
     job_dao: JobDAO,
-    scheduler: AbstractScheduler,
+    context: Context,
 ) -> None:
     """Submit job description to scheduler and store job id returned by scheduler in db.
 
     :param external_job_id: External job id.
     :param job_dir: Location where job input files are located.
-    :param application: Application that should be run.
+    :param application: Application name that should be run.
     :param job_dao: JobDAO object.
-    :param scheduler: Current job scheduler.
+    :param context: Context with applications and destinations.
     """
-    command = Template(application.command).substitute(config=application.config)
-    description = JobDescription(job_dir=job_dir, command=command)
-    internal_job_id = await scheduler.submit(description)
-    await job_dao.update_internal_job_id(external_job_id, internal_job_id)
+    application_config = context.applications[application]
+    description = application_config.description(job_dir)
+
+    destination_name = context.destination_picker(
+        job_dir,
+        application,
+        context,
+    )
+    destination = context.destinations[destination_name]
+
+    await _upload_input_files(description, destination.filesystem, context.job_root_dir)
+
+    internal_job_id = await destination.scheduler.submit(description)
+
+    await job_dao.update_internal_job_id(
+        external_job_id,
+        internal_job_id,
+        destination_name,
+    )
+
+
+async def _upload_input_files(
+    description: JobDescription,
+    filesystem: AbstractFileSystem,
+    job_root_dir: Path,
+) -> None:
+    localized_description = filesystem.localize_description(
+        description,
+        job_root_dir,
+    )
+    await filesystem.upload(
+        src=description,
+        target=localized_description,
+    )

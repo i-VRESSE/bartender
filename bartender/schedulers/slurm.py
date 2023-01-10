@@ -1,9 +1,15 @@
+from dataclasses import dataclass
 from textwrap import dedent
-from typing import Optional
+from typing import Literal, Optional
 
+from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
-from bartender.schedulers.runner import CommandRunner
+from bartender.schedulers.runner import (
+    CommandRunner,
+    LocalCommandRunner,
+    SshCommandRunner,
+)
 
 
 def _map_slurm_state(slurm_state: str) -> State:
@@ -29,32 +35,44 @@ def _map_slurm_state(slurm_state: str) -> State:
         return "error"
 
 
+@dataclass
+class SlurmSchedulerConfig:
+    """Configuration for Slurm scheduler.
+
+    :param ssh_config: SSH connection configuration.
+        When set will call SLURM commands on remote system via SSH connection.
+        When not set will call SLURM commands on local system.
+    :param partition: Partition in which all jobs should be submitted.
+    :param time: Limit on the total run time of the job.
+    :param extra_options: Escape hatch to add extra options to job script.
+        The string `#SBATCH {extra_options[0]}` will be appended to job script.
+    """
+
+    type: Literal["slurm"] = "slurm"
+    ssh_config: Optional[SshConnectConfig] = None
+    partition: Optional[str] = None
+    time: Optional[str] = None
+    extra_options: Optional[list[str]] = None
+
+
 class SlurmScheduler(AbstractScheduler):
     """Slurm batch scheduler."""
 
-    def __init__(
-        self,
-        runner: CommandRunner,
-        partition: Optional[str] = None,
-        time: Optional[str] = None,
-        extra_options: Optional[list[str]] = None,
-    ):
+    def __init__(self, config: SlurmSchedulerConfig):
         """Constructor.
 
-        :param runner: Runner for running commands. Can be local or ssh.
-        :param partition: Partition in which all jobs should be submitted.
-        :param time: Limit on the total run time of the job.
-        :param extra_options: Escape hatch to add extra options to job script.
-            The string `#SBATCH {extra_options[0]}` will be appended to job script.
+        :param config: Config for scheduler.
         """
-        # TODO which option should be set to per scheduler or per job description?
-        self.runner = runner
-        self.partition = partition
-        self.time = time
-        if extra_options is None:
+        self.runner: CommandRunner = LocalCommandRunner()
+        self.ssh_config = config.ssh_config
+        if config.ssh_config is not None:
+            self.runner = SshCommandRunner(config.ssh_config)
+        self.partition = config.partition
+        self.time = config.time
+        if config.extra_options is None:
             self.extra_options = []
         else:
-            self.extra_options = extra_options
+            self.extra_options = config.extra_options
 
     async def submit(self, description: JobDescription) -> str:  # noqa: D102):
         # TODO if runner is a SSHCommandRunner then description.jobdir
@@ -108,6 +126,23 @@ class SlurmScheduler(AbstractScheduler):
     async def close(self) -> None:
         """Cancel all runnning jobs and make scheduler unable to work."""
         self.runner.close()
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, SlurmScheduler)  # noqa: WPS222
+            and self.runner == other.runner
+            and self.partition == other.partition
+            and self.time == other.time
+            and self.extra_options == other.extra_options
+        )
+
+    def __repr__(self) -> str:
+        return dedent(
+            f"""\
+            SlurmScheduler(ssh_config={self.ssh_config}, partition={self.partition},
+                           time={self.time}, extra_options={self.extra_options}
+            )""",
+        )
 
     async def _state_from_accounting(self, job_id: str) -> str:
         command = "sacct"

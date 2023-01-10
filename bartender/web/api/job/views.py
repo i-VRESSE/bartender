@@ -6,12 +6,10 @@ from fastapi.responses import FileResponse
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
+from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
-from bartender.schedulers.abstract import AbstractScheduler
-from bartender.schedulers.dependencies import get_scheduler
-from bartender.settings import settings
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users.manager import current_active_user
@@ -25,7 +23,7 @@ async def retrieve_jobs(
     offset: int = 0,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
-    scheduler: AbstractScheduler = Depends(get_scheduler),
+    context: Context = Depends(get_context),
 ) -> List[Job]:
     """
     Retrieve all jobs of user from the database.
@@ -34,7 +32,7 @@ async def retrieve_jobs(
     :param offset: offset of jobs.
     :param job_dao: JobDAO object.
     :param user: Current active user.
-    :param scheduler: Current job scheduler.
+    :param context: Context with destinations.
     :return: stream of jobs.
     """
     # TODO now list jobs that user submitted,
@@ -42,7 +40,7 @@ async def retrieve_jobs(
     # or are shared with current user
     jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
     # get current state for each job from scheduler
-    await sync_states(jobs, scheduler, job_dao)
+    await sync_states(jobs, context.destinations, job_dao, context.job_root_dir)
     return jobs
 
 
@@ -51,7 +49,7 @@ async def retrieve_job(
     jobid: int,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
-    scheduler: AbstractScheduler = Depends(get_scheduler),
+    context: Context = Depends(get_context),
 ) -> Job:
     """
     Retrieve specific job from the database.
@@ -59,7 +57,7 @@ async def retrieve_job(
     :param jobid: identifier of job instance.
     :param job_dao: JobDAO object.
     :param user: Current active user.
-    :param scheduler: Current job scheduler.
+    :param context: Context with destinations.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: job models.
     """
@@ -70,7 +68,9 @@ async def retrieve_job(
         # TODO When job has state==ok then include URL to applications result page
         # TODO When job has state==error then include URL to error page
         job = await job_dao.get_job(jobid=jobid, user=user)
-        await sync_state(job, job_dao, scheduler)
+        if job.destination is not None:
+            destination = context.destinations[job.destination]
+            await sync_state(job, job_dao, destination, context.job_root_dir)
         return job
     except NoResultFound as exc:
         raise HTTPException(
@@ -84,14 +84,14 @@ async def retrieve_job_stdout(
     jobid: int,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
-    scheduler: AbstractScheduler = Depends(get_scheduler),
+    context: Context = Depends(get_context),
 ) -> FileResponse:
     """Retrieve stdout of a job.
 
     :param jobid: identifier of job instance.
     :param job_dao: JobDAO object.
     :param user: Current active user.
-    :param scheduler: Current job scheduler.
+    :param context: Context with destinations.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: stdout of job.
     """
@@ -99,12 +99,12 @@ async def retrieve_job_stdout(
         jobid=jobid,
         job_dao=job_dao,
         user=user,
-        scheduler=scheduler,
+        context=context,
     )
     if job.state not in {"ok", "error"}:
         raise HTTPException(
             status_code=status.HTTP_425_TOO_EARLY,
             detail="Stdout not ready. Job has not completed.",
         )
-    stdout: Path = settings.job_root_dir / str(jobid) / "stdout.txt"
+    stdout: Path = context.job_root_dir / str(jobid) / "stdout.txt"
     return FileResponse(stdout)

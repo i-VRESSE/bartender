@@ -1,10 +1,13 @@
 import enum
+import logging
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Dict
 
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseSettings, Field
+from pydantic.types import FilePath
 from yarl import URL
+
+logger = logging.getLogger(__name__)
 
 TEMP_DIR = Path(gettempdir())
 
@@ -20,14 +23,19 @@ class LogLevel(str, enum.Enum):  # noqa: WPS600
     FATAL = "FATAL"
 
 
-class AppSetting(BaseModel):
-    """Command to run application.
+def default_config_filename() -> Path:
+    """The default configuration filename.
 
-    `$config` in command string will be replaced with value of AppSetting.config.
+    Depends on whether default or fallback files exist.
+
+    :returns: Default file name for configuration file.
     """
-
-    command: str
-    config: str
+    default = Path("config.yaml")
+    fallback = Path("config-example.yaml")
+    if not default.exists() and fallback.exists():
+        logger.warn(f"Unable to find {default} falling back to {fallback}")
+        return fallback
+    return default
 
 
 class Settings(BaseSettings):
@@ -44,9 +52,6 @@ class Settings(BaseSettings):
     workers_count: int = 1
     # Enable uvicorn reloading
     reload: bool = False
-
-    # file system settings
-    job_root_dir: Path = TEMP_DIR / "jobs"
 
     # Current environment
     environment: str = "dev"
@@ -73,18 +78,8 @@ class Settings(BaseSettings):
     orcid_client_id: str = ""
     orcid_client_secret: str = ""
 
-    # Settings for applications
-    applications: Dict[str, AppSetting] = {
-        "wc": AppSetting(
-            command="wc $config",
-            config="README.md",
-        ),
-    }
-
-    # Settings for schedulers
-    scheduler_slots = 1
-    # TODO read scheduler + applications from
-    # yaml/toml formmatted config file instead of env vars.
+    # Settings for configuration
+    config_filename: FilePath = Field(default_factory=default_config_filename)
 
     @property
     def db_url(self) -> URL:

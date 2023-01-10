@@ -7,12 +7,15 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from bartender.config import ApplicatonConfiguration, Config, get_config
+from bartender.context import Context, get_context
 from bartender.db.dependencies import get_db_session
 from bartender.db.utils import create_database, drop_database
-from bartender.schedulers.abstract import AbstractScheduler
-from bartender.schedulers.dependencies import get_scheduler
-from bartender.schedulers.memory import MemoryScheduler
-from bartender.settings import AppSetting, settings
+from bartender.destinations import Destination, DestinationConfig
+from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
+from bartender.picker import pick_first
+from bartender.schedulers.memory import MemoryScheduler, MemorySchedulerConfig
+from bartender.settings import settings
 from bartender.web.application import get_app
 
 
@@ -83,18 +86,73 @@ async def dbsession(
 
 
 @pytest.fixture
-async def scheduler() -> AsyncGenerator[AbstractScheduler, None]:
-    my_scheduler = MemoryScheduler()
-    try:
-        yield my_scheduler
-    finally:
-        await my_scheduler.close()
+def job_root_dir(tmp_path: Path) -> Path:
+    root = tmp_path / "jobs"
+    root.mkdir()
+    return root
+
+
+@pytest.fixture
+def demo_applications() -> dict[str, ApplicatonConfiguration]:
+    return {
+        "app1": ApplicatonConfiguration(
+            command="wc $config",
+            config="job.ini",
+        ),
+    }
+
+
+@pytest.fixture
+async def demo_destination() -> AsyncGenerator[Destination, None]:
+    destination = Destination(
+        scheduler=MemoryScheduler(MemorySchedulerConfig()),
+        filesystem=LocalFileSystem(),
+    )
+    yield destination
+    await destination.close()
+
+
+@pytest.fixture
+async def demo_destinations(demo_destination: Destination) -> dict[str, Destination]:
+    return {"dest1": demo_destination}
+
+
+@pytest.fixture
+def demo_config(
+    job_root_dir: Path,
+    demo_applications: dict[str, ApplicatonConfiguration],
+) -> Config:
+    return Config(
+        applications=demo_applications,
+        job_root_dir=job_root_dir,
+        destinations={
+            "dest1": DestinationConfig(
+                scheduler=MemorySchedulerConfig(),
+                filesystem=LocalFileSystemConfig(),
+            ),
+        },
+    )
+
+
+@pytest.fixture
+def demo_context(
+    job_root_dir: Path,
+    demo_applications: dict[str, ApplicatonConfiguration],
+    demo_destinations: dict[str, Destination],
+) -> Context:
+    return Context(
+        destination_picker=pick_first,
+        job_root_dir=job_root_dir,
+        applications=demo_applications,
+        destinations=demo_destinations,
+    )
 
 
 @pytest.fixture
 def fastapi_app(
     dbsession: AsyncSession,
-    scheduler: AbstractScheduler,
+    demo_config: Config,
+    demo_context: Context,
 ) -> FastAPI:
     """
     Fixture for creating FastAPI app.
@@ -103,14 +161,9 @@ def fastapi_app(
     """
     application = get_app()
     application.dependency_overrides[get_db_session] = lambda: dbsession
-    application.dependency_overrides[get_scheduler] = lambda: scheduler
+    application.dependency_overrides[get_config] = lambda: demo_config
+    application.dependency_overrides[get_context] = lambda: demo_context
     settings.secret = "testsecret"  # noqa: S105
-    settings.applications = {
-        "app1": AppSetting(
-            command="wc $config",
-            config="job.ini",
-        ),
-    }
     return application  # noqa: WPS331
 
 
@@ -127,17 +180,6 @@ async def client(
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
         yield ac
-
-
-@pytest.fixture
-def job_root_dir(tmp_path: Path) -> Path:
-    """
-    Fixture that overrides settings.job_root_dir with temporary test directory.
-
-    :return: Path of job root dir.
-    """
-    settings.job_root_dir = tmp_path
-    return settings.job_root_dir
 
 
 @pytest.fixture

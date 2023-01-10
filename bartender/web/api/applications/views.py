@@ -3,14 +3,13 @@ from fastapi.responses import RedirectResponse
 from starlette import status
 from starlette.background import BackgroundTask
 
+from bartender.config import Config, get_config
+from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
-from bartender.schedulers.abstract import AbstractScheduler
-from bartender.schedulers.dependencies import get_scheduler
-from bartender.settings import settings
 from bartender.web.api.applications.submit import submit
 from bartender.web.users.manager import current_active_user, current_api_token
 
@@ -18,13 +17,14 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[str])
-def list_applications() -> list[str]:
+def list_applications(config: Config = Depends(get_config)) -> list[str]:
     """List application names.
 
+    :param config: Config with applications.
     :return: The list.
     """
-    # TODO also return values or atleast the expected config file name for each app
-    return list(settings.applications.keys())
+    # TODO also return values or at least the expected config file name for each app
+    return list(config.applications.keys())
 
 
 @router.put(
@@ -50,7 +50,7 @@ async def upload_job(  # noqa: WPS211
     upload: UploadFile = File(description="Archive with config file for application"),
     job_dao: JobDAO = Depends(),
     submitter: User = Depends(current_active_user),
-    scheduler: AbstractScheduler = Depends(get_scheduler),
+    context: Context = Depends(get_context),
 ) -> RedirectResponse:
     """
     Creates job model in the database, stage archive locally and submit to scheduler.
@@ -60,30 +60,34 @@ async def upload_job(  # noqa: WPS211
     :param request: request object.
     :param job_dao: JobDAO object.
     :param submitter: User who submitted job.
-    :param scheduler: Current job scheduler.
+    :param context: Context with applications and destinations.
     :raises IndexError: When job could not created inside database or
         when config file was not found.
     :raises KeyError: Application is invalid.
     :return: redirect response.
     """
-    if application not in settings.applications:
-        valid = settings.applications.keys()
+    if application not in context.applications:
+        valid = context.applications.keys()
         raise KeyError(f"Invalid application. Valid applications: {valid}")
     job_id = await job_dao.create_job(upload.filename, application, submitter)
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
 
-    job_dir = assemble_job(job_id, await current_api_token(submitter))
+    job_dir = assemble_job(
+        job_id,
+        await current_api_token(submitter),
+        context.job_root_dir,
+    )
     await stage_job_input(job_dir, upload)
-    has_config_file(application, job_dir)
+    has_config_file(context.applications[application], job_dir)
 
     task = BackgroundTask(
         submit,
         job_id,
         job_dir,
-        settings.applications[application],
+        application,
         job_dao,
-        scheduler,
+        context,
     )
 
     url = request.url_for("retrieve_job", jobid=job_id)

@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from asyncssh import SSHClientConnection
 
@@ -8,21 +9,32 @@ from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
 
 
+@dataclass
+class SftpFileSystemConfig:
+    """Configuration for SFTP file system.
+
+    :param ssh_config: SSH connection configuration.
+    :param entry: The entry directory. Used to localize description.
+    """
+
+    ssh_config: SshConnectConfig
+    entry: Path = Path("/")
+    type: Literal["sftp"] = "sftp"
+
+
 class SftpFileSystem(AbstractFileSystem):
     """Remote filesystem using SFTP protocol."""
 
     def __init__(
         self,
-        entry: Path,
-        config: SshConnectConfig,
+        config: SftpFileSystemConfig,
     ):
         """Constructor.
 
-        :param entry: The entry directory. Used to localize description.
-        :param config: SSH connection configuration.
+        :param config: The config.
         """
-        self.entry = entry
-        self.config = config
+        self.entry = config.entry
+        self.ssh_config = config.ssh_config
         self.conn: Optional[SSHClientConnection] = None
 
     def localize_description(
@@ -53,7 +65,7 @@ class SftpFileSystem(AbstractFileSystem):
         :param target: Remote directory to copy to.
         """
         if self.conn is None:
-            self.conn = await ssh_connect(self.config)
+            self.conn = await ssh_connect(self.ssh_config)
         async with self.conn.start_sftp_client() as sftp:
             localpaths = [str(src.job_dir)]
             remotepath = str(target.job_dir)
@@ -66,7 +78,7 @@ class SftpFileSystem(AbstractFileSystem):
         :param target: Local directory to copy to.
         """
         if self.conn is None:
-            self.conn = await ssh_connect(self.config)
+            self.conn = await ssh_connect(self.ssh_config)
         async with self.conn.start_sftp_client() as sftp:
             # target.job_dir.parent is used
             # so /remote/jobid/output becomes /local/jobid/output,
@@ -79,3 +91,16 @@ class SftpFileSystem(AbstractFileSystem):
         """Close SSH connection."""
         if self.conn:
             self.conn.close()
+
+    # TODO add delete(description),
+    # after download you might want to delete the remote job dir
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, SftpFileSystem)
+            and str(self.entry) == str(other.entry)
+            and self.ssh_config == other.ssh_config
+        )
+
+    def __repr__(self) -> str:
+        return f"SftpFileSystem(ssh_config={self.ssh_config}, entry={self.entry})"
