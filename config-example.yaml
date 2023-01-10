@@ -17,6 +17,8 @@ destinations:
     scheduler:
       type: memory
       slots: 1
+    filesystem:
+      type: local
     ## Example of running jobs by current user on snellius.
     # remote:
     #   scheduler:
