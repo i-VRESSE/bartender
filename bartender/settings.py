@@ -1,8 +1,9 @@
 import enum
 from pathlib import Path
 from tempfile import gettempdir
+from typing import Dict
 
-from pydantic import BaseSettings
+from pydantic import BaseModel, BaseSettings
 from yarl import URL
 
 TEMP_DIR = Path(gettempdir())
@@ -17,6 +18,16 @@ class LogLevel(str, enum.Enum):  # noqa: WPS600
     WARNING = "WARNING"
     ERROR = "ERROR"
     FATAL = "FATAL"
+
+
+class AppSetting(BaseModel):
+    """Command to run application.
+
+    `$config` in command string will be replaced with value of AppSetting.config.
+    """
+
+    command: str
+    config: str
 
 
 class Settings(BaseSettings):
@@ -61,6 +72,14 @@ class Settings(BaseSettings):
     orcidsandbox_client_secret: str = ""
     orcid_client_id: str = ""
     orcid_client_secret: str = ""
+
+    # Settings for applications
+    applications: Dict[str, AppSetting] = {
+        "wc": AppSetting(
+            command="wc $config",
+            config="README.md",
+        ),
+    }
 
     @property
     def db_url(self) -> URL:

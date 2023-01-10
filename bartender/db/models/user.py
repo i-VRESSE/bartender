@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional
 
-from fastapi_users.db import (
+from fastapi_users_db_sqlalchemy import (
     SQLAlchemyBaseOAuthAccountTableUUID,
     SQLAlchemyBaseUserTableUUID,
 )
@@ -24,7 +24,18 @@ class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
         expires_at: Optional[int] = Column(BigInteger, nullable=True)
 
 
+if TYPE_CHECKING:
+    from bartender.db.models.job_model import Job
+
+
 class User(SQLAlchemyBaseUserTableUUID, Base):
     """Model for the User."""
 
     oauth_accounts: List[OAuthAccount] = relationship("OAuthAccount", lazy="joined")
+    jobs: List["Job"] = relationship(
+        "Job",
+        back_populates="submitter",
+    )
+
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, email={self.email})"

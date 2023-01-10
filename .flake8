@@ -68,6 +68,8 @@ ignore =
   DJ11,
   ; Found mutable module constant.
   WPS407,
+  ; Found walrus operator
+  WPS332,
 
 per-file-ignores =
   ; all tests
@@ -84,7 +86,12 @@ per-file-ignores =
   DAR101,
   ; Found too many arguments
   WPS211,
-
+  ; Missing docstring in public function
+  D103,
+  ; Missing docstring in public package
+  D104,
+  ; Missing "Returns" in Docstring: - return
+  DAR201,
   ; all init files
   __init__.py:
   ; ignore not used imports

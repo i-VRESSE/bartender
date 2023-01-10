@@ -12,7 +12,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-fastapi = "^0.75.0"
+fastapi = "^0.85.2"
 uvicorn = { version = "^0.17.0", extras = ["standard"] }
 pydantic = {version = "^1.9.0", extras = ["dotenv"]}
 yarl = "^1.7.2"
@@ -21,6 +21,8 @@ SQLAlchemy = {version = "^1.4", extras = ["mypy", "asyncio"]}
 alembic = "^1.7.7"
 asyncpg = {version = "^0.25.0", extras = ["sa"]}
 httptools = "^0.3.0"
+python-multipart = "^0.0.5"
+aiofiles = "^0.8.0"
 fastapi-users = {extras = ["sqlalchemy", "oauth"], version = "^10.1.5"}
 
 [tool.poetry.dev-dependencies]
@@ -38,6 +40,7 @@ pytest-cov = "^3.0.0"
 anyio = "^3.6.1"
 pytest-env = "^0.6.2"
 httpx = "^0.22.0"
+types-aiofiles = "^0.8.11"
 
 [tool.poetry.scripts]
 bartender = 'bartender.__main__:main'

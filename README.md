@@ -1,22 +1,32 @@
 # bartender
 
-* [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
-* [Poetry](#poetry)
-* [Docker](#docker)
-* [Project structure](#project-structure)
-* [Configuration](#configuration)
-* [Pre-commit](#pre-commit)
-* [Migrations](#migrations)
-* [Running tests](#running-tests)
-* [User management](#user-management)
-  * [GitHub login](#github-login)
-  * [Orcid sandbox login](#orcid-sandbox-login)
-  * [Orcid login](#orcid-login)
-  * [Super user](#super-user)
-* [Job](#job)
-  * [Calling bartender](#calling-bartender)
+- [bartender](#bartender)
+  - [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
+  - [Project structure](#project-structure)
+  - [Configuration](#configuration)
+    - [Applications](#applications)
+  - [User management](#user-management)
+    - [GitHub login](#github-login)
+    - [Orcid sandbox login](#orcid-sandbox-login)
+    - [Orcid login](#orcid-login)
+    - [Super user](#super-user)
+  - [Consuming web service](#consuming-web-service)
+    - [Word count example](#word-count-example)
+    - [Haddock3 example](#haddock3-example)
+  - [Poetry](#poetry)
+  - [Docker](#docker)
+  - [Pre-commit](#pre-commit)
+  - [Migrations](#migrations)
+    - [Reverting migrations](#reverting-migrations)
+    - [Migration generation](#migration-generation)
+  - [Running tests](#running-tests)
 
 ***
+
+Bartender is a middleware web service to schedule jobs on various infrastructures.
+
+This project was generated using [fastapi_template](https://github.com/s3rius/FastAPI-template).
+
 
 ## [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
 
@@ -73,86 +83,13 @@
 
     <http://localhost:8000/api/docs>
 
-8. Create a job with:
-
-    ```bash
-    $ curl -X 'PUT' \
-      'http://localhost:8000/api/job/' \
-      -H 'accept: */*' \
-      -H 'Content-Type: application/json' \
-      -d '{"name": "my_fist_job"}' \
-      -v
-
-    *   Trying 127.0.0.1:8000...
-    * Connected to localhost (127.0.0.1) port 8000 (#0)
-    > PUT /api/job/ HTTP/1.1
-    > Host: localhost:8000
-    > User-Agent: curl/7.79.1
-    > accept: */*
-    > Content-Type: application/json
-    > Content-Length: 23
-    >
-    * Mark bundle as not supporting multiuse
-    < HTTP/1.1 303 See Other
-    < date: Fri, 26 Aug 2022 11:24:05 GMT
-    < server: uvicorn
-    < location: http://localhost:8000/api/job/1
-    < transfer-encoding: chunked
-    <
-    * Connection #0 to host localhost left intact
-    ```
-
-***
-
-This project was generated using fastapi_template.
-
-## [Poetry](#poetry)
-
-This project uses poetry. It's a modern dependency management
-tool.
-
-To run the project use this set of commands:
-
-```bash
-poetry install
-poetry run bartender serve
-```
-
-This will start the server on the configured host.
-
-You can find swagger documentation at `/api/docs`.
-
-You can read more about poetry here: <https://python-poetry.org/>
-
-## [Docker](#docker)
-
-You can start the project with docker using this command:
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . up --build
-```
-
-If you want to develop in docker with autoreload add `-f deploy/docker-compose.dev.yml` to your docker command.
-Like this:
-
-```bash
-docker-compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml --project-directory . up
-```
-
-This command exposes the web application on port 8000, mounts current directory and enables autoreload.
-
-But you have to rebuild image every time you modify `poetry.lock` or `pyproject.toml` with this command:
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . build
-```
+    See [Consuming web service](#consuming-web-service) for more info.
 
 ## [Project structure](#project-structure)
 
 ```bash
 $ tree "bartender"
 bartender
-├── conftest.py         # Fixtures for all tests.
 ├── db                  # module contains db configurations
 │   ├── dao             # Data Access Objects. Contains different classes to interact with database.
 │   └── models          # Package contains different models for ORMs.
@@ -161,6 +98,7 @@ bartender
 ├── settings.py         # Main configuration settings for project.
 ├── static              # Static content.
 ├── tests               # Tests for project.
+    └── conftest.py     # Fixtures for all tests.
 └── web                 # Package contains web server. Handlers, startup config.
     ├── api             # Package with all handlers.
     │   └── router.py   # Main router.
@@ -192,93 +130,21 @@ BARTENDER_ENVIRONMENT="dev"
 
 You can read more about BaseSettings class here: <https://pydantic-docs.helpmanual.io/usage/settings/>
 
-## [Pre-commit](#pre-commit)
+### [Applications](#applications)
 
-To install pre-commit simply run inside the shell:
+Bartender accepts jobs for different applications.
 
-```bash
-pre-commit install
+Applications can be configured with the `BARTENDER_APPLICATIONS` environment variable.
+
+For example
+
+```env
+BARTENDER_APPLICATIONS='{"app1": {"command": "app1 $config", "config": "workflow.cfg"}, "app2": {"command": "app2 $config", "config": "workflow.cfg"}}'
 ```
 
-pre-commit is very useful to check your code before publishing it.
-It's configured using `.pre-commit-config.yaml` file.
-
-By default it runs:
-
-* black (formats your code);
-* mypy (validates types);
-* isort (sorts imports in all files);
-* flake8 (spots possible bugs);
-* yesqa (removes useless `# noqa` comments).
-
-You can read more about pre-commit here: <https://pre-commit.com/>
-
-## [Migrations](#migrations)
-
-If you want to migrate your database, you should run following commands:
-
-```bash
-# To run all migrations until the migration with revision_id.
-alembic upgrade "<revision_id>"
-
-# To perform all pending migrations.
-alembic upgrade "head"
-```
-
-### Reverting migrations
-
-If you want to revert migrations, you should run:
-
-```bash
-# revert all migrations up to: revision_id.
-alembic downgrade <revision_id>
-
-# Revert everything.
- alembic downgrade base
-```
-
-### Migration generation
-
-To generate migrations you should run:
-
-```bash
-# For automatic change detection.
-alembic revision --autogenerate
-
-# For empty file generation.
-alembic revision
-```
-
-## [Running tests](#running-tests)
-
-If you want to run it in docker, simply run:
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . run --rm api pytest -vv .
-docker-compose -f deploy/docker-compose.yml --project-directory . down
-```
-
-For running tests on your local machine.
-
-1. you need to start a database.
-
-    I prefer doing it with docker:
-
-    ```text
-    docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bartender" -e "POSTGRES_DB=bartender" postgres:13.6-bullseye
-    ```
-
-2. Run the pytest.
-
-    ```bash
-    pytest -vv .
-    ```
-
-To get PostgreSQL terminal do
-
-```bash
-docker exec -ti <id or name of docker container> psql -U bartender
-```
+* The key is the name of the application
+* The `config` key is the config file that must be present in the uploaded archived.
+* The `command` key is the command executed in the directory of the unpacked archive that the consumer uploaded. The `$config` in command string will be replaced with value of the config key.
 
 ## [User management](#user-management)
 
@@ -379,25 +245,180 @@ However you need a first super user. This can be done by running
 bartender super <email address of logged in user>
 ```
 
-## [Job](#job)
+## [Consuming web service](#consuming-web-service)
 
-### [Calling bartender](#calling-bartender)
+The interactive API documentation generated by FastAPI is at <http://localhost:8000/api/docs>
 
-To interact with the bartender web service the job needs to authenticate itself.
-Authentication is done by passing a JWT token in the HTTP header `Authorization: Bearer <token>`.
-The job can find a token in the `./meta` file.
-This token belongs to the user that submitted it.
+To consume the bartender web service you need to authenticate yourself.
+Authentication is done by passing a JWT token in the HTTP header `Authorization: Bearer <token>` in the HTTP request.
+This token can be aquired by using the register+login routes or using a [socal login](#user-management).
 
-For example to submit another job do something like
+### Word count example
 
+Bartender is by default configured with a word count applicaton.
+Use the following steps to run a job:
+
+1. Create an archive to submit. The zip file should contain a file called `README.md`. A zip file could be created in a clone of this repo with `zip README.zip README.md`.
+2. Start [bartender web service and postgresql server](#step-by-step-setup-of-proof-of-concept)
+3. Register & login account by
+    1. Goto `http://127.0.0.1:8000/api/docs` and
+    2. Try out the `POST /auth/register` route.
+    3. Use default request body and press execute button. This will create an account with email `user@example.com` and password `string`.
+    4. Use authorize button on top of page to login with username `user@example.com` and password `string`.
+4. Submit archive.
+    1. Try out the `POST /api/application/{application}/job` route.
+    2. Use `wc` as application parameter
+    3. Upload the `README.zip` as request body.
+    4. Press execute button
+    5. The response contains a job identifier (`id` property) that can be used to fetch the job state.
+5. Fetch job state
+    1. Try out the `GET /api/job/{jobid}`
+    2. Use job identifier retrieved by submit request as `jobid` parameter value.
+        * When job state is equal to `ok` the job was completed succesfully.
+6. Retrieve result. The word count application (`wc`) outputs to the stdout.
+    1. Try out the `GET /api/job/{jobid}/stdout`
+    2. Use job identifier retrieved by submit request as `jobid` parameter value.
+    3. Should see something like `404  1556 12928 README.md`.
+        Where numbers are counts for newlines, words, bytes.
+
+### Haddock3 example
+
+To test with haddock3 use
 ```shell
-TOKEN=$(tail -1 ./meta)
+export BARTENDER_APPLICATIONS='{"haddock3": {"command": "haddock3 $config", "config": "workflow.cfg"}}'
+bartender serve
+```
+Bartender expects the haddock3 executable to be in its PATH.
+
+Submit a job in another terminal in a directory with a zip file with a `workflow.cfg` file and its data files.
+
+Examples at https://github.com/haddocking/haddock3/blob/main/examples .
+```shell
 curl -X 'PUT' \
-  'http://localhost:8000/api/job/' \
+  'http://127.0.0.1:8000/api/applications/haddock3/job' \
   -H 'accept: */*' \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "name": "string"
-}'
+  -H 'Content-Type: multipart/form-data' \
+  -F 'upload=@docking-protein-protein.zip;type=application/x-zip-compressed'
+```
+Where `docking-protein-protein.zip` is the zip file to run haddock3 with.
+
+The response contains a redirect to the job url (`/api/job/<some id>`).
+
+The job url should be fetched until the state property is either `ok` or `error`.
+
+## [Poetry](#poetry)
+
+This project uses [poetry](https://python-poetry.org/). It's a modern dependency management
+tool.
+
+To run the project use this set of commands:
+
+```bash
+poetry install
+poetry run bartender serve
+```
+
+This will start the server on the configured host.
+
+## [Docker](#docker)
+
+You can start the project with docker using this command:
+
+```bash
+docker-compose -f deploy/docker-compose.yml --project-directory . up --build
+```
+
+If you want to develop in docker with autoreload add `-f deploy/docker-compose.dev.yml` to your docker command.
+Like this:
+
+```bash
+docker-compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml --project-directory . up
+```
+
+This command exposes the web application on port 8000, mounts current directory and enables autoreload.
+
+But you have to rebuild image every time you modify `poetry.lock` or `pyproject.toml` with this command:
+
+```bash
+docker-compose -f deploy/docker-compose.yml --project-directory . build
+```
+
+## [Pre-commit](#pre-commit)
+
+[pre-commit](https://pre-commit.com/) is very useful to check your code before publishing it.
+It's configured using `.pre-commit-config.yaml` file.
+
+To install pre-commit simply run inside the shell:
+
+```bash
+pre-commit install
+```
+
+## [Migrations](#migrations)
+
+Bartender uses [alembic](https://alembic.sqlalchemy.org) to create database tables and perform migrations.
+
+If you want to migrate your database, you should run following commands:
+
+```bash
+# To run all migrations until the migration with revision_id.
+alembic upgrade "<revision_id>"
+
+# To perform all pending migrations.
+alembic upgrade "head"
+```
+
+### Reverting migrations
+
+If you want to revert migrations, you should run:
+
+```bash
+# revert all migrations up to: revision_id.
+alembic downgrade <revision_id>
+
+# Revert everything.
+ alembic downgrade base
+```
+
+### Migration generation
+
+To generate migrations you should run:
+
+```bash
+# For automatic change detection.
+alembic revision --autogenerate
+
+# For empty file generation.
+alembic revision
+```
+
+## [Running tests](#running-tests)
+
+If you want to run it in docker, simply run:
+
+```bash
+docker-compose -f deploy/docker-compose.yml --project-directory . run --rm api pytest -vv .
+docker-compose -f deploy/docker-compose.yml --project-directory . down
+```
+
+For running tests on your local machine.
+
+1. you need to start a database.
+
+    I prefer doing it with docker:
+
+    ```text
+    docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bartender" -e "POSTGRES_DB=bartender" postgres:13.6-bullseye
+    ```
+
+2. Run the pytest.
+
+    ```bash
+    pytest -vv .
+    ```
+
+To get a PostgreSQL terminal do
+
+```bash
+docker exec -ti <id or name of docker container> psql -U bartender
 ```
