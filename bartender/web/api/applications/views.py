@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from starlette import status
 from starlette.background import BackgroundTask
 
-from bartender.config import Config, get_config
+from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.user import User
@@ -23,8 +23,21 @@ def list_applications(config: Config = Depends(get_config)) -> list[str]:
     :param config: Config with applications.
     :return: The list.
     """
-    # TODO also return values or at least the expected config file name for each app
     return list(config.applications.keys())
+
+
+@router.get("/{application}", response_model=ApplicatonConfiguration)
+def get_application(
+    application: str,
+    config: Config = Depends(get_config),
+) -> ApplicatonConfiguration:
+    """Retrieve application configuration.
+
+    :param application: Name of application
+    :param config: Config with applications.
+    :return: The application config.
+    """
+    return config.applications[application]
 
 
 @router.put(

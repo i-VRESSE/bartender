@@ -22,6 +22,23 @@ async def test_list_applications(
 
 
 @pytest.mark.anyio
+async def test_get_application(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+) -> None:
+    url = fastapi_app.url_path_for("get_application", application="app1")
+
+    response = await client.get(url)
+    app = response.json()
+
+    expected = {
+        "command": "wc $config",
+        "config": "job.ini",
+    }
+    assert app == expected
+
+
+@pytest.mark.anyio
 async def test_upload(  # noqa: WPS218
     fastapi_app: FastAPI,
     client: AsyncClient,
