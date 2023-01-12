@@ -1,0 +1,28 @@
+destination_picker: bartender.config:pick_first
+applications:
+  haddock3:
+    command: haddock3 $config
+    config: workflow.cfg
+  # Below are other haddock3 commands,
+  # that could be hosted by bartender web service.
+  # TODO add support for label and parameters keys
+  haddock3-pp:
+    label: HADDOCK3 preprocess PDB files
+    command: haddock3-pp --output-directory . *.pdb
+  haddock3-analyse:
+    command: haddock3-analyse --run-dir . --modules $modules
+    parameters:
+      modules:
+        type: array
+        items:
+          type: int
+  haddock3-score:
+    command: haddock3-score --outputpdb --outputpsf $config
+    config: complex.pdb
+destinations:
+  local:
+    scheduler:
+      type: memory
+      slots: 1
+    filesystem:
+      type: local
