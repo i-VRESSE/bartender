@@ -1,15 +1,9 @@
-from asyncio import current_task
 from typing import Awaitable, Callable
 
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_scoped_session,
-    create_async_engine,
-)
-from sqlalchemy.orm import sessionmaker
 
-from bartender.settings import settings
+from bartender.db.session import make_engine, make_session_factory
+from bartender.filesystem import setup_job_root_dir
 
 
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
@@ -22,17 +16,8 @@ def _setup_db(app: FastAPI) -> None:  # pragma: no cover
 
     :param app: fastAPI application.
     """
-    engine = create_async_engine(str(settings.db_url), echo=settings.db_echo)
-    session_factory = async_scoped_session(
-        sessionmaker(
-            engine,
-            expire_on_commit=False,
-            class_=AsyncSession,
-        ),
-        scopefunc=current_task,
-    )
-    app.state.db_engine = engine
-    app.state.db_session_factory = session_factory
+    app.state.db_engine = make_engine()
+    app.state.db_session_factory = make_session_factory(app.state.db_engine)
 
 
 def register_startup_event(
@@ -51,6 +36,7 @@ def register_startup_event(
     @app.on_event("startup")
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
+        setup_job_root_dir()
         pass  # noqa: WPS420
 
     return _startup

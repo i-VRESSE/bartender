@@ -6,43 +6,58 @@ jobs:
   black:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     - name: Install deps
-      uses: knowsuchagency/poetry-install@v1
+      run: |
+        pip install -U pip wheel
+        pip install poetry
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run black check
       run: poetry run black --check .
   flake8:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     - name: Install deps
-      uses: knowsuchagency/poetry-install@v1
+      run: |
+        pip install -U pip wheel
+        pip install poetry
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run flake8 check
       run: poetry run flake8 --count .
   mypy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     - name: Install deps
-      uses: knowsuchagency/poetry-install@v1
+      run: |
+        pip install -U pip wheel
+        pip install poetry
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run mypy check
       run: poetry run mypy .
   pytest:
@@ -63,15 +78,20 @@ jobs:
         ports:
         - 5432:5432
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     - name: Install deps
-      uses: knowsuchagency/poetry-install@v1
+      run: |
+        pip install -U pip wheel
+        pip install poetry
+        poetry install
       env:
         POETRY_VIRTUALENVS_CREATE: false
+        # Workaround for random install failures
+        POETRY_INSTALLER_PARALLEL: false
     - name: Run pytest check
       run: poetry run pytest -vv --cov="bartender" .
       env:

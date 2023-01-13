@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Dict
 
 import pytest
 from fastapi import FastAPI
@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from bartender.db.dependencies import get_db_session
 from bartender.db.utils import create_database, drop_database
-from bartender.settings import settings
+from bartender.settings import AppSetting, settings
 from bartender.web.application import get_app
 
 
@@ -90,6 +90,13 @@ def fastapi_app(
     """
     application = get_app()
     application.dependency_overrides[get_db_session] = lambda: dbsession
+    settings.secret = "testsecret"  # noqa: S105
+    settings.applications = {
+        "app1": AppSetting(
+            command="wc $config",
+            config="job.ini",
+        ),
+    }
     return application  # noqa: WPS331
 
 
@@ -117,3 +124,34 @@ def job_root_dir(tmp_path: Path) -> Path:
     """
     settings.job_root_dir = tmp_path
     return settings.job_root_dir
+
+
+@pytest.fixture
+async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
+    """Registers dummy user and returns its auth token.
+
+    :return: token
+    """
+    new_user = {"email": "me@example.com", "password": "mysupersecretpassword"}
+    register_url = fastapi_app.url_path_for("register:register")
+    await client.post(register_url, json=new_user)
+
+    login_url = fastapi_app.url_path_for("auth:local.login")
+    login_response = await client.post(
+        login_url,
+        data={
+            "grant_type": "password",
+            "username": new_user["email"],
+            "password": new_user["password"],
+        },
+    )
+    return login_response.json()["access_token"]
+
+
+@pytest.fixture
+async def auth_headers(current_user_token: str) -> Dict[str, str]:
+    """Headers for AsyncClient to do authenticated requests.
+
+    :return: Headers needed for auth.
+    """
+    return {"Authorization": f"Bearer {current_user_token}"}
