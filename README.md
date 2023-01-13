@@ -22,6 +22,8 @@
     - [Reverting migrations](#reverting-migrations)
     - [Migration generation](#migration-generation)
   - [Running tests](#running-tests)
+  - [Documentation](#documentation)
+    - [Build](#build)
 
 ***
 
@@ -468,3 +470,21 @@ To get a PostgreSQL terminal do
 ```bash
 docker exec -ti <id or name of docker container> psql -U bartender
 ```
+
+## [Documentation](#documentation)
+
+### Build
+
+First install dependencies with
+
+```shell
+poetry install --with docs
+```
+
+Build with
+```shell
+cd docs
+make html
+```
+
+Creates documentation site at [docs/_build/html](docs/_build/html/index.html).
