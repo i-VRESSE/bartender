@@ -52,7 +52,7 @@ bartender = 'bartender.__main__:main'
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-src_paths = ["bartender",]
+src_paths = ["src","tests"]
 
 [tool.mypy]
 strict = true

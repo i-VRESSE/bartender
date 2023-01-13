@@ -92,22 +92,26 @@ This project was generated using [fastapi_template](https://github.com/s3rius/Fa
 ## [Project structure](#project-structure)
 
 ```bash
-$ tree "bartender"
-bartender
-├── db                  # module contains db configurations
-│   ├── dao             # Data Access Objects. Contains different classes to interact with database.
-│   └── models          # Package contains different models for ORMs.
-├── __main__.py         # Startup script. Starts uvicorn.
-├── services            # Package for different external services such as rabbit or redis etc.
-├── settings.py         # Main configuration settings for project.
-├── static              # Static content.
-├── tests               # Tests for project.
-    └── conftest.py     # Fixtures for all tests.
-└── web                 # Package contains web server. Handlers, startup config.
-    ├── api             # Package with all handlers.
-    │   └── router.py   # Main router.
-    ├── application.py  # FastAPI application configuration.
-    └── lifetime.py     # Contains actions to perform on startup and shutdown.
+$ tree .
+├── tests                       # Tests for project.
+│   └── conftest.py             # Fixtures for all tests.
+├── docs                        # Documentatin for project.
+|   ├── index.rst               # Main documentation page.
+│   └── conf.py                 # Sphinx config file.
+└── src
+    └── bartender
+        ├── db                  # module contains db configurations
+        │   ├── dao             # Data Access Objects. Contains different classes to interact with database.
+        │   └── models          # Package contains different models for ORMs.
+        ├── __main__.py         # Startup script. Starts uvicorn.
+        ├── services            # Package for different external services such as rabbit or redis etc.
+        ├── settings.py         # Main configuration settings for project.
+        ├── static              # Static content.
+        ├── web                 # Package contains web server. Handlers, startup config.
+            ├── api             # Package with all handlers.
+            │   └── router.py   # Main router.
+            ├── application.py  # FastAPI application configuration.
+            └── lifetime.py     # Contains actions to perform on startup and shutdown.
 ```
 
 ## [Configuration](#configuration)

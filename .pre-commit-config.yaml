@@ -59,4 +59,5 @@ repos:
     types: [python]
     pass_filenames: false
     args:
-    - "bartender"
+    - "src"
+    - "tests"
