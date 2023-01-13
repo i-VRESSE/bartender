@@ -7,12 +7,12 @@ from asyncssh.misc import ConnectionLost
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.waiting_utils import wait_container_is_ready
 
-from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import CompletedStates
 from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
+from bartender.ssh_utils import SshConnectConfig
 
 
 class SlurmContainer(DockerContainer):

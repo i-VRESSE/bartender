@@ -76,6 +76,11 @@ class ApplicatonConfiguration:
 
     `$config` in command string will be replaced
     with value of ApplicatonConfiguration.config.
+
+    .. code-block:: yaml
+
+        command: wc $config
+        config: README.md
     """
 
     command: str

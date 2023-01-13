@@ -6,7 +6,12 @@ from asyncssh.misc import DefTuple
 
 @dataclass
 class SshConnectConfig:
-    """Configuration for ssh connection."""
+    """Configuration for ssh connection.
+
+    Attributes:
+        usename: Username to connect with.
+            When absent will use username of logged in user.
+    """
 
     hostname: str
     port: DefTuple[int] = ()

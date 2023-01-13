@@ -4,9 +4,9 @@ from typing import Literal, Optional
 
 from asyncssh import SSHClientConnection
 
-from bartender._ssh_utils import SshConnectConfig, ssh_connect
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
+from bartender.ssh_utils import SshConnectConfig, ssh_connect
 
 
 @dataclass

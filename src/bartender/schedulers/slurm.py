@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import Literal, Optional
 
-from bartender._ssh_utils import SshConnectConfig
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 from bartender.schedulers.runner import (
@@ -10,6 +9,7 @@ from bartender.schedulers.runner import (
     LocalCommandRunner,
     SshCommandRunner,
 )
+from bartender.ssh_utils import SshConnectConfig
 
 
 def _map_slurm_state(slurm_state: str) -> State:

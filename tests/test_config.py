@@ -6,7 +6,6 @@ import pytest
 from pydantic import ValidationError
 from yaml import safe_dump as yaml_dump
 
-from bartender._ssh_utils import SshConnectConfig
 from bartender.config import ApplicatonConfiguration, Config, build_config, get_config
 from bartender.destinations import DestinationConfig
 from bartender.filesystems.local import LocalFileSystemConfig
@@ -14,6 +13,7 @@ from bartender.filesystems.sftp import SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.memory import MemorySchedulerConfig
 from bartender.schedulers.slurm import SlurmSchedulerConfig
+from bartender.ssh_utils import SshConnectConfig
 
 
 class TestApplicatonConfiguration:
