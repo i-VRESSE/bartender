@@ -21,8 +21,7 @@ async def submit(
     :param job_dao: JobDAO object.
     :param context: Context with applications and destinations.
     """
-    application_config = context.applications[application]
-    description = application_config.description(job_dir)
+    description = context.applications[application].description(job_dir)
 
     destination_name = context.destination_picker(
         job_dir,
@@ -31,9 +30,18 @@ async def submit(
     )
     destination = context.destinations[destination_name]
 
-    await _upload_input_files(description, destination.filesystem, context.job_root_dir)
+    localized_description = destination.filesystem.localize_description(
+        description,
+        context.job_root_dir,
+    )
 
-    internal_job_id = await destination.scheduler.submit(description)
+    await _upload_input_files(
+        description,
+        destination.filesystem,
+        localized_description,
+    )
+
+    internal_job_id = await destination.scheduler.submit(localized_description)
 
     await job_dao.update_internal_job_id(
         external_job_id,
@@ -45,12 +53,8 @@ async def submit(
 async def _upload_input_files(
     description: JobDescription,
     filesystem: AbstractFileSystem,
-    job_root_dir: Path,
+    localized_description: JobDescription,
 ) -> None:
-    localized_description = filesystem.localize_description(
-        description,
-        job_root_dir,
-    )
     await filesystem.upload(
         src=description,
         target=localized_description,

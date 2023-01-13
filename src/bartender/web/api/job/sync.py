@@ -28,9 +28,9 @@ async def sync_state(
         # TODO throttle getting state from scheduler as getting state could be expensive
         # could add column to Job to track when state was last fetched
         state = await destination.scheduler.state(job.internal_id)
-        # TODO when scheduler says job is completed then download output files
+        # when scheduler says job is completed then download output files
         if job.state != state and job.id is not None:
-            await _download_job_files(job, destination.filesystem, job_root_dir)
+            await _download_job_files(job, state, destination.filesystem, job_root_dir)
             await job_dao.update_job_state(job.id, state)
             job.state = state
 
@@ -86,7 +86,7 @@ async def _store_updated_state(
         state = states[job.id]
         if job.state != state and job.destination is not None:
             filesystem = destinations[job.destination].filesystem
-            await _download_job_files(job, filesystem, job_root_dir)
+            await _download_job_files(job, state, filesystem, job_root_dir)
             await job_dao.update_job_state(job.id, state)
             job.state = state
 
@@ -116,10 +116,11 @@ async def _states_of_destination(
 
 async def _download_job_files(
     job: Job,
+    state: State,
     filesystem: AbstractFileSystem,
     job_root_dir: Path,
 ) -> None:
-    if job.state in CompletedStates:
+    if state in CompletedStates:
         job_dir: Path = job_root_dir / str(job.id)
         # Command does not matter for downloading so use dummy command.
         description = JobDescription(job_dir=job_dir, command="echo")
