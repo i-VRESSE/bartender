@@ -10,3 +10,6 @@ def health_check() -> None:
 
     It returns 200 if the project is healthy.
     """
+    # TODO check
+    # 1. Database connection is live
+    # 2. Schedulers and filesystems of job destinations are working.

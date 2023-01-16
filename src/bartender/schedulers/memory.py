@@ -99,6 +99,7 @@ class MemoryScheduler(AbstractScheduler):
     # * asking job state from instance that is not running that job
     # Should add warning to only use with workers=1 or reload=True
     # And add alternative redis scheduler using Celery, RQ or arq
+    # Or have single instance created in __main__.py
 
     def __init__(self, config: MemorySchedulerConfig):
         """In memory scheduler.

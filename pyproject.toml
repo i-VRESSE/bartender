@@ -14,14 +14,13 @@ packages = [{include = "bartender", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.9"
 fastapi = "^0.85.2"
-uvicorn = { version = "^0.17.0", extras = ["standard"] }
+uvicorn = { version = "^0.20.0", extras = ["standard"] }
 pydantic = {version = "^1.9.0", extras = ["dotenv"]}
 yarl = "^1.7.2"
 ujson = "^5.1.0"
 SQLAlchemy = {version = "^1.4", extras = ["mypy", "asyncio"]}
 alembic = "^1.7.7"
 asyncpg = {version = "^0.25.0", extras = ["sa"]}
-httptools = "^0.3.0"
 python-multipart = "^0.0.5"
 aiofiles = "^0.8.0"
 fastapi-users = {extras = ["sqlalchemy", "oauth"], version = "^10.1.5"}
