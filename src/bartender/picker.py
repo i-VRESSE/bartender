@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 DestinationPicker = Callable[[Path, str, "Context"], str]
 
 
-# TODO move to own module, without causing a circular import
 def pick_first(
     job_dir: Path,
     application_name: str,
