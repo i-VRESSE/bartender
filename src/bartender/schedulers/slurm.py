@@ -137,12 +137,13 @@ class SlurmScheduler(AbstractScheduler):
         )
 
     def __repr__(self) -> str:
-        return dedent(
-            f"""\
-            SlurmScheduler(ssh_config={self.ssh_config}, partition={self.partition},
-                           time={self.time}, extra_options={self.extra_options}
-            )""",
+        config = SlurmSchedulerConfig(
+            ssh_config=self.ssh_config,
+            partition=self.partition,
+            time=self.time,
+            extra_options=self.extra_options,
         )
+        return f"SlurmScheduler(config={config})"
 
     async def _state_from_accounting(self, job_id: str) -> str:
         command = "sacct"
