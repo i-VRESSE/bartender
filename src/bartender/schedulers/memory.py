@@ -92,6 +92,14 @@ class MemoryScheduler(AbstractScheduler):
 
     """
 
+    # TODO when running uvicorn with workers>1 then
+    # there are multiple instances of this class
+    # this can cause
+    # * having multiple jobs running even when slot=1
+    # * asking job state from instance that is not running that job
+    # Should add warning to only use with workers=1 or reload=True
+    # And add alternative redis scheduler using Celery, RQ or arq
+
     def __init__(self, config: MemorySchedulerConfig):
         """In memory scheduler.
 

@@ -70,6 +70,8 @@ async def retrieve_job(
         job = await job_dao.get_job(jobid=jobid, user=user)
         if job.destination is not None:
             destination = context.destinations[job.destination]
+            # TODO perform syncing of states in background task
+            # sync can include downloading of big job dir from remote to local,
             await sync_state(job, job_dao, destination, context.job_root_dir)
         return job
     except NoResultFound as exc:
@@ -108,3 +110,11 @@ async def retrieve_job_stdout(
         )
     stdout: Path = context.job_root_dir / str(jobid) / "stdout.txt"
     return FileResponse(stdout)
+
+
+# TODO add job deletion route.
+# Should job be removed from db?
+# Decide what to do in following cases:
+# * when job queued
+# * when job is running
+# * when job is completed

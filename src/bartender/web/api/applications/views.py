@@ -91,6 +91,10 @@ async def upload_job(  # noqa: WPS211
         await current_api_token(submitter),
         context.job_root_dir,
     )
+    # TODO uploaded file can be big, and thus take long time to unpack,
+    # not nice to do it in request/response handling,
+    # as request could timeout on consumer side.
+    # Move to background task or have dedicated routes for preparing input files.
     await stage_job_input(job_dir, upload)
     has_config_file(context.applications[application], job_dir)
 
