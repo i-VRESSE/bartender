@@ -4,8 +4,7 @@ from typing import Any, Literal, Optional
 from arq import ArqRedis, Worker, create_pool
 from arq.connections import RedisSettings
 from arq.jobs import Job, JobStatus
-from pydantic import RedisDsn
-from pydantic.dataclasses import dataclass
+from pydantic import BaseModel, RedisDsn, parse_obj_as
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
@@ -28,12 +27,11 @@ def _map_arq_status(arq_status: JobStatus, success: bool) -> State:
         return "error"
 
 
-@dataclass
-class ArqSchedulerConfig:
+class ArqSchedulerConfig(BaseModel):
     """Configuration for ArqScheduler."""
 
     type: Literal["arq"] = "arq"
-    redis_dsn: RedisDsn = RedisDsn("redis://localhost:6379")
+    redis_dsn: RedisDsn = parse_obj_as(RedisDsn, "redis://localhost:6379")
     queue: str = "arq:queue"
 
     @property

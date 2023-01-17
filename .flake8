@@ -109,7 +109,6 @@ per-file-ignores =
   ; Found wrong metadata variable
   WPS410,
 
-
 exclude =
   ./.cache,
   ./.git,
