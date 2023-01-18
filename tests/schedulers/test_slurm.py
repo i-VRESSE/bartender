@@ -12,7 +12,7 @@ from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
 from bartender.ssh_utils import SshConnectConfig
-from tests.schedulers.test_helpers import assert_output, prepare_input, wait_for_job
+from tests.schedulers.helpers import assert_output, prepare_input, wait_for_job
 
 
 class SlurmContainer(DockerContainer):

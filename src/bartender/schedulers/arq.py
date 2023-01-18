@@ -1,4 +1,4 @@
-from asyncio import create_subprocess_shell
+from asyncio import TimeoutError, create_subprocess_shell
 from typing import Any, Literal, Optional
 
 from arq import ArqRedis, Worker, create_pool
@@ -74,23 +74,32 @@ class ArqScheduler(AbstractScheduler):
         job = Job(job_id, pool)
         arq_status = await job.status()
         success = False
+        if arq_status == JobStatus.not_found:
+            raise KeyError(job_id)
         if arq_status == JobStatus.complete:
             result = await job.result_info()
             if result is None:
-                return "error"
+                raise RuntimeError(
+                    f"Failed to fetch result from completed arq job {job_id}",
+                )
             success = result.success
         return _map_arq_status(arq_status, success)
 
     async def cancel(self, job_id: str) -> None:  # noqa: D102
         pool = await self._pool()
         job = Job(job_id, pool)
-        await job.abort()
+        try:
+            await job.abort(timeout=0.1)
+        except TimeoutError:
+            # job.result() times out on cancelled queued job
+            return
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, ArqScheduler) and self.config == other.config
 
     def __repr__(self) -> str:
-        return f"ArqScheduler(config={self.config})"
+        config = repr(self.config)
+        return f"ArqScheduler(config={config})"
 
     async def _pool(self) -> ArqRedis:
         if self.connection is None:
@@ -121,16 +130,19 @@ async def _exec(  # noqa: WPS210
             # TODO raise exception when returncode != 0 ?
 
 
-def arq_worker(config: ArqSchedulerConfig) -> None:
+def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
     """Worker that runs jobs submitted to arq queue.
 
     :param config: The config.
         Should be equal to the one used to submit job.
+    :param burst: Whether to stop the worker once all jobs have been run.
+    :return: A worker.
     """
     functions = [_exec]
-    worker = Worker(
+    return Worker(
         redis_settings=config.redis_settings,
         queue_name=config.queue,
         functions=functions,  # type: ignore
+        burst=burst,
+        allow_abort_jobs=True,
     )
-    worker.run()
