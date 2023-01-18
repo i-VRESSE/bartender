@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 
 import pytest
 from arq import Worker
 from arq.jobs import JobStatus
 from pydantic import RedisDsn
-from testcontainers.redis import RedisContainer
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.arq import _map_arq_status  # noqa: WPS450
@@ -26,19 +25,6 @@ from tests.schedulers.helpers import assert_output, prepare_input
 )
 def test_map_arq_status(arq_status: JobStatus, success: bool, expected: State) -> None:
     assert _map_arq_status(arq_status, success) == expected
-
-
-@pytest.fixture
-def redis_server() -> Generator[RedisContainer, None, None]:
-    with RedisContainer("redis:7") as container:
-        yield container
-
-
-@pytest.fixture
-def redis_dsn(redis_server: RedisContainer) -> str:
-    host = redis_server.get_container_host_ip()
-    port = redis_server.get_exposed_port(redis_server.port_to_expose)
-    return f"redis://{host}:{port}/0"
 
 
 @pytest.fixture

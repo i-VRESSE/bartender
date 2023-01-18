@@ -1,4 +1,5 @@
 import pytest
+from pydantic import RedisDsn
 
 from bartender.schedulers.abstract import AbstractScheduler
 from bartender.schedulers.arq import ArqScheduler, ArqSchedulerConfig
@@ -31,7 +32,7 @@ async def test_single_localsimplist_slurm_scheduler() -> None:
 
 
 @pytest.mark.anyio
-async def test_single_localsimplist_arq_scheduler() -> None:
-    config = ArqSchedulerConfig()
+async def test_single_localsimplist_arq_scheduler(redis_dsn: RedisDsn) -> None:
+    config = ArqSchedulerConfig(redis_dsn=redis_dsn)
     expected = ArqScheduler(config)
     await run_it(config, expected)
