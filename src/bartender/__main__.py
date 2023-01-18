@@ -3,11 +3,14 @@ import contextlib
 import sys
 from argparse import ArgumentParser
 from importlib.metadata import version
+from pathlib import Path
 
 import uvicorn
 
+from bartender.config import build_config
 from bartender.db.dao.user_dao import get_user_db
 from bartender.db.session import make_engine, make_session_factory
+from bartender.schedulers.arq import ArqSchedulerConfig, run_workers
 from bartender.settings import settings
 
 
@@ -51,6 +54,26 @@ def make_super(email: str) -> None:
     asyncio.run(make_super_async(email))
 
 
+def mix(config: Path) -> None:
+    """Runs arq worker to run queued jobs.
+
+    Like a bartender mixes the cocktails,
+    the i-vresse bartender mixes aka runs queued jobs.
+
+    :param config: Path to config file.
+    :raises ValueError: When no usefull destination found in config file.
+    """
+    validated_config = build_config(config)
+    configs: list[ArqSchedulerConfig] = []
+    for destination in validated_config.destinations.values():
+        if isinstance(destination.scheduler, ArqSchedulerConfig):
+            configs.append(destination.scheduler)
+    if not configs:
+        raise ValueError("No destination found in config file using arq scheduler")
+
+    asyncio.run(run_workers(configs))
+
+
 def build_parser() -> ArgumentParser:
     """Build an argument parser.
 
@@ -66,6 +89,15 @@ def build_parser() -> ArgumentParser:
     super_sp = subparsers.add_parser("super", help="Grant super rights to user")
     super_sp.add_argument("email", help="Email address of logged in user")
     super_sp.set_defaults(func=make_super)
+
+    mix_sp = subparsers.add_parser("mix", help="Async Redis queue job worker")
+    mix_sp.add_argument(
+        "--config",
+        default=Path("config.yaml"),
+        type=Path,
+        help="Configuration with schedulers that need arq workers",
+    )
+    mix_sp.set_defaults(func=mix)
 
     return parser
 

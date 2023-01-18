@@ -1,4 +1,4 @@
-from asyncio import TimeoutError, create_subprocess_shell
+from asyncio import TimeoutError, create_subprocess_shell, gather
 from typing import Any, Literal, Optional
 
 from arq import ArqRedis, Worker, create_pool
@@ -46,7 +46,7 @@ class ArqSchedulerConfig(BaseModel):
 class ArqScheduler(AbstractScheduler):
     """Arq scheduler.
 
-    See https://arq-docs.helpmanual.io/
+    See https://arq-docs.helpmanual.io/.
     """
 
     def __init__(self, config: ArqSchedulerConfig) -> None:
@@ -146,3 +146,12 @@ def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
         burst=burst,
         allow_abort_jobs=True,
     )
+
+
+async def run_workers(configs: list[ArqSchedulerConfig]) -> None:
+    """Run worker for each arq scheduler config.
+
+    :param configs: The configs.
+    """
+    workers = [arq_worker(config) for config in configs]
+    await gather(*[worker.async_run() for worker in workers])
