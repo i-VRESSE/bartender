@@ -10,7 +10,7 @@ from bartender.db.models.user import User
 from bartender.db.utils import now
 
 # Possible states of a job.
-State = Literal["new", "queued", "running", "ok", "error"]
+State = Literal["new", "queued", "running", "staging_out", "ok", "error"]
 CompletedStates: set[State] = {"ok", "error"}
 
 

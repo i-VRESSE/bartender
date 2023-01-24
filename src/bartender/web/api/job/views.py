@@ -10,6 +10,7 @@ from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
+from bartender.filesystems.queue import FileStagingQueue, get_file_staging_queue
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users.manager import current_active_user
@@ -18,12 +19,13 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[JobModelDTO])
-async def retrieve_jobs(
+async def retrieve_jobs(  # noqa: WPS211
     limit: int = 10,
     offset: int = 0,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
     context: Context = Depends(get_context),
+    file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
 ) -> List[Job]:
     """
     Retrieve all jobs of user from the database.
@@ -33,6 +35,9 @@ async def retrieve_jobs(
     :param job_dao: JobDAO object.
     :param user: Current active user.
     :param context: Context with destinations.
+    :param file_staging_queue: When scheduler reports job is complete.
+        The output files need to be copied back.
+        Use queue to perform download outside request/response handling.
     :return: stream of jobs.
     """
     # TODO now list jobs that user submitted,
@@ -40,7 +45,13 @@ async def retrieve_jobs(
     # or are shared with current user
     jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
     # get current state for each job from scheduler
-    await sync_states(jobs, context.destinations, job_dao, context.job_root_dir)
+    await sync_states(
+        jobs,
+        context.destinations,
+        job_dao,
+        context.job_root_dir,
+        file_staging_queue,
+    )
     return jobs
 
 
@@ -50,6 +61,7 @@ async def retrieve_job(
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
     context: Context = Depends(get_context),
+    file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
 ) -> Job:
     """
     Retrieve specific job from the database.
@@ -58,6 +70,9 @@ async def retrieve_job(
     :param job_dao: JobDAO object.
     :param user: Current active user.
     :param context: Context with destinations.
+    :param file_staging_queue: When scheduler reports job is complete.
+        The output files need to be copied back.
+        Use queue to perform download outside request/response handling.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: job models.
     """
@@ -70,7 +85,13 @@ async def retrieve_job(
         job = await job_dao.get_job(jobid=jobid, user=user)
         if job.destination is not None:
             destination = context.destinations[job.destination]
-            await sync_state(job, job_dao, destination, context.job_root_dir)
+            await sync_state(
+                job,
+                job_dao,
+                destination,
+                context.job_root_dir,
+                file_staging_queue,
+            )
         return job
     except NoResultFound as exc:
         raise HTTPException(

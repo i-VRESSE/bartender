@@ -5,6 +5,10 @@ from fastapi import FastAPI
 from bartender.config import build_config
 from bartender.context import build_context, close_context
 from bartender.db.session import make_engine, make_session_factory
+from bartender.filesystems.queue import (
+    build_file_staging_queue,
+    teardown_file_staging_queue,
+)
 from bartender.settings import settings
 
 
@@ -39,6 +43,7 @@ def register_startup_event(
     async def _startup() -> None:  # noqa: WPS430
         _setup_db(app)
         _parse_context(app)
+        build_file_staging_queue(app)
 
     return _startup
 
@@ -57,6 +62,7 @@ def register_shutdown_event(
     async def _shutdown() -> None:  # noqa: WPS430
         await app.state.db_engine.dispose()
         await _teardown_context(app)
+        await teardown_file_staging_queue(app)
 
     return _shutdown
 

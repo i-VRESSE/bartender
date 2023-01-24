@@ -1,9 +1,11 @@
 from pathlib import Path
+from typing import Any, Callable, Coroutine
 
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import CompletedStates, Job, State
 from bartender.destinations import Destination
 from bartender.filesystems.abstract import AbstractFileSystem
+from bartender.filesystems.queue import FileStagingQueue
 from bartender.schedulers.abstract import JobDescription
 
 
@@ -12,6 +14,7 @@ async def sync_state(
     job_dao: JobDAO,
     destination: Destination,
     job_root_dir: Path,
+    file_staging_queue: FileStagingQueue,
 ) -> None:
     """Sync state of job from scheduler to database.
 
@@ -19,6 +22,9 @@ async def sync_state(
     :param job_dao: JobDAO object.
     :param destination: Job destination used to submit job.
     :param job_root_dir: Directory where all jobs can be found.
+    :param file_staging_queue: When scheduler reports job is complete.
+        The output files need to be copied back.
+        Use queue to perform download outside request/response handling.
     """
     if (  # noqa: WPS337
         job.state not in CompletedStates
@@ -30,9 +36,19 @@ async def sync_state(
         state = await destination.scheduler.state(job.internal_id)
         # when scheduler says job is completed then download output files
         if job.state != state and job.id is not None:
-            await _download_job_files(job, state, destination.filesystem, job_root_dir)
-            await job_dao.update_job_state(job.id, state)
-            job.state = state
+            if state in CompletedStates:
+                await job_dao.update_job_state(job.id, "staging_out")
+                perform_download = _download_job_files(
+                    job,
+                    job_dao,
+                    state,
+                    destination.filesystem,
+                    job_root_dir,
+                )
+                await file_staging_queue.put(perform_download)
+            else:
+                await job_dao.update_job_state(job.id, state)
+                job.state = state
 
 
 async def sync_states(
@@ -40,6 +56,7 @@ async def sync_states(
     destinations: dict[str, Destination],
     job_dao: JobDAO,
     job_root_dir: Path,
+    file_staging_queue: FileStagingQueue,
 ) -> None:
     """Sync state of jobs from scheduler to database.
 
@@ -47,6 +64,9 @@ async def sync_states(
     :param destinations: Job destinations.
     :param job_dao: JobDAO object.
     :param job_root_dir: Directory where all jobs can be found.
+    :param file_staging_queue: When scheduler reports job is complete.
+        The output files need to be copied back.
+        Use queue to perform download outside request/response handling.
     """
     jobs2sync = [
         job
@@ -57,7 +77,14 @@ async def sync_states(
     ]
     states = await _states_of_destinations(destinations, jobs2sync)
     for job in jobs2sync:
-        await _store_updated_state(destinations, job_dao, states, job, job_root_dir)
+        await _store_updated_state(
+            destinations,
+            job_dao,
+            states,
+            job,
+            job_root_dir,
+            file_staging_queue,
+        )
 
 
 async def _states_of_destinations(
@@ -75,20 +102,31 @@ async def _states_of_destinations(
     return states
 
 
-async def _store_updated_state(
+async def _store_updated_state(  # noqa: WPS211
     destinations: dict[str, Destination],
     job_dao: JobDAO,
     states: dict[int, State],
     job: Job,
     job_root_dir: Path,
+    file_staging_queue: FileStagingQueue,
 ) -> None:
     if job.id is not None:
         state = states[job.id]
         if job.state != state and job.destination is not None:
             filesystem = destinations[job.destination].filesystem
-            await _download_job_files(job, state, filesystem, job_root_dir)
-            await job_dao.update_job_state(job.id, state)
-            job.state = state
+            if state in CompletedStates:
+                await job_dao.update_job_state(job.id, "staging_out")
+                perform_download = _download_job_files(
+                    job,
+                    job_dao,
+                    state,
+                    filesystem,
+                    job_root_dir,
+                )
+                await file_staging_queue.put(perform_download)
+            else:
+                await job_dao.update_job_state(job.id, state)
+                job.state = state
 
 
 async def _states_of_destination(
@@ -114,13 +152,14 @@ async def _states_of_destination(
     return dest_states
 
 
-async def _download_job_files(
+def _download_job_files(
     job: Job,
+    job_dao: JobDAO,
     state: State,
     filesystem: AbstractFileSystem,
     job_root_dir: Path,
-) -> None:
-    if state in CompletedStates:
+) -> Callable[[], Coroutine[Any, Any, None]]:
+    async def perform_download() -> None:  # noqa: WPS430 queue.put gets function
         job_dir: Path = job_root_dir / str(job.id)
         # Command does not matter for downloading so use dummy command.
         description = JobDescription(job_dir=job_dir, command="echo")
@@ -128,5 +167,11 @@ async def _download_job_files(
             description,
             job_root_dir,
         )
+
         await filesystem.download(localized_description, description)
+
         # TODO for non-local file system should also remove remote files?
+        if job.id is not None:
+            await job_dao.update_job_state(job.id, state)
+
+    return perform_download
