@@ -1,5 +1,7 @@
 # bartender
 
+[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8F%20%20%E2%97%8B-orange)](https://fair-software.eu)
+
 - [bartender](#bartender)
   - [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
   - [Project structure](#project-structure)
@@ -26,7 +28,6 @@
 Bartender is a middleware web service to schedule jobs on various infrastructures.
 
 This project was generated using [fastapi_template](https://github.com/s3rius/FastAPI-template).
-
 
 ## [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
 
