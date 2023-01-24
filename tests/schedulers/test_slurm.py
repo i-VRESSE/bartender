@@ -132,8 +132,14 @@ async def test_ok_running_job_without_iofiles(
 
         await fs.download(localized_description, description)
 
-        assert (job_dir / "returncode").read_text() == "0"
-        assert (job_dir / "stdout.txt").read_text() == "hello"
-        assert (job_dir / "stderr.txt").read_text() == ""
+        assert_output_without_iofiles(job_dir)
     finally:
         await scheduler.close()
+
+
+def assert_output_without_iofiles(job_dir: Path) -> None:
+    assert (job_dir / "returncode").read_text() == "0"
+    assert (job_dir / "stdout.txt").read_text() == "hello"
+    assert (job_dir / "stderr.txt").read_text() == ""
+    files = list(job_dir.iterdir())
+    assert len(files) == 3
