@@ -45,7 +45,7 @@ class SlurmScheduler(AbstractScheduler):
         :param partition: Partition in which all jobs should be submitted.
         :param time: Limit on the total run time of the job.
         :param extra_options: Escape hatch to add extra options to job script.
-            The string `#SBATCH {extra_options[0]}` will be appended to job script.
+            The string `#SBATCH {extra_options[i]}` will be appended to job script.
         """
         # TODO which option should be set to per scheduler or per job description?
         self.runner = runner
