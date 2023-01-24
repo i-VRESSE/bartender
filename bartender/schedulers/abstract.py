@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from types import TracebackType
+from typing import Optional, Type
 
 from pydantic import BaseModel
 
@@ -62,3 +64,14 @@ class AbstractScheduler(ABC):
 
         :param job_id: Identifier of job.
         """
+
+    async def __aenter__(self) -> "AbstractScheduler":
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc: Optional[BaseException],
+        tb: Optional[TracebackType],
+    ) -> None:
+        await self.close()
