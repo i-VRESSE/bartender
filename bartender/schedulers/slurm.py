@@ -72,6 +72,7 @@ class SlurmScheduler(AbstractScheduler):
                 f"Error running sbatch, exited with {returncode}: {stderr}",
             )
 
+        #  Get the "4" out of string like "Submitted batch job 4"
         return stdout.strip().split(" ")[-1]
 
     async def state(self, job_id: str) -> State:
