@@ -26,6 +26,7 @@ async def ssh_connect(config: SshConnectConfig) -> SSHClientConnection:
     :return: The connection.
     """
     conn_vargs = {
+        # disable server host key validation
         "known_hosts": None,
     }
     if config.password:
