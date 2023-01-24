@@ -4,13 +4,14 @@ from starlette import status
 from starlette.background import BackgroundTask
 
 from bartender.db.dao.job_dao import JobDAO
-from bartender.db.models.job_model import State
 from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
-from bartender.schedulers.direct import submit
+from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.dependencies import get_scheduler
 from bartender.settings import settings
+from bartender.web.api.applications.submit import submit
 from bartender.web.users.manager import current_active_user, current_api_token
 
 router = APIRouter()
@@ -43,12 +44,13 @@ def list_applications() -> list[str]:
         },
     },
 )
-async def upload_job(
+async def upload_job(  # noqa: WPS211
     application: str,
     request: Request,
     upload: UploadFile = File(description="Archive with config file for application"),
     job_dao: JobDAO = Depends(),
     submitter: User = Depends(current_active_user),
+    scheduler: AbstractScheduler = Depends(get_scheduler),
 ) -> RedirectResponse:
     """
     Creates job model in the database, stage archive locally and submit to scheduler.
@@ -58,6 +60,7 @@ async def upload_job(
     :param request: request object.
     :param job_dao: JobDAO object.
     :param submitter: User who submitted job.
+    :param scheduler: Current job scheduler.
     :raises IndexError: When job could not created inside database or
         when config file was not found.
     :raises KeyError: Application is invalid.
@@ -74,21 +77,13 @@ async def upload_job(
     await stage_job_input(job_dir, upload)
     has_config_file(application, job_dir)
 
-    async def update_state(  # noqa: WPS430 so scheduler does not need bartenders job id
-        state: State,
-    ) -> None:
-        if job_id is None:
-            raise IndexError("Failed to create database entry for job")
-        await job_dao.update_job_state(job_id, state)
-
     task = BackgroundTask(
-        # TODO submit function should be an adapter,
-        # which can submit job to one of the available schedulers
-        # based on job input, application, scheduler resources, phase of moon, etc.
         submit,
-        job_dir=job_dir,
-        app=settings.applications[application],
-        update_state=update_state,
+        job_id,
+        job_dir,
+        settings.applications[application],
+        job_dao,
+        scheduler,
     )
 
     url = request.url_for("retrieve_job", jobid=job_id)

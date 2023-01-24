@@ -9,8 +9,11 @@ from starlette import status
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
+from bartender.schedulers.abstract import AbstractScheduler
+from bartender.schedulers.dependencies import get_scheduler
 from bartender.settings import settings
 from bartender.web.api.job.schema import JobModelDTO
+from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users.manager import current_active_user
 
 router = APIRouter()
@@ -22,6 +25,7 @@ async def retrieve_jobs(
     offset: int = 0,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
+    scheduler: AbstractScheduler = Depends(get_scheduler),
 ) -> List[Job]:
     """
     Retrieve all jobs of user from the database.
@@ -30,12 +34,16 @@ async def retrieve_jobs(
     :param offset: offset of jobs.
     :param job_dao: JobDAO object.
     :param user: Current active user.
+    :param scheduler: Current job scheduler.
     :return: stream of jobs.
     """
     # TODO now list jobs that user submitted,
     # later also list jobs which are visible by admin
     # or are shared with current user
-    return await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
+    jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
+    # get current state for each job from scheduler
+    await sync_states(jobs, scheduler, job_dao)
+    return jobs
 
 
 @router.get("/{jobid}", response_model=JobModelDTO)
@@ -43,13 +51,15 @@ async def retrieve_job(
     jobid: int,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
+    scheduler: AbstractScheduler = Depends(get_scheduler),
 ) -> Job:
     """
     Retrieve specific job from the database.
 
-    :param jobid: name of job instance.
+    :param jobid: identifier of job instance.
     :param job_dao: JobDAO object.
     :param user: Current active user.
+    :param scheduler: Current job scheduler.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: job models.
     """
@@ -59,7 +69,9 @@ async def retrieve_job(
         # or are shared with current user
         # TODO When job has state==ok then include URL to applications result page
         # TODO When job has state==error then include URL to error page
-        return await job_dao.get_job(jobid=jobid, user=user)
+        job = await job_dao.get_job(jobid=jobid, user=user)
+        await sync_state(job, job_dao, scheduler)
+        return job
     except NoResultFound as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -72,16 +84,23 @@ async def retrieve_job_stdout(
     jobid: int,
     job_dao: JobDAO = Depends(),
     user: User = Depends(current_active_user),
+    scheduler: AbstractScheduler = Depends(get_scheduler),
 ) -> FileResponse:
     """Retrieve stdout of a job.
 
-    :param jobid: name of job instance.
+    :param jobid: identifier of job instance.
     :param job_dao: JobDAO object.
     :param user: Current active user.
+    :param scheduler: Current job scheduler.
     :raises HTTPException: When job is not found or user is not allowed to see job.
     :return: stdout of job.
     """
-    job = await retrieve_job(jobid=jobid, job_dao=job_dao, user=user)
+    job = await retrieve_job(
+        jobid=jobid,
+        job_dao=job_dao,
+        user=user,
+        scheduler=scheduler,
+    )
     if job.state not in {"ok", "error"}:
         raise HTTPException(
             status_code=status.HTTP_425_TOO_EARLY,

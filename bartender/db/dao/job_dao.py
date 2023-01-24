@@ -92,3 +92,16 @@ class JobDAO:
             return
         job.state = state
         await self.session.commit()
+
+    async def update_internal_job_id(self, jobid: int, internal_job_id: str) -> None:
+        """
+        Update internal id of a job.
+
+        :param jobid: name of job instance.
+        :param internal_job_id: new internal job id of job instance.
+        """
+        job = await self.session.get(Job, jobid)
+        if job is None:
+            return
+        job.internal_id = internal_job_id
+        await self.session.commit()
