@@ -124,3 +124,8 @@ exclude =
   ./var,
   ./.vscode,
   *migrations*,
+
+rst-roles =
+    class,
+    func,
+    ref,

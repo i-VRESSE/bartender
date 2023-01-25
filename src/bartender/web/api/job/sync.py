@@ -80,7 +80,7 @@ class UpdateStateHelper:
             if state in CompletedStates:
                 # when scheduler says job is completed then download output files
                 await self.job_dao.update_job_state(job.id, "staging_out")
-                perform_download = _download_job_files(
+                perform_download = download2queue(
                     job,
                     self.job_dao,
                     state,
@@ -170,13 +170,28 @@ async def _states_of_destination(
     return dest_states
 
 
-def _download_job_files(
+def download2queue(
     job: Job,
     job_dao: JobDAO,
     state: State,
     filesystem: AbstractFileSystem,
     job_root_dir: Path,
 ) -> Callable[[], Coroutine[Any, Any, None]]:
+    """Generate dowload function that can be queued for later execution.
+
+    The function will
+    1. Download files from job on `filesystem` to `job_root_dir/job.id`.
+    2. Update state of job in db to `state`.
+
+    :param job: Completed job to download for.
+    :param job_dao: Object to interact with database.
+    :param state: The new state to set.
+    :param filesystem: File system where job wrote its output files.
+    :param job_root_dir: Directory on server where this Python process is running.
+        A subdirectory of this is the job directory
+        and the destination to copy files to.
+    :return: Function that can be passed to `FileStagingQueue.put(item)`.
+    """
     # TODO instead of passing function to queue,
     # pass just the (job.id, state and destination_name)
     # this would make it possible to switch from async queue to arq queue

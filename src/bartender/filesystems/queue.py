@@ -3,7 +3,12 @@ from typing import Any, Callable, Coroutine
 
 from fastapi import FastAPI, Request
 
-FileStagingQueue = Queue[Callable[[], Coroutine[Any, Any, None]]]
+FileStagingQueue = Queue[Callable[[], Coroutine[Any, Any, None]]]  # noqa: WPS462
+"""Custom type for file staging queue.
+
+The `item` argument in `queue.put(item)` method should be
+an async function without any arguments.
+"""  # noqa: WPS428
 
 
 async def _file_staging_worker(queue: FileStagingQueue) -> None:
@@ -58,5 +63,21 @@ def get_file_staging_queue(request: Request) -> FileStagingQueue:
 
     :param request: The request injected by FastAPI.
     :return: queue for downloading/uploading files from/to remote filesystems.
+
+    Can be used in dependency injection in a FastAPI route.
+    Requires :func:`setup_file_staging_queue` and :func:`teardown_file_staging_queue`
+    to be added to FastAPI startup and shutdown events.
+
+    For example
+
+    .. code-block:: python
+
+        @router.get("/staging-queue-size")
+        async def file_staging_queue_size(
+            file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
+        ):
+            return file_staging_queue.qsize()
+
+
     """
     return request.app.state.file_staging_queue

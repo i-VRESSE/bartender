@@ -33,6 +33,11 @@ Bartender is a middleware web service to schedule jobs on various infrastructure
 
 This project was generated using [fastapi_template](https://github.com/s3rius/FastAPI-template).
 
+Features:
+
+* Submit job by uploading a zip file with a configuration file that the chosen application needs.
+* When job is being executed on a file system that web service can not access the input and output files will be transferred for you.
+
 ## [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
 
 1. Clone the repository
