@@ -1,4 +1,4 @@
-from asyncio import Queue, create_task, gather
+from asyncio import Queue, Task, create_task, gather
 from typing import Any, Callable, Coroutine
 
 from fastapi import FastAPI, Request
@@ -13,14 +13,36 @@ async def _file_staging_worker(queue: FileStagingQueue) -> None:
         queue.task_done()
 
 
-def build_file_staging_queue(app: FastAPI) -> None:
+def setup_file_staging_queue(app: FastAPI) -> None:
     """Create file staging queue and inject in to app state.
 
-    :param app: fastAPI application.
+    :param app: FastAPI application.
+    """
+    queue, task = build_file_staging_queue()
+    app.state.file_staging_queue = queue
+    app.state.file_staging_queue_task = task
+
+
+def build_file_staging_queue() -> tuple[FileStagingQueue, Task[None]]:
+    """Create file staging queue and single worker task.
+
+    :return: The queue and the task.
     """
     queue: FileStagingQueue = Queue()
-    app.state.file_staging_queue_task = create_task(_file_staging_worker(queue))
-    app.state.file_staging_queue = queue
+    task = create_task(_file_staging_worker(queue))
+    return queue, task
+
+
+async def stop_file_staging_queue(task: Task[None]) -> None:
+    """Stop file staging queue and its task consumer.
+
+    :param task: Task to cancel and wait for.
+    """
+    # TODO Should we complete queued+running file staging tasks
+    # or leave incomplete (=current)?
+    # await queue.join()
+    task.cancel()
+    await gather(task, return_exceptions=True)
 
 
 async def teardown_file_staging_queue(app: FastAPI) -> None:
@@ -28,11 +50,7 @@ async def teardown_file_staging_queue(app: FastAPI) -> None:
 
     :param app: fastAPI application.
     """
-    # TODO Should we complete queued+running file staging tasks
-    # or leave incomplete (=current)?
-    # await app.state.file_staging_queue.join()
-    app.state.file_staging_queue_task.cancel()
-    await gather(app.state.file_staging_queue_task, return_exceptions=True)
+    await stop_file_staging_queue(app.state.file_staging_queue_task)
 
 
 def get_file_staging_queue(request: Request) -> FileStagingQueue:
@@ -41,4 +59,4 @@ def get_file_staging_queue(request: Request) -> FileStagingQueue:
     :param request: The request injected by FastAPI.
     :return: queue for downloading/uploading files from/to remote filesystems.
     """
-    return request.state.file_staging_queue
+    return request.app.state.file_staging_queue

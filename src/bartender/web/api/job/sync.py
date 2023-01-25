@@ -26,28 +26,71 @@ async def sync_state(
         The output files need to be copied back.
         Use queue to perform download outside request/response handling.
     """
-    if (  # noqa: WPS337
-        job.state not in CompletedStates
-        and job.internal_id is not None
-        and destination is not None
-    ):
-        # TODO throttle getting state from scheduler as getting state could be expensive
-        # could add column to Job to track when state was last fetched
+    if job.state not in CompletedStates and job.internal_id is not None:
         state = await destination.scheduler.state(job.internal_id)
-        # when scheduler says job is completed then download output files
-        if job.state != state and job.id is not None:
+        updater = UpdateStateHelper(
+            job_dao,
+            job_root_dir,
+            file_staging_queue,
+        )
+        await updater(
+            job,
+            state,
+            destination.filesystem,
+        )
+
+
+class UpdateStateHelper:
+    """Takes the new state of a job and stores it in the database.
+
+    When job is completed then the output files should be downloaded.
+    To not block the `GET /api/job/:jobid` the downloading is queued up.
+    """
+
+    def __init__(
+        self,
+        job_dao: JobDAO,
+        job_root_dir: Path,
+        file_staging_queue: FileStagingQueue,
+    ):
+        """Contruct with non job specific arguments.
+
+        :param job_dao: Object to update jobs in database.
+        :param job_root_dir: In which directory the job directory was made.
+        :param file_staging_queue: Queue used to defer downloading.
+        """
+        self.job_dao = job_dao
+        self.job_root_dir = job_root_dir
+        self.file_staging_queue = file_staging_queue
+
+    async def __call__(
+        self,
+        job: Job,
+        state: State,
+        filesystem: AbstractFileSystem,
+    ) -> None:
+        """Perform update with job specific arguments.
+
+        :param job: Job for which new state should be set.
+        :param state: The new state, most likely retrieved from a scheduler.
+        :param filesystem: Filesystem on which scheduler executed the job.
+            Where the output files of the job reside.
+        """
+        if job.state != state and job.id is not None and job.state != "staging_out":
             if state in CompletedStates:
-                await job_dao.update_job_state(job.id, "staging_out")
+                # when scheduler says job is completed then download output files
+                await self.job_dao.update_job_state(job.id, "staging_out")
                 perform_download = _download_job_files(
                     job,
-                    job_dao,
+                    self.job_dao,
                     state,
-                    destination.filesystem,
-                    job_root_dir,
+                    filesystem,
+                    self.job_root_dir,
                 )
-                await file_staging_queue.put(perform_download)
+                await self.file_staging_queue.put(perform_download)
+                # as once download is complete the state in db will be updated
             else:
-                await job_dao.update_job_state(job.id, state)
+                await self.job_dao.update_job_state(job.id, state)
                 job.state = state
 
 
@@ -71,19 +114,21 @@ async def sync_states(
     jobs2sync = [
         job
         for job in jobs
-        if job.id is not None
-        and job.state not in CompletedStates
-        and job.internal_id is not None
+        if job.state not in CompletedStates and job.state != "staging_out"
     ]
     states = await _states_of_destinations(destinations, jobs2sync)
+    updater = UpdateStateHelper(
+        job_dao,
+        job_root_dir,
+        file_staging_queue,
+    )
     for job in jobs2sync:
-        await _store_updated_state(
-            destinations,
-            job_dao,
-            states,
+        if job.id is None or job.destination is None:
+            continue  # mypy type narrowing, should never get here
+        await updater(
             job,
-            job_root_dir,
-            file_staging_queue,
+            states[job.id],
+            destinations[job.destination].filesystem,
         )
 
 
@@ -100,33 +145,6 @@ async def _states_of_destinations(
         )
         states.update(dest_states)
     return states
-
-
-async def _store_updated_state(  # noqa: WPS211
-    destinations: dict[str, Destination],
-    job_dao: JobDAO,
-    states: dict[int, State],
-    job: Job,
-    job_root_dir: Path,
-    file_staging_queue: FileStagingQueue,
-) -> None:
-    if job.id is not None:
-        state = states[job.id]
-        if job.state != state and job.destination is not None:
-            filesystem = destinations[job.destination].filesystem
-            if state in CompletedStates:
-                await job_dao.update_job_state(job.id, "staging_out")
-                perform_download = _download_job_files(
-                    job,
-                    job_dao,
-                    state,
-                    filesystem,
-                    job_root_dir,
-                )
-                await file_staging_queue.put(perform_download)
-            else:
-                await job_dao.update_job_state(job.id, state)
-                job.state = state
 
 
 async def _states_of_destination(
@@ -159,7 +177,12 @@ def _download_job_files(
     filesystem: AbstractFileSystem,
     job_root_dir: Path,
 ) -> Callable[[], Coroutine[Any, Any, None]]:
-    async def perform_download() -> None:  # noqa: WPS430 queue.put gets function
+    # TODO instead of passing function to queue,
+    # pass just the (job.id, state and destination_name)
+    # this would make it possible to switch from async queue to arq queue
+    # as all arguments are then serializable
+
+    async def perform_download() -> None:  # noqa: WPS430 queue.put recieves function
         job_dir: Path = job_root_dir / str(job.id)
         # Command does not matter for downloading so use dummy command.
         description = JobDescription(job_dir=job_dir, command="echo")
@@ -171,6 +194,7 @@ def _download_job_files(
         await filesystem.download(localized_description, description)
 
         # TODO for non-local file system should also remove remote files?
+
         if job.id is not None:
             await job_dao.update_job_state(job.id, state)
 

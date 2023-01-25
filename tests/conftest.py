@@ -4,6 +4,7 @@ from typing import Any, AsyncGenerator, Dict, Generator
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from testcontainers.redis import RedisContainer
@@ -11,9 +12,16 @@ from testcontainers.redis import RedisContainer
 from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.context import Context, get_context
 from bartender.db.dependencies import get_db_session
+from bartender.db.models.user import User
 from bartender.db.utils import create_database, drop_database
 from bartender.destinations import Destination, DestinationConfig
 from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
+from bartender.filesystems.queue import (
+    FileStagingQueue,
+    build_file_staging_queue,
+    get_file_staging_queue,
+    stop_file_staging_queue,
+)
 from bartender.picker import pick_first
 from bartender.schedulers.memory import MemoryScheduler, MemorySchedulerConfig
 from bartender.settings import settings
@@ -150,10 +158,18 @@ def demo_context(
 
 
 @pytest.fixture
-def fastapi_app(
+async def demo_file_staging_queue() -> AsyncGenerator[FileStagingQueue, None]:
+    queue, task = build_file_staging_queue()
+    yield queue
+    await stop_file_staging_queue(task)
+
+
+@pytest.fixture
+async def fastapi_app(
     dbsession: AsyncSession,
     demo_config: Config,
     demo_context: Context,
+    demo_file_staging_queue: FileStagingQueue,
 ) -> FastAPI:
     """
     Fixture for creating FastAPI app.
@@ -164,6 +180,9 @@ def fastapi_app(
     application.dependency_overrides[get_db_session] = lambda: dbsession
     application.dependency_overrides[get_config] = lambda: demo_config
     application.dependency_overrides[get_context] = lambda: demo_context
+    application.dependency_overrides[
+        get_file_staging_queue
+    ] = lambda: demo_file_staging_queue
     settings.secret = "testsecret"  # noqa: S105
     return application  # noqa: WPS331
 
@@ -212,6 +231,13 @@ async def auth_headers(current_user_token: str) -> Dict[str, str]:
     :return: Headers needed for auth.
     """
     return {"Authorization": f"Bearer {current_user_token}"}
+
+
+@pytest.fixture
+async def current_user(dbsession: AsyncSession, current_user_token: str) -> User:
+    query = select(User).where(User.email == "me@example.com")
+    result = await dbsession.execute(query)
+    return result.unique().scalar_one()
 
 
 @pytest.fixture

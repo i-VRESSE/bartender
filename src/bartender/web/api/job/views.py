@@ -8,7 +8,7 @@ from starlette import status
 
 from bartender.context import Context, get_context
 from bartender.db.dao.job_dao import JobDAO
-from bartender.db.models.job_model import Job
+from bartender.db.models.job_model import CompletedStates, Job
 from bartender.db.models.user import User
 from bartender.filesystems.queue import FileStagingQueue, get_file_staging_queue
 from bartender.web.api.job.schema import JobModelDTO
@@ -122,18 +122,10 @@ async def retrieve_job_stdout(
         user=user,
         context=context,
     )
-    if job.state not in {"ok", "error"}:
+    if job.state not in CompletedStates:
         raise HTTPException(
             status_code=status.HTTP_425_TOO_EARLY,
             detail="Stdout not ready. Job has not completed.",
         )
     stdout: Path = context.job_root_dir / str(jobid) / "stdout.txt"
     return FileResponse(stdout)
-
-
-# TODO add job deletion route.
-# Should job be removed from db?
-# Decide what to do in following cases:
-# * when job queued
-# * when job is running
-# * when job is completed

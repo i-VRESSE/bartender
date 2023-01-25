@@ -22,7 +22,7 @@ class Job(Base):
     id = Column(Integer(), primary_key=True, autoincrement=True)
     name = Column(String(length=200))  # noqa: WPS432
     application = Column(String(length=200), nullable=False)  # noqa: WPS432
-    state = Column(String(length=10), default="new", nullable=False)
+    state = Column(String(length=20), default="new", nullable=False)  # noqa: WPS432
     submitter_id = Column(GUID(), ForeignKey("user.id"), nullable=False)
     submitter: User = relationship("User", back_populates="jobs")
     # Identifier for job used by the scheduler
