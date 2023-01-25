@@ -9,8 +9,29 @@ from bartender.db.base import Base
 from bartender.db.models.user import User
 from bartender.db.utils import now
 
-# Possible states of a job.
-State = Literal["new", "queued", "running", "staging_out", "ok", "error"]
+State = Literal[
+    "new",
+    "queued",
+    "running",
+    "staging_out",
+    "ok",
+    "error",
+]  # noqa: WPS462
+"""Possible states of a job.
+
+* new: Job has been created by web service,
+    but not yet submitted to a scheduler.
+* queued: Job has been submitted to scheduler
+    and is waiting in queue to be run.
+* running: Job is being executed.
+* staging_out: Files of job are being copied back to web service.
+    Job is no longer executing.
+* ok: Job has completed succesfully and files of job have been copied back.
+* error: Job has completed unsuccesfully and
+    files of job have been copied back.
+    Look at stdout/stderr/returncode to get more information.
+"""  # noqa: WPS428
+
 CompletedStates: set[State] = {"ok", "error"}
 
 
