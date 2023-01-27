@@ -6,7 +6,7 @@ from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
 
 
 @pytest.mark.anyio
-async def test_single_memory_scheduler() -> None:
+async def test_memory_scheduler() -> None:
     try:
         config = MemorySchedulerConfig()
 
@@ -20,7 +20,7 @@ async def test_single_memory_scheduler() -> None:
 
 
 @pytest.mark.anyio
-async def test_single_localsimplist_slurm_scheduler() -> None:
+async def test_slurm_scheduler() -> None:
     try:
         config = SlurmSchedulerConfig()
 
