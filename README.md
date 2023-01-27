@@ -110,7 +110,7 @@ $ tree .
         ├── services            # Package for different external services such as rabbit or redis etc.
         ├── settings.py         # Main configuration settings for project.
         ├── static              # Static content.
-        ├── web                 # Package contains web server. Handlers, startup config.
+        └── web                 # Package contains web server. Handlers, startup config.
             ├── api             # Package with all handlers.
             │   └── router.py   # Main router.
             ├── application.py  # FastAPI application configuration.
