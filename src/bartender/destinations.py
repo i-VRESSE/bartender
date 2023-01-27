@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from pydantic import BaseModel, Field
 
 from bartender.filesystems.abstract import AbstractFileSystem
@@ -39,8 +37,7 @@ def default_destinations() -> dict[str, DestinationConfig]:
     }
 
 
-@dataclass
-class Destination:
+class Destination(BaseModel):
     """A destination is a combination of a scheduler and optional filesystem."""
 
     scheduler: AbstractScheduler

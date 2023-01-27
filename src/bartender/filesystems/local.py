@@ -1,13 +1,13 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
+
+from pydantic import BaseModel
 
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
 
 
-@dataclass
-class LocalFileSystemConfig:
+class LocalFileSystemConfig(BaseModel):
     """Configuration for local file system."""
 
     type: Literal["local"] = "local"
