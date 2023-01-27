@@ -25,14 +25,14 @@ async def test_single_memory_scheduler() -> None:
 
 
 @pytest.mark.anyio
-async def test_single_localsimplist_slurm_scheduler() -> None:
+async def test_single_local_slurm_scheduler() -> None:
     config = SlurmSchedulerConfig()
     expected = SlurmScheduler(config)
     await run_it(config, expected)
 
 
 @pytest.mark.anyio
-async def test_single_localsimplist_arq_scheduler(redis_dsn: RedisDsn) -> None:
+async def test_single_local_arq_scheduler(redis_dsn: RedisDsn) -> None:
     config = ArqSchedulerConfig(redis_dsn=redis_dsn)
     expected = ArqScheduler(config)
     await run_it(config, expected)

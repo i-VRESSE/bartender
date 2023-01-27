@@ -1,11 +1,9 @@
-from dataclasses import dataclass
-
 from asyncssh import SSHClientConnection, connect
 from asyncssh.misc import DefTuple
+from pydantic import BaseModel
 
 
-@dataclass
-class SshConnectConfig:
+class SshConnectConfig(BaseModel):
     """Configuration for ssh connection.
 
     Attributes:

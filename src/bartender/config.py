@@ -54,15 +54,10 @@ Example config:
 from pathlib import Path
 from string import Template
 from tempfile import gettempdir
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from dataclasses import dataclass
-else:
-    from pydantic.dataclasses import dataclass  # noqa: WPS440
+from typing import Any
 
 from fastapi import Request
-from pydantic import Field, validator
+from pydantic import BaseModel, Field, validator
 from pydantic.types import DirectoryPath
 from yaml import safe_load as load_yaml
 
@@ -70,12 +65,13 @@ from bartender.destinations import DestinationConfig, default_destinations
 from bartender.schedulers.abstract import JobDescription
 
 
-@dataclass
-class ApplicatonConfiguration:
+class ApplicatonConfiguration(BaseModel):
     """Command to run application.
 
     `$config` in command string will be replaced
     with value of ApplicatonConfiguration.config.
+
+    The config value must be a path relative to the job directory.
 
     .. code-block:: yaml
 
@@ -100,8 +96,7 @@ class ApplicatonConfiguration:
         return JobDescription(job_dir=job_dir, command=command)
 
 
-@dataclass
-class Config:
+class Config(BaseModel):
     """Bartender configuration.
 
     The bartender.settings.Settings class is for FastAPI settings.
@@ -118,6 +113,9 @@ class Config:
     )
     job_root_dir: DirectoryPath = Path(gettempdir()) / "jobs"
     destination_picker: str = "bartender.picker:pick_first"
+
+    class Config:
+        validate_all = True
 
     @validator("applications")
     def applications_non_empty(

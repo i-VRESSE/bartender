@@ -13,12 +13,12 @@ def pick_first(
     application_name: str,
     context: "Context",
 ) -> str:
-    """Always picks first destination to where a job should be submitted to.
+    """Always picks first available destination from context.
 
     :param job_dir: Location where job input files are located.
     :param application_name: Application name that should be run.
     :param context: Context with applications and destinations.
-    :return: Destination where job should be submitted to.
+    :return: Destination name.
     """
     destination_names = list(context.destinations.keys())
     return destination_names[0]
@@ -36,7 +36,7 @@ class PickRound:
         application_name: str,
         context: "Context",
     ) -> str:
-        """Always picks the next destination to where a job should be submitted to.
+        """Always picks the next destination.
 
         Takes list of destinations and each time it is called will
         pick the next destination in the destination list.
@@ -45,7 +45,7 @@ class PickRound:
         :param job_dir: Location where job input files are located.
         :param application_name: Application name that should be run.
         :param context: Context with applications and destinations.
-        :return: Destination where job should be submitted to.
+        :return: Destination name.
         """
         destination_names = list(context.destinations.keys())
         if self.last == "":
