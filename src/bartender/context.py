@@ -1,4 +1,4 @@
-from dataclasses import dataclass as pydataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import Request
@@ -9,7 +9,9 @@ from bartender.destinations import build as build_destinations
 from bartender.picker import DestinationPicker, import_picker
 
 
-@pydataclass
+# TODO also use pydantic.BaseModel here,
+# but mypy complains if BaseModel is used
+@dataclass
 class Context:
     """Context for web service."""
 

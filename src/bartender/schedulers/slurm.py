@@ -1,6 +1,7 @@
-from dataclasses import dataclass
 from textwrap import dedent
 from typing import Literal, Optional
+
+from pydantic import BaseModel
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
@@ -35,8 +36,7 @@ def _map_slurm_state(slurm_state: str) -> State:
         return "error"
 
 
-@dataclass
-class SlurmSchedulerConfig:
+class SlurmSchedulerConfig(BaseModel):
     """Configuration for Slurm scheduler.
 
     :param ssh_config: SSH connection configuration.

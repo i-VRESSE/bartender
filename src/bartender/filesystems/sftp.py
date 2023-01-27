@@ -1,16 +1,15 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional
 
 from asyncssh import SSHClientConnection
+from pydantic import BaseModel
 
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
 from bartender.ssh_utils import SshConnectConfig, ssh_connect
 
 
-@dataclass
-class SftpFileSystemConfig:
+class SftpFileSystemConfig(BaseModel):
     """Configuration for SFTP file system.
 
     :param ssh_config: SSH connection configuration.

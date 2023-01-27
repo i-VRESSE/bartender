@@ -6,23 +6,17 @@ from asyncio import (
     create_task,
     gather,
 )
-from dataclasses import dataclass as pydataclass
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import Literal, Optional
 from uuid import uuid4
 
-if TYPE_CHECKING:
-    from dataclasses import dataclass
-else:
-    from pydantic.dataclasses import dataclass  # noqa: WPS440
-
+from pydantic import BaseModel
 from pydantic.types import PositiveInt
 
 from bartender.db.models.job_model import CompletedStates, State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
 
-@pydataclass
-class _Job:
+class _Job(BaseModel):
     description: JobDescription
     id: str
     state: State
@@ -74,8 +68,7 @@ async def _worker(queue: Queue[_Job], jobs: dict[str, _Job], worker_index: int) 
         queue.task_done()
 
 
-@dataclass
-class MemorySchedulerConfig:
+class MemorySchedulerConfig(BaseModel):
     """Configuration for in memory scheduler.
 
     :param slots: Maximum number of concurrently runnning jobs. Minimum is 1.

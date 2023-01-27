@@ -49,8 +49,8 @@ class Destination:
     async def close(self) -> None:
         """Cleanup destination.
 
-        A job destination can have connections to remote systems
-        call this method to clean those up.
+        A job destination can have connections to remote systems.
+        Call this method to clean those up.
         """
         await self.scheduler.close()
         self.filesystem.close()
