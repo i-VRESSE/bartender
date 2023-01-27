@@ -71,6 +71,8 @@ class ApplicatonConfiguration(BaseModel):
     `$config` in command string will be replaced
     with value of ApplicatonConfiguration.config.
 
+    The config value must be a path relative to the job directory.
+
     .. code-block:: yaml
 
         command: wc $config
