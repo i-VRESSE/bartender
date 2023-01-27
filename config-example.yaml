@@ -1,5 +1,5 @@
 # By default the files of jobs are stored in /tmp/jobs
-# job_root_dir: /tmp/jobs
+job_root_dir: /tmp/jobs
 # By default jobs are submitted to the first destination
 # destination_picker: bartender.picker:pick_first
 # To use a custom picker set `destination_picker` to a `<module>:<function>`

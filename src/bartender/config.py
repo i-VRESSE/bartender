@@ -53,7 +53,6 @@ Example config:
 
 from pathlib import Path
 from string import Template
-from tempfile import gettempdir
 from typing import Any
 
 from fastapi import Request
@@ -111,7 +110,7 @@ class Config(BaseModel):
     destinations: dict[str, DestinationConfig] = Field(
         default_factory=default_destinations,
     )
-    job_root_dir: DirectoryPath = Path(gettempdir()) / "jobs"
+    job_root_dir: DirectoryPath
     destination_picker: str = "bartender.picker:pick_first"
 
     @validator("applications")
