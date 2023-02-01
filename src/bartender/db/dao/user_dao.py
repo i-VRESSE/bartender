@@ -20,6 +20,8 @@ async def get_user_db(
 
     Args:
         session: SQLAlchemy session
-    :yield: Database adaptor
+
+    Yields:
+        Database adaptor
     """
     yield SQLAlchemyUserDatabase(session, User, OAuthAccount)

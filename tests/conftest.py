@@ -33,7 +33,8 @@ def anyio_backend() -> str:
 async def _engine() -> AsyncGenerator[AsyncEngine, None]:
     """Create engine and databases.
 
-    :yield: new engine.
+    Yields:
+        new engine.
     """
     from bartender.db.meta import meta  # noqa: WPS433
     from bartender.db.models import load_all_models  # noqa: WPS433
@@ -64,7 +65,9 @@ async def dbsession(
 
     Args:
         _engine: current engine.
-    :yields: async session.
+
+    Yields:
+        async session.
     """
     connection = await _engine.connect()
     trans = await connection.begin()
@@ -175,7 +178,9 @@ async def client(
 
     Args:
         fastapi_app: the application.
-    :yield: client for the app.
+
+    Yields:
+        client for the app.
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
         yield ac
