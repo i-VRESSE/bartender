@@ -21,18 +21,17 @@ from bartender.web.application import get_app
 
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
-    """
-    Backend for anyio pytest plugin.
+    """Backend for anyio pytest plugin.
 
-    :return: backend name.
+    Returns:
+        backend name.
     """
     return "asyncio"
 
 
 @pytest.fixture(scope="session")
 async def _engine() -> AsyncGenerator[AsyncEngine, None]:
-    """
-    Create engine and databases.
+    """Create engine and databases.
 
     :yield: new engine.
     """
@@ -58,13 +57,13 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
 async def dbsession(
     _engine: AsyncEngine,
 ) -> AsyncGenerator[AsyncSession, None]:
-    """
-    Get session to database.
+    """Get session to database.
 
     Fixture that returns a SQLAlchemy session with a SAVEPOINT, and the rollback to it
     after the test completes.
 
-    :param _engine: current engine.
+    Args:
+        _engine: current engine.
     :yields: async session.
     """
     connection = await _engine.connect()
@@ -154,10 +153,10 @@ def fastapi_app(
     demo_config: Config,
     demo_context: Context,
 ) -> FastAPI:
-    """
-    Fixture for creating FastAPI app.
+    """Fixture for creating FastAPI app.
 
-    :return: fastapi app with mocked dependencies.
+    Returns:
+        fastapi app with mocked dependencies.
     """
     application = get_app()
     application.dependency_overrides[get_db_session] = lambda: dbsession
@@ -172,10 +171,10 @@ async def client(
     fastapi_app: FastAPI,
     anyio_backend: Any,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """
-    Fixture that creates client for requesting server.
+    """Fixture that creates client for requesting server.
 
-    :param fastapi_app: the application.
+    Args:
+        fastapi_app: the application.
     :yield: client for the app.
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
@@ -186,7 +185,8 @@ async def client(
 async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
     """Registers dummy user and returns its auth token.
 
-    :return: token
+    Returns:
+        token
     """
     new_user = {"email": "me@example.com", "password": "mysupersecretpassword"}
     register_url = fastapi_app.url_path_for("register:register")
@@ -208,6 +208,7 @@ async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
 async def auth_headers(current_user_token: str) -> Dict[str, str]:
     """Headers for AsyncClient to do authenticated requests.
 
-    :return: Headers needed for auth.
+    Returns:
+        Headers needed for auth.
     """
     return {"Authorization": f"Bearer {current_user_token}"}
