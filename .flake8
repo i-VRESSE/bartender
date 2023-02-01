@@ -5,6 +5,10 @@ max-line-length = 88
 extend-ignore = E203
 
 ignore =
+  ; flake8-rst-docstrings
+  RST,
+  ; Excess "Returns" in Docstring: + return
+  DAR202,
   ; Found `f` string
   WPS305,
   ; Missing docstring in public module

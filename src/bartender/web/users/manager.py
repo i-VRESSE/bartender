@@ -152,7 +152,7 @@ async def current_api_token(user: User = Depends(current_active_user)) -> str:
     Returns:
         The token that can be put in HTTP header `Authorization: Bearer
         <token>`.
-    """
+    """  # noqa: DAR203 https://github.com/terrencepreilly/darglint/issues/53
     strategy: JWTStrategy[User, UUID] = JWTStrategy(
         secret=settings.secret,
         lifetime_seconds=API_TOKEN_LIFETIME,
