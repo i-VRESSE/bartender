@@ -20,8 +20,11 @@ router = APIRouter()
 def list_applications(config: Config = Depends(get_config)) -> list[str]:
     """List application names.
 
-    :param config: Config with applications.
-    :return: The list.
+    Args:
+        config: Config with applications.
+
+    Returns:
+        The list.
     """
     return list(config.applications.keys())
 

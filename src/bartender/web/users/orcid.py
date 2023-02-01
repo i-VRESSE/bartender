@@ -34,8 +34,10 @@ class OrcidOAuth2(BaseOAuth2[Dict[str, Any]]):
     async def get_id_email(self, token: str) -> Tuple[str, str]:
         """Retrieve account id and email.
 
-        :param token: Orcid token
-        :return: Tuple with account id and email
+        Args:
+            token: Orcid token
+        Returns:
+            Tuple with account id and email
         """
         orcid_id = await self._get_orcid_id(token)
         email = await self._get_email(orcid_id)

@@ -80,7 +80,8 @@ LIFETIME = 3600  # 1 hour
 def get_jwt_strategy() -> JWTStrategy[User, UUID]:
     """Get jwt strategy.
 
-    :return: The strategy.
+    Returns:
+        The strategy.
     """
     return JWTStrategy(secret=settings.secret, lifetime_seconds=LIFETIME)
 
@@ -103,17 +104,23 @@ class HTTPBearerTransport(Transport):
     async def get_login_response(self, token: str, response: Response) -> Any:
         """Returns token after login.
 
-        :param token: The token
-        :param response: The response
-        :return: Token as JSON
+        Args:
+            token: The token
+            response: The response
+
+        Returns:
+            Token as JSON
         """
         return BearerResponse(access_token=token, token_type="bearer")  # noqa: S106
 
     async def get_logout_response(self, response: Response) -> Any:
         """Logout response.
 
-        :param response: The response
-        :raises TransportLogoutNotSupportedError: Always raises as JWT can not logout
+        Args:
+            response: The response
+
+        Raises:
+            TransportLogoutNotSupportedError: Always raises as JWT can not logout
         """
         raise TransportLogoutNotSupportedError()
 

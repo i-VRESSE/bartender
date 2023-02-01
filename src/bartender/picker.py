@@ -15,10 +15,13 @@ def pick_first(
 ) -> str:
     """Always picks first available destination from context.
 
-    :param job_dir: Location where job input files are located.
-    :param application_name: Application name that should be run.
-    :param context: Context with applications and destinations.
-    :return: Destination name.
+    Args:
+        job_dir: Location where job input files are located.
+        application_name: Application name that should be run.
+        context: Context with applications and destinations.
+
+    Returns:
+        Destination name.
     """
     destination_names = list(context.destinations.keys())
     return destination_names[0]

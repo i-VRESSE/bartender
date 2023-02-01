@@ -25,15 +25,17 @@ async def retrieve_jobs(
     user: User = Depends(current_active_user),
     context: Context = Depends(get_context),
 ) -> List[Job]:
-    """
-    Retrieve all jobs of user from the database.
+    """Retrieve all jobs of user from the database.
 
-    :param limit: limit of jobs.
-    :param offset: offset of jobs.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :return: stream of jobs.
+    Args:
+        limit: limit of jobs.
+        offset: offset of jobs.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+
+    Returns:
+        stream of jobs.
     """
     # TODO now list jobs that user submitted,
     # later also list jobs which are visible by admin
