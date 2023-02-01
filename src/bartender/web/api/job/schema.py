@@ -8,8 +8,7 @@ from bartender.db.models.job_model import State
 
 
 class JobModelDTO(BaseModel):
-    """
-    DTO for job models.
+    """DTO for job models.
 
     It returned when accessing job models from the API.
     """

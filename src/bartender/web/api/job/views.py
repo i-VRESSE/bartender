@@ -51,15 +51,20 @@ async def retrieve_job(
     user: User = Depends(current_active_user),
     context: Context = Depends(get_context),
 ) -> Job:
-    """
-    Retrieve specific job from the database.
+    """Retrieve specific job from the database.
 
-    :param jobid: identifier of job instance.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :raises HTTPException: When job is not found or user is not allowed to see job.
-    :return: job models.
+    Args:
+        jobid: identifier of job instance.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+
+    Raises:
+        HTTPException: When job is not found or user is not allowed to
+            see job.
+
+    Returns:
+        job models.
     """
     try:
         # TODO now get job that user submitted,
@@ -90,12 +95,18 @@ async def retrieve_job_stdout(
 ) -> FileResponse:
     """Retrieve stdout of a job.
 
-    :param jobid: identifier of job instance.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :raises HTTPException: When job is not found or user is not allowed to see job.
-    :return: stdout of job.
+    Args:
+        jobid: identifier of job instance.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+
+    Raises:
+        HTTPException: When job is not found or user is not allowed to
+            see job.
+
+    Returns:
+        stdout of job.
     """
     job = await retrieve_job(
         jobid=jobid,

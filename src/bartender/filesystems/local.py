@@ -23,13 +23,16 @@ class LocalFileSystem(AbstractFileSystem):
     ) -> JobDescription:
         """Make given job description local to this file system.
 
-        :param description: A job description.
-        :param entry: The path to replace with the entry path of this file system.
-            For example given a file system with entry path of /remote/jobs
-            and given job_dir in job description of /local/jobs/myjobid
-            and given entry of /local/jobs
-            will return description with job dir /remote/jobs/myjobid .
-        :return: A job description local to this file system.
+        Args:
+            description: A job description.
+            entry: The path to replace with the entry path of this file
+                system. For example given a file system with entry path
+                of /remote/jobs and given job_dir in job description of
+                /local/jobs/myjobid and given entry of /local/jobs will
+                return description with job dir /remote/jobs/myjobid .
+
+        Returns:
+            A job description local to this file system.
         """
         # TODO do something with entry argument?
         return description
@@ -41,8 +44,9 @@ class LocalFileSystem(AbstractFileSystem):
     ) -> None:
         """Uploads job directory of source description to job directory of target.
 
-        :param src: Local directory to copy from.
-        :param target: Remote directory to copy to.
+        Args:
+            src: Local directory to copy from.
+            target: Remote directory to copy to.
         """
 
     async def download(
@@ -52,8 +56,9 @@ class LocalFileSystem(AbstractFileSystem):
     ) -> None:
         """Download job directory of source description to job directory of target.
 
-        :param src: Remote directory to copy from.
-        :param target: Local directory to copy to.
+        Args:
+            src: Remote directory to copy from.
+            target: Local directory to copy to.
         """
 
     def close(self) -> None:

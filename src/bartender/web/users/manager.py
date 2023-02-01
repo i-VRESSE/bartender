@@ -65,7 +65,8 @@ async def get_user_manager(
 ) -> AsyncGenerator[UserManager, None]:
     """Factory to get user manager.
 
-    :param user_db: User database.
+    Args:
+        user_db: User database.
     :yield: The manager.
     """
     yield UserManager(user_db)
@@ -136,8 +137,12 @@ API_TOKEN_LIFETIME = 14400  # 4 hours
 async def current_api_token(user: User = Depends(current_active_user)) -> str:
     """Generate token that job can use to talk to bartender service.
 
-    :param user: User that is currently logged in.
-    :return: The token that can be put in HTTP header `Authorization: Bearer <token>`.
+    Args:
+        user: User that is currently logged in.
+
+    Returns:
+        The token that can be put in HTTP header `Authorization: Bearer
+        <token>`.
     """
     strategy: JWTStrategy[User, UUID] = JWTStrategy(
         secret=settings.secret,

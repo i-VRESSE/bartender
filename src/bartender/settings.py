@@ -28,7 +28,8 @@ def default_config_filename() -> Path:
 
     Depends on whether default or fallback files exist.
 
-    :returns: Default file name for configuration file.
+    Returns:
+        Default file name for configuration file.
     """
     default = Path("config.yaml")
     fallback = Path("config-example.yaml")
@@ -39,8 +40,7 @@ def default_config_filename() -> Path:
 
 
 class Settings(BaseSettings):
-    """
-    Application settings.
+    """Application settings.
 
     These parameters can be configured
     with environment variables.
@@ -83,10 +83,10 @@ class Settings(BaseSettings):
 
     @property
     def db_url(self) -> URL:
-        """
-        Assemble database URL from settings.
+        """Assemble database URL from settings.
 
-        :return: database URL.
+        Returns:
+            database URL.
         """
         return URL.build(
             scheme="postgresql+asyncpg",

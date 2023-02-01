@@ -1,5 +1,4 @@
-"""
-Parses config file into a list of applications, schedulers and filesystems.
+"""Parses config file into a list of applications, schedulers and filesystems.
 
 Example config:
 
@@ -87,8 +86,11 @@ class ApplicatonConfiguration(BaseModel):
     def description(self, job_dir: Path) -> JobDescription:
         """Construct job description for this application.
 
-        :param job_dir: In which directory are the input files.
-        :return: A job description.
+        Args:
+            job_dir: In which directory are the input files.
+
+        Returns:
+            A job description.
         """
         command = Template(self.command).substitute(
             config=self.config,
@@ -124,9 +126,14 @@ class Config(BaseModel):
     ) -> dict[str, ApplicatonConfiguration]:
         """Validates that applications dict is filled.
 
-        :param v: The given dict.
-        :raises ValueError: When dict is empty.
-        :returns: The given dict.
+        Args:
+            v: The given dict.
+
+        Raises:
+            ValueError: When dict is empty.
+
+        Returns:
+            The given dict.
         """
         if not v:
             raise ValueError("must contain a at least one application")
@@ -140,8 +147,11 @@ class Config(BaseModel):
 def build_config(config_filename: Path) -> Config:
     """Build a config instance from a yaml formatted file.
 
-    :param config_filename: File name of configuration file.
-    :return: A config instance.
+    Args:
+        config_filename: File name of configuration file.
+
+    Returns:
+        A config instance.
     """
     raw_config = _load(config_filename)
     return Config(**raw_config)
@@ -155,7 +165,10 @@ def _load(config_filename: Path) -> Any:
 def get_config(request: Request) -> Config:
     """Get config based on current request.
 
-    :param request: The current FastAPI request.
-    :return: The config.
+    Args:
+        request: The current FastAPI request.
+
+    Returns:
+        The config.
     """
     return request.app.state.config

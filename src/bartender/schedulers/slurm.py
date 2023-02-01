@@ -39,13 +39,15 @@ def _map_slurm_state(slurm_state: str) -> State:
 class SlurmSchedulerConfig(BaseModel):
     """Configuration for Slurm scheduler.
 
-    :param ssh_config: SSH connection configuration.
-        When set will call SLURM commands on remote system via SSH connection.
-        When not set will call SLURM commands on local system.
-    :param partition: Partition in which all jobs should be submitted.
-    :param time: Limit on the total run time of the job.
-    :param extra_options: Escape hatch to add extra options to job script.
-        The string `#SBATCH {extra_options[i]}` will be appended to job script.
+    Args:
+        ssh_config: SSH connection configuration. When set will call
+            SLURM commands on remote system via SSH connection. When not
+            set will call SLURM commands on local system.
+        partition: Partition in which all jobs should be submitted.
+        time: Limit on the total run time of the job.
+        extra_options: Escape hatch to add extra options to job script.
+            The string `#SBATCH {extra_options[i]}` will be appended to
+            job script.
     """
 
     type: Literal["slurm"] = "slurm"
@@ -61,7 +63,8 @@ class SlurmScheduler(AbstractScheduler):
     def __init__(self, config: SlurmSchedulerConfig):
         """Constructor.
 
-        :param config: Config for scheduler.
+        Args:
+            config: Config for scheduler.
         """
         self.runner: CommandRunner = LocalCommandRunner()
         self.ssh_config = config.ssh_config
@@ -98,8 +101,11 @@ class SlurmScheduler(AbstractScheduler):
 
         Once job is completed, then scheduler can forget job.
 
-        :param job_id: Identifier of job.
-        :return: State of job.
+        Args:
+            job_id: Identifier of job.
+
+        Returns:
+            State of job.
         """
         args = ["-j", job_id, "--noheader", "--format=%T"]
         (returncode, stdout, stderr) = await self.runner.run("squeue", args)
@@ -117,7 +123,8 @@ class SlurmScheduler(AbstractScheduler):
 
         Once a queued job is cancelled, then the scheduler can forget job.
 
-        :param job_id: Identifier of job.
+        Args:
+            job_id: Identifier of job.
         """
         command = "scancel"
         args = [job_id]

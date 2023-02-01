@@ -8,17 +8,21 @@ from starlette import status
 
 # TODO: Make this async
 def assemble_job(job_id: int, job_token: str, job_root_dir: Path) -> Path:
-    """
-    Assembly the job.
+    """Assembly the job.
 
     Create job directory and metadata file.
     Metadata file contains job id and token.
 
-    :param job_id: id of the job.
-    :param job_token: Token that can be used to talk to bartender service.
-    :param job_root_dir: Root directory for all jobs.
-    :raises HTTPException: When job directory could not be made.
-    :return: Directory of job.
+    Args:
+        job_id: id of the job.
+        job_token: Token that can be used to talk to bartender service.
+        job_root_dir: Root directory for all jobs.
+
+    Raises:
+        HTTPException: When job directory could not be made.
+
+    Returns:
+        Directory of job.
     """
     job_dir: Path = job_root_dir / str(job_id)
 

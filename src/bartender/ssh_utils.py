@@ -20,8 +20,11 @@ class SshConnectConfig(BaseModel):
 async def ssh_connect(config: SshConnectConfig) -> SSHClientConnection:
     """Connect to a host using SSH.
 
-    :param config: Configuration.
-    :return: The connection.
+    Args:
+        config: Configuration.
+
+    Returns:
+        The connection.
     """
     conn_vargs = {
         # disable server host key validation

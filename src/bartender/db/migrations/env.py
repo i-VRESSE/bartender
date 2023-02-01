@@ -56,10 +56,10 @@ async def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    """
-    Run actual sync migrations.
+    """Run actual sync migrations.
 
-    :param connection: connection to the database.
+    Args:
+        connection: connection to the database.
     """
     context.configure(connection=connection, target_metadata=target_metadata)
 
@@ -68,8 +68,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    """
-    Run migrations in 'online' mode.
+    """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
     and associate a connection with the context.

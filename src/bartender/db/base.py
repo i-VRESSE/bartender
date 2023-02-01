@@ -8,8 +8,7 @@ from bartender.db.meta import meta
 
 @as_declarative(metadata=meta)
 class Base:
-    """
-    Base for all models.
+    """Base for all models.
 
     It has some type definitions to
     enhance autocompletion.

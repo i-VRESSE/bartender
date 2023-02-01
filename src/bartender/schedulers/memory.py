@@ -71,7 +71,9 @@ async def _worker(queue: Queue[_Job], jobs: dict[str, _Job], worker_index: int) 
 class MemorySchedulerConfig(BaseModel):
     """Configuration for in memory scheduler.
 
-    :param slots: Maximum number of concurrently runnning jobs. Minimum is 1.
+    Args:
+        slots: Maximum number of concurrently runnning jobs. Minimum is
+            1.
     """
 
     type: Literal["memory"] = "memory"
@@ -97,7 +99,8 @@ class MemoryScheduler(AbstractScheduler):
     def __init__(self, config: MemorySchedulerConfig):
         """In memory scheduler.
 
-        :param config: The config.
+        Args:
+            config: The config.
         """
         self.queue: Queue[_Job] = Queue()
         self.jobs: dict[str, _Job] = {}
