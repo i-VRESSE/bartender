@@ -29,7 +29,7 @@ class DiracScheduler(AbstractScheduler):
             InputSandBox = {{{input_sandbox}}};
             StdOutput = “stdout.txt”;
             StdError = “stderr.txt”;
-            OutputSandbox = {{“stdout.txt”,”stderrt.txt”}};
+            OutputSandbox = {{“stdout.txt”,”stderr.txt”}};
         """)
         # TODO ship application to where it is run
         # TODO get output files of job in grid storage
