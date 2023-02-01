@@ -67,7 +67,9 @@ async def get_user_manager(
 
     Args:
         user_db: User database.
-    :yield: The manager.
+
+    Yields:
+        The manager.
     """
     yield UserManager(user_db)
 
