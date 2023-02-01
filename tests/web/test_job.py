@@ -90,6 +90,21 @@ async def test_retrieve_jobs_one(
 
 
 @pytest.mark.anyio
+async def test_retrieve_jobs_given_notowner_of_any(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    mock_db_of_job: int,
+    second_user_token: str,
+) -> None:
+    url = fastapi_app.url_path_for("retrieve_jobs")
+    headers = {"Authorization": f"Bearer {second_user_token}"}
+    response = await client.get(url, headers=headers)
+
+    jobs = response.json()
+    assert not len(jobs)
+
+
+@pytest.mark.anyio
 async def test_retrieve_job_badid(
     fastapi_app: FastAPI,
     client: AsyncClient,
@@ -98,6 +113,21 @@ async def test_retrieve_job_badid(
     """Tests job instance retrieval."""
     url = fastapi_app.url_path_for("retrieve_job", jobid="999999")
     response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Job not found"}
+
+
+@pytest.mark.anyio
+async def test_retrieve_job_given_notowner(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    mock_db_of_job: int,
+    second_user_token: str,
+) -> None:
+    url = fastapi_app.url_path_for("retrieve_job", jobid=str(mock_db_of_job))
+    headers = {"Authorization": f"Bearer {second_user_token}"}
+    response = await client.get(url, headers=headers)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Job not found"}
