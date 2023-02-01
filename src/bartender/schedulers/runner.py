@@ -30,7 +30,6 @@ class CommandRunner(Protocol):
         Returns:
             Tuple with return code, stdout and stderr.
         """
-        # noqa: DAR202
 
     def close(self) -> None:
         """Close any connections runner has."""

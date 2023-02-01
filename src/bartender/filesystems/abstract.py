@@ -25,7 +25,6 @@ class AbstractFileSystem(Protocol):
         Returns:
             A job description local to this file system.
         """
-        # noqa: DAR202
 
     async def upload(self, src: JobDescription, target: JobDescription) -> None:
         """Uploads job directory of source description to job directory of target.

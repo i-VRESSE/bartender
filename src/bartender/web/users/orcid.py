@@ -4,11 +4,11 @@ from httpx_oauth.errors import GetIdEmailError
 from httpx_oauth.oauth2 import BaseOAuth2
 from starlette import status
 
-AUTHORIZE_ENDPOINT = "https://{domain}/oauth/authorize"  # noqa: S105 -- not a password
+AUTHORIZE_ENDPOINT = "https://{domain}/oauth/authorize"
 ACCESS_TOKEN_ENDPOINT = "https://{domain}/oauth/token"  # noqa: S105 -- not a password
 BASE_SCOPES = ["openid"]
-PROFILE_ENDPOINT = "https://{domain}/oauth/userinfo"  # noqa: S105 -- not a password
-EMAILS_ENDPOINT = "https://pub.{domain}/v3.0/{id}/email"  # noqa: S105 -- not a password
+PROFILE_ENDPOINT = "https://{domain}/oauth/userinfo"
+EMAILS_ENDPOINT = "https://pub.{domain}/v3.0/{id}/email"
 
 
 class OrcidOAuth2(BaseOAuth2[Dict[str, Any]]):
