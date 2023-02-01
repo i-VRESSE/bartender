@@ -8,6 +8,7 @@
   - [Configuration](#configuration)
     - [Applications](#applications)
     - [Job destinations](#job-destinations)
+    - [DIRAC](#dirac)
     - [Destination picker](#destination-picker)
   - [User management](#user-management)
     - [GitHub login](#github-login)
@@ -47,6 +48,13 @@ This project was generated using [fastapi_template](https://github.com/s3rius/Fa
     ```bash
     python3 -m venv venv
     source venv/bin/activate
+    ```
+
+If you need DIRAC support create a Conda environment instead of a virtual environment.
+
+    ```bash
+    mamba create --name bartender dirac-grid
+    conda activate bartender
     ```
 
 3. Install poetry
@@ -182,6 +190,12 @@ When the filesystem is on a remote system with non-shared file system or a diffe
 
 Destinations can be configured in the `config.yaml` file under `destinations` key.
 By default a single slot in-memory scheduler with a local filesystem is used.
+
+### [DIRAC](#dirac)
+
+Scheduler which uses [DIRAC](http://diracgrid.org/).
+
+
 
 ### [Destination picker](#destination-picker)
 
