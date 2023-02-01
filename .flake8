@@ -3,7 +3,6 @@ max-complexity = 6
 inline-quotes = double
 max-line-length = 88
 extend-ignore = E203
-docstring_style = google
 
 ignore =
   ; Found `f` string
