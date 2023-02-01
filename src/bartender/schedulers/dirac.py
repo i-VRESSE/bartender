@@ -8,7 +8,8 @@ from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
 dirac_status_map: dict[str, State] = {
             "Waiting": "queued",
-            "Done": "ok"
+            "Done": "ok",
+            # TODO add all possible dirac job states
         }
 
 # TODO make proper async with loop.run_in_executor
