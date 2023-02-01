@@ -36,6 +36,7 @@ class OrcidOAuth2(BaseOAuth2[Dict[str, Any]]):
 
         Args:
             token: Orcid token
+
         Returns:
             Tuple with account id and email
         """
