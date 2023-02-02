@@ -6,7 +6,9 @@ extend-ignore = E203
 
 ignore =
   ; flake8-rst-docstrings
-  RST,
+  ; Google Python style is not RST until after processed by Napoleon
+  ; See https://github.com/peterjc/flake8-rst-docstrings/issues/17
+  RST201,RST203,RST301,
   ; Excess "Returns" in Docstring: + return
   DAR202,
   ; Found `f` string
