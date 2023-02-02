@@ -110,8 +110,7 @@ class JobDAO:
         Args:
             jobid: name of job instance.
             internal_job_id: new internal job id of job instance.
-            destination: To which scheduler/filesystem the job was
-                submitted.
+            destination: To which scheduler/filesystem the job was submitted.
         """
         job = await self.session.get(Job, jobid)
         if job is None:

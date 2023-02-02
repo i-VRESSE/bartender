@@ -41,13 +41,13 @@ class SlurmSchedulerConfig(BaseModel):
 
     Args:
         ssh_config: SSH connection configuration. When set will call
-            SLURM commands on remote system via SSH connection. When not
-            set will call SLURM commands on local system.
+            SLURM commands on remote system via SSH connection. When not set
+            will call SLURM commands on local system.
         partition: Partition in which all jobs should be submitted.
         time: Limit on the total run time of the job.
         extra_options: Escape hatch to add extra options to job script.
-            The string `#SBATCH {extra_options[i]}` will be appended to
-            job script.
+            The string `#SBATCH {extra_options[i]}` will be appended to job
+            script.
     """
 
     type: Literal["slurm"] = "slurm"

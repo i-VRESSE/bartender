@@ -11,9 +11,8 @@ from bartender.settings import settings
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
     """Creates connection to the database.
 
-    This function creates SQLAlchemy engine instance,
-    session_factory for creating sessions
-    and stores them in the application's state property.
+    This function creates SQLAlchemy engine instance, session_factory for
+    creating sessions and stores them in the application's state property.
 
     Args:
         app: fastAPI application.
@@ -27,8 +26,7 @@ def register_startup_event(
 ) -> Callable[[], Awaitable[None]]:  # pragma: no cover
     """Actions to run on application startup.
 
-    This function uses fastAPI app to store data
-    inthe state, such as db_engine.
+    This function uses fastAPI app to store data inthe state, such as db_engine.
 
     Args:
         app: the fastAPI application.

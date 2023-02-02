@@ -41,9 +41,9 @@ class PickRound:
     ) -> str:
         """Always picks the next destination.
 
-        Takes list of destinations and each time it is called will
-        pick the next destination in the destination list.
-        Going around to start when end is reached.
+        Takes list of destinations and each time it is called will pick the next
+        destination in the destination list. Going around to start when end is
+        reached.
 
         Args:
             job_dir: Location where job input files are located.
@@ -76,8 +76,8 @@ def import_picker(destination_picker_name: str) -> DestinationPicker:
         destination_picker_name: function import as string.
 
     Returns:
-        Function that can be used to pick to which destination a job
-        should be submitted.
+        Function that can be used to pick to which destination a job should be
+        submitted.
     """
     # TODO allow somedir/somefile.py:pick_round_robin
     (module_name, function_name) = destination_picker_name.split(":")

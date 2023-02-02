@@ -7,8 +7,8 @@ class SshConnectConfig(BaseModel):
     """Configuration for ssh connection.
 
     Attributes:
-        usename: Username to connect with.
-            When absent will use username of logged in user.
+        usename: Username to connect with. When absent will use username of
+            logged in user.
     """
 
     hostname: str

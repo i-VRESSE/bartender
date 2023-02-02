@@ -10,8 +10,7 @@ from bartender.db.meta import meta
 class Base:
     """Base for all models.
 
-    It has some type definitions to
-    enhance autocompletion.
+    It has some type definitions to enhance autocompletion.
     """
 
     __tablename__: str

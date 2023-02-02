@@ -67,8 +67,8 @@ from bartender.schedulers.abstract import JobDescription
 class ApplicatonConfiguration(BaseModel):
     """Command to run application.
 
-    `$config` in command string will be replaced
-    with value of ApplicatonConfiguration.config.
+    `$config` in command string will be replaced with value of
+    ApplicatonConfiguration.config.
 
     The config value must be a path relative to the job directory.
 
@@ -101,11 +101,11 @@ class ApplicatonConfiguration(BaseModel):
 class Config(BaseModel):
     """Bartender configuration.
 
-    The bartender.settings.Settings class is for FastAPI settings.
-    The bartender.config.Config class is for non-FastAPI configuration.
+    The bartender.settings.Settings class is for FastAPI settings. The
+    bartender.config.Config class is for non-FastAPI configuration.
 
-    If config is empty will create a single slot in memory scheduler
-    with a local file system.
+    If config is empty will create a single slot in memory scheduler with a
+    local file system.
 
     """
 

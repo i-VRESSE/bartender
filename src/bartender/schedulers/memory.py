@@ -72,8 +72,7 @@ class MemorySchedulerConfig(BaseModel):
     """Configuration for in memory scheduler.
 
     Args:
-        slots: Maximum number of concurrently runnning jobs. Minimum is
-            1.
+        slots: Maximum number of concurrently runnning jobs. Minimum is 1.
     """
 
     type: Literal["memory"] = "memory"

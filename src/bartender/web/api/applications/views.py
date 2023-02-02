@@ -82,8 +82,8 @@ async def upload_job(  # noqa: WPS211
         context: Context with applications and destinations.
 
     Raises:
-        IndexError: When job could not created inside database or when
-            config file was not found.
+        IndexError: When job could not created inside database or when config
+            file was not found.
         KeyError: Application is invalid.
 
     Returns:

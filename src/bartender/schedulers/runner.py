@@ -22,8 +22,8 @@ class CommandRunner(Protocol):
 
         Args:
             command: Command to execute. Command can not contain spaces.
-            args: List of arguments for command. Argument containing
-                spaces should be wrapped in quotes.
+            args: List of arguments for command. Argument containing spaces
+                should be wrapped in quotes.
             stdin: Input for command.
             cwd: In which directory the command should be run.
 
@@ -49,8 +49,8 @@ class LocalCommandRunner(CommandRunner):
 
         Args:
             command: Command to execute. Command can not contain spaces.
-            args: List of arguments for command. Argument containing
-                spaces should be wrapped in quotes.
+            args: List of arguments for command. Argument containing spaces
+                should be wrapped in quotes.
             stdin: Input for command.
             cwd: In which directory the command should be run.
 

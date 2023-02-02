@@ -17,10 +17,10 @@ class AbstractFileSystem(Protocol):
         Args:
             description: A job description.
             entry: The path to replace with the entry path of this file
-                system. For example given a file system with entry path
-                of /remote/jobs and given job_dir in job description of
-                /local/jobs/myjobid and given entry of /local/jobs will
-                return description with job dir /remote/jobs/myjobid .
+                system. For example given a file system with entry path of
+                /remote/jobs and given job_dir in job description of
+                /local/jobs/myjobid and given entry of /local/jobs will return
+                description with job dir /remote/jobs/myjobid .
 
         Returns:
             A job description local to this file system.

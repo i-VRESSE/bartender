@@ -62,8 +62,7 @@ async def retrieve_job(
         context: Context with destinations.
 
     Raises:
-        HTTPException: When job is not found or user is not allowed to
-            see job.
+        HTTPException: When job is not found or user is not allowed to see job.
 
     Returns:
         job models.
@@ -104,8 +103,7 @@ async def retrieve_job_stdout(
         context: Context with destinations.
 
     Raises:
-        HTTPException: When job is not found or user is not allowed to
-            see job.
+        HTTPException: When job is not found or user is not allowed to see job.
 
     Returns:
         stdout of job.

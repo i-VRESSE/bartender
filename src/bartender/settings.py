@@ -42,8 +42,7 @@ def default_config_filename() -> Path:
 class Settings(BaseSettings):
     """Application settings.
 
-    These parameters can be configured
-    with environment variables.
+    These parameters can be configured with environment variables.
     """
 
     host: str = "127.0.0.1"

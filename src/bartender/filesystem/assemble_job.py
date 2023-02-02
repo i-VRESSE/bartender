@@ -10,8 +10,8 @@ from starlette import status
 def assemble_job(job_id: int, job_token: str, job_root_dir: Path) -> Path:
     """Assembly the job.
 
-    Create job directory and metadata file.
-    Metadata file contains job id and token.
+    Create job directory and metadata file. Metadata file contains job id and
+    token.
 
     Args:
         job_id: id of the job.
