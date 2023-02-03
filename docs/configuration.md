@@ -1,4 +1,4 @@
-## Configuration
+# Configuration
 
 This application can be configured with environment variables and `config.yaml` file.
 The environment variables are for FastAPI settings like http port and user management.
@@ -25,7 +25,7 @@ BARTENDER_ENVIRONMENT="dev"
 
 You can read more about BaseSettings class here: <https://pydantic-docs.helpmanual.io/usage/settings/>
 
-### Applications
+## Applications
 
 Bartender accepts jobs for different applications.
 
@@ -44,7 +44,7 @@ applications:
 * The `config` key is the config file that must be present in the uploaded archived.
 * The `command` key is the command executed in the directory of the unpacked archive that the consumer uploaded. The `$config` in command string will be replaced with value of the config key.
 
-### Job destinations
+## Job destinations
 
 Bartender can run job in different destinations.
 
@@ -64,7 +64,7 @@ When the filesystem is on a remote system with non-shared file system or a diffe
 Destinations can be configured in the `config.yaml` file under `destinations` key.
 By default a single slot in-memory scheduler with a local filesystem is used.
 
-### Destination picker
+## Destination picker
 
 If you have multiple applications and job destinations you need some way to specify to which job submission should go.
 

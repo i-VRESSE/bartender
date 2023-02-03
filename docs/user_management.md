@@ -1,4 +1,4 @@
-## User management
+# User management
 
 For secure auth add `BARTENDER_SECRET=<some random string>` to `.env` file.
 
@@ -27,7 +27,7 @@ curl -X 'GET' \
   -H 'Authorization: Bearer <the access token>'
 ```
 
-### GitHub login
+## GitHub login
 
 The web service can be configured to login with your [GitHub](https://gibhub.com) account.
 
@@ -50,7 +50,7 @@ To enable perform following steps:
     1. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of GitHub app>`
     2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client secret of GitHub app>`
 
-### Orcid sandbox login
+## Orcid sandbox login
 
 The web service can be configured to login with your [Orcid sandbox](https://sandbox.orcid.org/) account.
 
@@ -74,7 +74,7 @@ To enable perform following steps:
 
 The `GET /api/users/profile` route will return the Orcid ID in `oauth_accounts[oauth_name=sandbox.orcid.org].account_id`.
 
-### Orcid login
+## Orcid login
 
 The web service can be configured to login with your [Orcid](https://orcid.org/) account.
 
@@ -87,7 +87,7 @@ Steps are similar to [Orcid sandbox login](#orcid-sandbox-login), but
   * In redirect URL replace `orcidsandbox` with `orcid`.
   * In `.env` replace `_ORCIDSANDBOX_` with `_ORCID_`
 
-### Super user
+## Super user
 
 When a user has `is_superuser is True` then he/she can manage users and make other users also super users.
 
