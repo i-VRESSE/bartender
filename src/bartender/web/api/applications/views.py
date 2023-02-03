@@ -20,8 +20,11 @@ router = APIRouter()
 def list_applications(config: Config = Depends(get_config)) -> list[str]:
     """List application names.
 
-    :param config: Config with applications.
-    :return: The list.
+    Args:
+        config: Config with applications.
+
+    Returns:
+        The list.
     """
     return list(config.applications.keys())
 
@@ -33,9 +36,12 @@ def get_application(
 ) -> ApplicatonConfiguration:
     """Retrieve application configuration.
 
-    :param application: Name of application
-    :param config: Config with applications.
-    :return: The application config.
+    Args:
+        application: Name of application
+        config: Config with applications.
+
+    Returns:
+        The application config.
     """
     return config.applications[application]
 
@@ -65,19 +71,23 @@ async def upload_job(  # noqa: WPS211
     submitter: User = Depends(current_active_user),
     context: Context = Depends(get_context),
 ) -> RedirectResponse:
-    """
-    Creates job model in the database, stage archive locally and submit to scheduler.
+    """Creates job model in the database, stage archive locally and submit to scheduler.
 
-    :param application: Name of application to run job for.
-    :param upload: Archive with config file for application.
-    :param request: request object.
-    :param job_dao: JobDAO object.
-    :param submitter: User who submitted job.
-    :param context: Context with applications and destinations.
-    :raises IndexError: When job could not created inside database or
-        when config file was not found.
-    :raises KeyError: Application is invalid.
-    :return: redirect response.
+    Args:
+        application: Name of application to run job for.
+        upload: Archive with config file for application.
+        request: request object.
+        job_dao: JobDAO object.
+        submitter: User who submitted job.
+        context: Context with applications and destinations.
+
+    Raises:
+        IndexError: When job could not created inside database or when config
+            file was not found.
+        KeyError: Application is invalid.
+
+    Returns:
+        redirect response.
     """
     if application not in context.applications:
         valid = context.applications.keys()

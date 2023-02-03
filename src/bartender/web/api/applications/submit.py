@@ -15,11 +15,12 @@ async def submit(
 ) -> None:
     """Submit job description to scheduler and store job id returned by scheduler in db.
 
-    :param external_job_id: External job id.
-    :param job_dir: Location where job input files are located.
-    :param application: Application name that should be run.
-    :param job_dao: JobDAO object.
-    :param context: Context with applications and destinations.
+    Args:
+        external_job_id: External job id.
+        job_dir: Location where job input files are located.
+        application: Application name that should be run.
+        job_dao: JobDAO object.
+        context: Context with applications and destinations.
     """
     description = context.applications[application].description(job_dir)
 

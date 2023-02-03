@@ -10,9 +10,14 @@ FileSystemConfig = Union[LocalFileSystemConfig, SftpFileSystemConfig]
 def build(config: FileSystemConfig) -> AbstractFileSystem:
     """Build a file system from a configuration.
 
-    :param config: The configuration
-    :raises ValueError: When unknown config is given.
-    :return: A file system instance.
+    Args:
+        config: The configuration
+
+    Raises:
+        ValueError: When unknown config is given.
+
+    Returns:
+        A file system instance.
     """
     if isinstance(config, LocalFileSystemConfig):
         return LocalFileSystem()

@@ -3,9 +3,14 @@ max-complexity = 6
 inline-quotes = double
 max-line-length = 88
 extend-ignore = E203
-docstring_style=sphinx
 
 ignore =
+  ; flake8-rst-docstrings
+  ; Google Python style is not RST until after processed by Napoleon
+  ; See https://github.com/peterjc/flake8-rst-docstrings/issues/17
+  RST201,RST203,RST301,
+  ; Excess "Returns" in Docstring: + return
+  DAR202,
   ; Found `f` string
   WPS305,
   ; Missing docstring in public module

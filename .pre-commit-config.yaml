@@ -25,6 +25,13 @@ repos:
 
 - repo: local
   hooks:
+  - id: yesqa
+    name: Strip unnecessary `# noqa`s
+    description: Automatically remove unnecessary `# noqa` comments
+    entry: yesqa
+    language: python
+    types: [python]
+
   - id: black
     name: Format with Black
     entry: poetry run black

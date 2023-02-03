@@ -14,7 +14,8 @@ from bartender.settings import settings
 def make_engine() -> AsyncEngine:
     """This function creates SQLAlchemy engine instance.
 
-    :return: async engine
+    Returns:
+        async engine
     """
     return create_async_engine(str(settings.db_url), echo=settings.db_echo)
 
@@ -22,8 +23,11 @@ def make_engine() -> AsyncEngine:
 def make_session_factory(engine: AsyncEngine) -> async_scoped_session:
     """Create session_factory for creating sessions.
 
-    :param engine: async engine
-    :return: session factory
+    Args:
+        engine: async engine
+
+    Returns:
+        session factory
     """
     return async_scoped_session(
         sessionmaker(
