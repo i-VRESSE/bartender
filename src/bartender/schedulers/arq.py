@@ -38,7 +38,8 @@ class ArqSchedulerConfig(BaseModel):
     def redis_settings(self) -> RedisSettings:
         """Settings for arq.
 
-        :returns: The settings based on redis_dsn.
+        Returns:
+            The settings based on redis_dsn.
         """
         return RedisSettings.from_dsn(self.redis_dsn)
 
@@ -52,7 +53,8 @@ class ArqScheduler(AbstractScheduler):
     def __init__(self, config: ArqSchedulerConfig) -> None:
         """Arq scheduler.
 
-        :param config: The config.
+        Args:
+            config: The config.
         """
         self.config: ArqSchedulerConfig = config
         self.connection: Optional[ArqRedis] = None
@@ -133,10 +135,12 @@ async def _exec(  # noqa: WPS210
 def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
     """Worker that runs jobs submitted to arq queue.
 
-    :param config: The config.
-        Should be equal to the one used to submit job.
-    :param burst: Whether to stop the worker once all jobs have been run.
-    :return: A worker.
+    Args:
+        config: The config. Should be equal to the one used to submit job.
+        burst: Whether to stop the worker once all jobs have been run.
+
+    Returns:
+        A worker.
     """
     functions = [_exec]
     return Worker(
@@ -151,7 +155,8 @@ def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
 async def run_workers(configs: list[ArqSchedulerConfig]) -> None:
     """Run worker for each arq scheduler config.
 
-    :param configs: The configs.
+    Args:
+        configs: The configs.
     """
     workers = [arq_worker(config) for config in configs]
     await gather(*[worker.async_run() for worker in workers])
