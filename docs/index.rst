@@ -10,6 +10,7 @@ Welcome to bartender's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   user_management
 
 
 Indices and tables
