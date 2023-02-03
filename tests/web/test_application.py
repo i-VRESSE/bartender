@@ -39,7 +39,7 @@ async def test_get_application(
 
 
 @pytest.mark.anyio
-async def test_upload(  # noqa: WPS218
+async def test_upload(
     fastapi_app: FastAPI,
     client: AsyncClient,
     job_root_dir: Path,

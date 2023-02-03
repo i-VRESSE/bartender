@@ -166,7 +166,7 @@ def fastapi_app(
     application.dependency_overrides[get_config] = lambda: demo_config
     application.dependency_overrides[get_context] = lambda: demo_context
     settings.secret = "testsecret"  # noqa: S105
-    return application  # noqa: WPS331
+    return application
 
 
 @pytest.fixture
