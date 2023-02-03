@@ -11,6 +11,7 @@ Welcome to bartender's documentation!
    :caption: Contents:
 
    user_management
+   configuration
 
 
 Indices and tables
