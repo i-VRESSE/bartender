@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentParser
 from importlib.metadata import version
 from pathlib import Path
+from typing import Optional
 
 import uvicorn
 
@@ -58,7 +59,7 @@ def make_super(email: str) -> None:
     asyncio.run(make_super_async(email))
 
 
-def perform(config: Path) -> None:
+def perform(config: Path, destination_names: Optional[list[str]] = None) -> None:
     """Runs arq worker to run queued jobs.
 
     Like a bartender performing something entertaining,
@@ -66,17 +67,24 @@ def perform(config: Path) -> None:
 
     Args:
         config: Path to config file.
+        destination_names: Name of destinations to run workers for.
+            Each destination must have `scheduler.type:arq`.
+            By default runs workers for all destinations with `scheduler.type:arq`.
 
     Raises:
-        ValueError: When no useful destination found in config file.
+        ValueError: When no valid destination is found in config file.
     """
     validated_config = build_config(config)
     configs: list[ArqSchedulerConfig] = []
-    for destination in validated_config.destinations.values():
-        if isinstance(destination.scheduler, ArqSchedulerConfig):
+    for destination_name, destination in validated_config.destinations.items():
+        included = destination_names is None or destination_name in destination_names
+        if isinstance(destination.scheduler, ArqSchedulerConfig) and included:
+            print(  # noqa: WPS421 -- user feedback on command line
+                f"Worker running for '{destination_name}' destination in {config}.",
+            )
             configs.append(destination.scheduler)
     if not configs:
-        raise ValueError("No destination found in config file using arq scheduler")
+        raise ValueError("No valid destination found in config file.")
 
     asyncio.run(run_workers(configs))
 
@@ -104,6 +112,14 @@ def build_parser() -> ArgumentParser:
         default=Path("config.yaml"),
         type=Path,
         help="Configuration with schedulers that need arq workers",
+    )
+    perform_sp.add_argument(
+        "--destination",
+        nargs="+",
+        help="""Name of destinations to run workers for.
+            Each destination must have `scheduler.type:arq`.
+            By default runs workers for all destinations with `scheduler.type:arq`.""",
+        dest="destination_names",
     )
     perform_sp.set_defaults(func=perform)
 
