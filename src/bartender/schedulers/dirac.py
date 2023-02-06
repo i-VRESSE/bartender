@@ -8,7 +8,8 @@ from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
 dirac_status_map: dict[str, State] = {
             "Waiting": "queued",
-            "Done": "ok"
+            "Done": "ok",
+            # TODO add all possible dirac job states
         }
 
 # TODO make proper async with loop.run_in_executor
@@ -29,7 +30,7 @@ class DiracScheduler(AbstractScheduler):
             InputSandBox = {{{input_sandbox}}};
             StdOutput = “stdout.txt”;
             StdError = “stderr.txt”;
-            OutputSandbox = {{“stdout.txt”,”stderrt.txt”}};
+            OutputSandbox = {{“stdout.txt”,”stderr.txt”}};
         """)
         # TODO ship application to where it is run
         # TODO get output files of job in grid storage
