@@ -23,7 +23,7 @@ def _map_arq_status(arq_status: JobStatus, success: bool) -> State:
     try:
         return status_map[arq_status]
     except KeyError:
-        # fallback to error when srq status is unmapped.
+        # fallback to error when arq status is unmapped.
         return "error"
 
 

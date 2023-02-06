@@ -55,7 +55,7 @@ destinations:
   # `docker run --detach --publish 6379:6379 redis:7`
   # Requires at least one arq worker to run in another shell
   # with same config file with:
-  # `bartender mix --config config.yaml`
+  # `bartender perform --config config.yaml`
   # redis:
   #   scheduler:
   #     type: arq
