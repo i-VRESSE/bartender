@@ -64,8 +64,11 @@ def mix(config: Path) -> None:
     Like a bartender mixes the cocktails,
     the i-vresse bartender mixes aka runs queued jobs.
 
-    :param config: Path to config file.
-    :raises ValueError: When no usefull destination found in config file.
+    Args:
+        config: Path to config file.
+
+    Raises:
+        ValueError: When no useful destination found in config file.
     """
     validated_config = build_config(config)
     configs: list[ArqSchedulerConfig] = []
