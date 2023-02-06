@@ -49,6 +49,7 @@ async def drop_database() -> None:
 def now() -> datetime:
     """Return current datetime.
 
-    :return: Current datetime in UTC timezone.
+    Returns:
+        Current datetime in UTC timezone.
     """
     return datetime.now(timezone.utc)

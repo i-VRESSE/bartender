@@ -24,8 +24,11 @@ class Context:
 def build_context(config: Config) -> Context:
     """Parses a plain configuration dict to a context instance.
 
-    :param config: A plain configuration dict
-    :return: A config instance.
+    Args:
+        config: A plain configuration dict
+
+    Returns:
+        A config instance.
     """
     return Context(
         applications=config.applications,
@@ -38,8 +41,11 @@ def build_context(config: Config) -> Context:
 def get_context(request: Request) -> Context:
     """Get context based on current request.
 
-    :param request: The current FastAPI request.
-    :return: The context.
+    Args:
+        request: The current FastAPI request.
+
+    Returns:
+        The context.
     """
     return request.app.state.context
 
@@ -49,7 +55,8 @@ async def close_context(context: Context) -> None:
 
     A destination might have a remote connection that needs to be cleaned-up.
 
-    :param context: The context.
+    Args:
+        context: The context.
     """
     destinations: dict[str, Destination] = context.destinations
     for destination in destinations.values():

@@ -30,8 +30,11 @@ def serve() -> None:
 async def make_super_async(email: str) -> None:
     """Async method to grant a user super rights.
 
-    :param email: Email of user
-    :raises ValueError: When user can not be found
+    Args:
+        email: Email of user
+
+    Raises:
+        ValueError: When user can not be found
     """
     session_factory = make_session_factory(make_engine())
     get_user_db_context = contextlib.asynccontextmanager(get_user_db)
@@ -49,7 +52,8 @@ async def make_super_async(email: str) -> None:
 def make_super(email: str) -> None:
     """Grant a user super rights.
 
-    :param email: Email of user
+    Args:
+        email: Email of user
     """
     asyncio.run(make_super_async(email))
 
@@ -77,7 +81,8 @@ def mix(config: Path) -> None:
 def build_parser() -> ArgumentParser:
     """Build an argument parser.
 
-    :return: parser
+    Returns:
+        parser
     """
     parser = ArgumentParser(prog="bartender")
     parser.add_argument("--version", action="version", version=version("bartender"))
@@ -105,7 +110,8 @@ def build_parser() -> ArgumentParser:
 def main(argv: list[str] = sys.argv[1:]) -> None:
     """Entrypoint of the application.
 
-    :param argv: Arguments to parse
+    Args:
+        argv: Arguments to parse
     """
     parser = build_parser()
     args = parser.parse_args(argv)

@@ -20,13 +20,16 @@ class CommandRunner(Protocol):
     ) -> tuple[int, str, str]:
         """Run command.
 
-        :param command: Command to execute. Command can not contain spaces.
-        :param args: List of arguments for command.
-            Argument containing spaces should be wrapped in quotes.
-        :param stdin: Input for command.
-        :param cwd: In which directory the command should be run.
-        :return: Tuple with return code, stdout and stderr.
-        """  # noqa: DAR202
+        Args:
+            command: Command to execute. Command can not contain spaces.
+            args: List of arguments for command. Argument containing spaces
+                should be wrapped in quotes.
+            stdin: Input for command.
+            cwd: In which directory the command should be run.
+
+        Returns:
+            Tuple with return code, stdout and stderr.
+        """
 
     def close(self) -> None:
         """Close any connections runner has."""
@@ -44,13 +47,18 @@ class LocalCommandRunner(CommandRunner):
     ) -> tuple[int, str, str]:
         """Run command.
 
-        :param command: Command to execute. Command can not contain spaces.
-        :param args: List of arguments for command.
-            Argument containing spaces should be wrapped in quotes.
-        :param stdin: Input for command.
-        :param cwd: In which directory the command should be run.
-        :raises ValueError: Command is both running and dead.
-        :return: Tuple with return code, stdout and stderr.
+        Args:
+            command: Command to execute. Command can not contain spaces.
+            args: List of arguments for command. Argument containing spaces
+                should be wrapped in quotes.
+            stdin: Input for command.
+            cwd: In which directory the command should be run.
+
+        Raises:
+            ValueError: Command is both running and dead.
+
+        Returns:
+            Tuple with return code, stdout and stderr.
         """
         proc = await create_subprocess_exec(
             command,
@@ -83,7 +91,8 @@ class SshCommandRunner(CommandRunner):
     ):
         """Constructor.
 
-        :param config: SSH connection configuration.
+        Args:
+            config: SSH connection configuration.
         """
         self.config = config
         self.conn: Optional[SSHClientConnection] = None
@@ -97,13 +106,18 @@ class SshCommandRunner(CommandRunner):
     ) -> tuple[int, str, str]:
         """Run command.
 
-        :param command: Command to execute. Command can not contain spaces.
-        :param args: List of arguments for command.
-            Argument containing spaces should be wrapped in quotes.
-        :param stdin: Input for command.
-        :param cwd: In which directory the command should be run.
-        :raises ValueError: Command is both running and dead.
-        :return: Tuple with return code, stdout and stderr.
+        Args:
+            command: Command to execute. Command can not contain spaces.
+            args: List of arguments for command. Argument containing
+                spaces should be wrapped in quotes.
+            stdin: Input for command.
+            cwd: In which directory the command should be run.
+
+        Raises:
+            ValueError: Command is both running and dead.
+
+        Returns:
+            Tuple with return code, stdout and stderr.
         """
         remote_command = command
         if args:

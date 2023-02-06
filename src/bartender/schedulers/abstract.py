@@ -28,8 +28,11 @@ class AbstractScheduler(ABC):
     async def submit(self, description: JobDescription) -> str:
         """Submit a job description for running.
 
-        :param description: Description for a job.
-        :return: Identifier that can be used later to interact with job.
+        Args:
+            description: Description for a job.
+
+        Returns:
+            Identifier that can be used later to interact with job.
         """
 
     @abstractmethod
@@ -38,8 +41,11 @@ class AbstractScheduler(ABC):
 
         Once job is completed, then scheduler can forget job.
 
-        :param job_id: Identifier of job.
-        :return: State of job.
+        Args:
+            job_id: Identifier of job.
+
+        Returns:
+            State of job.
         """
 
     async def states(self, job_ids: list[str]) -> list[State]:
@@ -47,8 +53,11 @@ class AbstractScheduler(ABC):
 
         Once a job is completed, then scheduler can forget job.
 
-        :param job_ids: Identifiers of jobs.
-        :return: States of jobs.
+        Args:
+            job_ids: Identifiers of jobs.
+
+        Returns:
+            States of jobs.
         """
         mystates = []
         for job_id in job_ids:
@@ -62,7 +71,8 @@ class AbstractScheduler(ABC):
 
         Once a queued job is cancelled, then the scheduler can forget job.
 
-        :param job_id: Identifier of job.
+        Args:
+            job_id: Identifier of job.
         """
 
     async def __aenter__(self) -> "AbstractScheduler":
