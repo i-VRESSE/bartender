@@ -9,12 +9,12 @@ from bartender.web.users.router import include_users_routes
 
 
 def get_app() -> FastAPI:
-    """
-    Get FastAPI application.
+    """Get FastAPI application.
 
     This is the main constructor of an application.
 
-    :return: application.
+    Returns:
+        application.
     """
     app = FastAPI(
         title="bartender",

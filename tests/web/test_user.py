@@ -12,11 +12,11 @@ async def test_profile(
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
 ) -> None:
-    """
-    Checks the profile endpoint.
+    """Checks the profile endpoint.
 
-    :param client: client for the app.
-    :param fastapi_app: current FastAPI application.
+    Args:
+        client: client for the app.
+        fastapi_app: current FastAPI application.
     """
     url = fastapi_app.url_path_for(
         "profile",

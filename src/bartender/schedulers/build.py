@@ -10,9 +10,14 @@ SchedulerConfig = Union[MemorySchedulerConfig, SlurmSchedulerConfig]
 def build(config: SchedulerConfig) -> AbstractScheduler:
     """Build scheduler instance from configuration.
 
-    :param config: Configuration for a scheduler.
-    :raises ValueError: When config can not be mapped to a scheduler instance.
-    :return: A scheduler instance.
+    Args:
+        config: Configuration for a scheduler.
+
+    Raises:
+        ValueError: When config can not be mapped to a scheduler instance.
+
+    Returns:
+        A scheduler instance.
 
     """
     if isinstance(config, MemorySchedulerConfig):

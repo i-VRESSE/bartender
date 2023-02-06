@@ -15,10 +15,13 @@ def pick_first(
 ) -> str:
     """Always picks first available destination from context.
 
-    :param job_dir: Location where job input files are located.
-    :param application_name: Application name that should be run.
-    :param context: Context with applications and destinations.
-    :return: Destination name.
+    Args:
+        job_dir: Location where job input files are located.
+        application_name: Application name that should be run.
+        context: Context with applications and destinations.
+
+    Returns:
+        Destination name.
     """
     destination_names = list(context.destinations.keys())
     return destination_names[0]
@@ -38,14 +41,17 @@ class PickRound:
     ) -> str:
         """Always picks the next destination.
 
-        Takes list of destinations and each time it is called will
-        pick the next destination in the destination list.
-        Going around to start when end is reached.
+        Takes list of destinations and each time it is called will pick the next
+        destination in the destination list. Going around to start when end is
+        reached.
 
-        :param job_dir: Location where job input files are located.
-        :param application_name: Application name that should be run.
-        :param context: Context with applications and destinations.
-        :return: Destination name.
+        Args:
+            job_dir: Location where job input files are located.
+            application_name: Application name that should be run.
+            context: Context with applications and destinations.
+
+        Returns:
+            Destination name.
         """
         destination_names = list(context.destinations.keys())
         if self.last == "":
@@ -66,9 +72,12 @@ pick_round: DestinationPicker = PickRound()
 def import_picker(destination_picker_name: str) -> DestinationPicker:
     """Import a picker function based on a `<module>:<function>` string.
 
-    :param destination_picker_name: function import as string.
-    :return: Function that can be used to pick to
-        which destination a job should be submitted.
+    Args:
+        destination_picker_name: function import as string.
+
+    Returns:
+        Function that can be used to pick to which destination a job should be
+        submitted.
     """
     # TODO allow somedir/somefile.py:pick_round_robin
     (module_name, function_name) = destination_picker_name.split(":")
