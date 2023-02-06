@@ -58,11 +58,11 @@ def make_super(email: str) -> None:
     asyncio.run(make_super_async(email))
 
 
-def mix(config: Path) -> None:
+def perform(config: Path) -> None:
     """Runs arq worker to run queued jobs.
 
-    Like a bartender mixes the cocktails,
-    the i-vresse bartender mixes aka runs queued jobs.
+    Like a bartender performing something entertaining,
+    the i-vresse bartender performs by running queued jobs.
 
     Args:
         config: Path to config file.
@@ -98,14 +98,14 @@ def build_parser() -> ArgumentParser:
     super_sp.add_argument("email", help="Email address of logged in user")
     super_sp.set_defaults(func=make_super)
 
-    mix_sp = subparsers.add_parser("mix", help="Async Redis queue job worker")
-    mix_sp.add_argument(
+    perform_sp = subparsers.add_parser("perform", help="Async Redis queue job worker")
+    perform_sp.add_argument(
         "--config",
         default=Path("config.yaml"),
         type=Path,
         help="Configuration with schedulers that need arq workers",
     )
-    mix_sp.set_defaults(func=mix)
+    perform_sp.set_defaults(func=perform)
 
     return parser
 

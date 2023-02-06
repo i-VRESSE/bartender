@@ -171,7 +171,7 @@ A destination is a combination of a scheduler and filesystem.
 Supported schedulers
 * memory, Scheduler which has queue in memory and can specified number of jobs (slots) concurrently.
 * slurm, Scheduler which calls commands of [Slurm batch scheduler](https://slurm.schedmd.com/) on either local machine or remote machine via SSH.
-* arq, Scheduler which uses a Redis server as a job queue and 1 or more workers (`bartender mix` command) to run the jobs.
+* arq, Scheduler which uses a Redis server as a job queue and 1 or more workers (`bartender perform` command) to run the jobs.
 
 Supported file systems
 * local: Uploading or downloading of files does nothing
