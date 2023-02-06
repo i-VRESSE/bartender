@@ -79,9 +79,9 @@ def test_eq_diff_config(scheduler: ArqScheduler) -> None:
 
 @pytest.mark.anyio
 async def test_repr(scheduler: ArqScheduler, redis_dsn: RedisDsn) -> None:
-    redis = f"redis_dsn=RedisDsn('{redis_dsn}'"
-    other_config = "queue='arq:queue', max_jobs=10, job_timeout=3600)"
-    config = f"ArqSchedulerConfig(type='arq', {redis}, ${other_config}), "
+    redis = f"redis_dsn=RedisDsn('{redis_dsn}', )"
+    default_config = "queue='arq:queue', max_jobs=10, job_timeout=3600"
+    config = f"ArqSchedulerConfig(type='arq', {redis}, {default_config})"
     expected = f"ArqScheduler(config={config})"
     assert repr(scheduler) == expected
 
