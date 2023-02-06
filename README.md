@@ -10,6 +10,7 @@
     - [Job destinations](#job-destinations)
     - [DIRAC](#dirac)
     - [Destination picker](#destination-picker)
+    - [Job flow](#job-flow)
   - [User management](#user-management)
     - [GitHub login](#github-login)
     - [Orcid sandbox login](#orcid-sandbox-login)
@@ -208,6 +209,38 @@ The value should be formatted as `<module>:<function>`, for example to rotate ov
 The picker function should have type `bartender.picker.DestinationPicker`.
 
 By default jobs are submitted to the first destination.
+
+### Job flow
+
+Diagram of a job flowing through web service, schedulers and filesystems.
+
+```mermaidjs
+graph TD
+    A[User upload] --> B{Pick destination}
+    A2[User status] --> I{Retrieve status\nfrom scheduler}
+    I -->|Completed| J[Copy output files\nfrom remote storage\nto web service]
+    I -->|Incomplete| I
+    J --> Z[Show results]
+
+    B -->|Memory| D[Run in in-memory queue]
+    B -->|Redis| E[Add job description\n to queue]
+    E --> E2{Wait for work}
+    subgraph redisworker
+        E3 --> E2
+        E2 -->|Job description| E3[Run command]
+    end
+    B -->|Slurm| F[Copy input files\nfrom web service\nto sftp server]
+    F --> H[Sbatch]
+    B -->|Dirac| G[Copy input files\nfrom web service\nto grid storage]
+    G --> K[Wms job submit]
+    K --> R[Install command]
+    K --> O[Copy input files\nfrom grid storage\nto compute node]
+    subgraph diracjob
+        R --> P
+        O --> P[Run command]
+        P --> Q[Copy output files\nfrom compute node\nto grid storage]
+    end
+```
 
 ## [User management](#user-management)
 
