@@ -15,10 +15,11 @@ async def sync_state(
 ) -> None:
     """Sync state of job from scheduler to database.
 
-    :param job: Job instance.
-    :param job_dao: JobDAO object.
-    :param destination: Job destination used to submit job.
-    :param job_root_dir: Directory where all jobs can be found.
+    Args:
+        job: Job instance.
+        job_dao: JobDAO object.
+        destination: Job destination used to submit job.
+        job_root_dir: Directory where all jobs can be found.
     """
     if (  # noqa: WPS337
         job.state not in CompletedStates
@@ -43,10 +44,11 @@ async def sync_states(
 ) -> None:
     """Sync state of jobs from scheduler to database.
 
-    :param jobs: Job instances.
-    :param destinations: Job destinations.
-    :param job_dao: JobDAO object.
-    :param job_root_dir: Directory where all jobs can be found.
+    Args:
+        jobs: Job instances.
+        destinations: Job destinations.
+        job_dao: JobDAO object.
+        job_root_dir: Directory where all jobs can be found.
     """
     jobs2sync = [
         job

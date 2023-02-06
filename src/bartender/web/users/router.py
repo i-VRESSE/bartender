@@ -89,7 +89,8 @@ def _orcid_routes(app: FastAPI) -> None:
 def include_users_routes(app: FastAPI) -> None:
     """Register fastapi_users routes.
 
-    :param app: FastAPI app
+    Args:
+        app: FastAPI app
     """
     app.include_router(
         fastapi_users.get_auth_router(local_auth_backend),

@@ -17,14 +17,15 @@ async def stage_job_input(
     archive: UploadFile,
     dest_fn: str = "archive.zip",
 ) -> None:
-    """
-    Copy archive file to job id directory.
+    """Copy archive file to job id directory.
 
-    :param job_dir: Where to put archive file.
-    :param archive: The archive file with async read method.
-    :param dest_fn: Filename of destination.
+    Args:
+        job_dir: Where to put archive file.
+        archive: The archive file with async read method.
+        dest_fn: Filename of destination.
 
-    :raises ValueError: When unpacking archive failed.
+    Raises:
+        ValueError: When unpacking archive failed.
     """
     _is_valid_content_type(archive.content_type)
 

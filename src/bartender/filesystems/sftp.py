@@ -12,8 +12,9 @@ from bartender.ssh_utils import SshConnectConfig, ssh_connect
 class SftpFileSystemConfig(BaseModel):
     """Configuration for SFTP file system.
 
-    :param ssh_config: SSH connection configuration.
-    :param entry: The entry directory. Used to localize description.
+    Args:
+        ssh_config: SSH connection configuration.
+        entry: The entry directory. Used to localize description.
     """
 
     ssh_config: SshConnectConfig
@@ -30,7 +31,8 @@ class SftpFileSystem(AbstractFileSystem):
     ):
         """Constructor.
 
-        :param config: The config.
+        Args:
+            config: The config.
         """
         self.entry = config.entry
         self.ssh_config = config.ssh_config
@@ -43,13 +45,16 @@ class SftpFileSystem(AbstractFileSystem):
     ) -> JobDescription:
         """Make given job description local to this file system.
 
-        :param description: A job description.
-        :param entry: The path to replace with the entry path of this file system.
-            For example given a file system with entry path of /remote/jobs
-            and given job_dir in job description of /local/jobs/myjobid
-            and given entry of /local/jobs
-            will return description with job dir /remote/jobs/myjobid .
-        :return: A job description local to this file system.
+        Args:
+            description: A job description.
+            entry: The path to replace with the entry path of this file
+                system. For example given a file system with entry path of
+                /remote/jobs and given job_dir in job description of
+                /local/jobs/myjobid and given entry of /local/jobs will return
+                description with job dir /remote/jobs/myjobid .
+
+        Returns:
+            A job description local to this file system.
         """
         localized_desciption = description.copy()
         localized_desciption.job_dir = self.entry / Path(
@@ -60,8 +65,9 @@ class SftpFileSystem(AbstractFileSystem):
     async def upload(self, src: JobDescription, target: JobDescription) -> None:
         """Uploads job directory of source description to job directory of target.
 
-        :param src: Local directory to copy from.
-        :param target: Remote directory to copy to.
+        Args:
+            src: Local directory to copy from.
+            target: Remote directory to copy to.
         """
         if self.conn is None:
             self.conn = await ssh_connect(self.ssh_config)
@@ -73,8 +79,9 @@ class SftpFileSystem(AbstractFileSystem):
     async def download(self, src: JobDescription, target: JobDescription) -> None:
         """Download job directory of source description to job directory of target.
 
-        :param src: Remote directory to copy from.
-        :param target: Local directory to copy to.
+        Args:
+            src: Remote directory to copy from.
+            target: Local directory to copy to.
         """
         if self.conn is None:
             self.conn = await ssh_connect(self.ssh_config)
