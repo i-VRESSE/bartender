@@ -1,10 +1,12 @@
 from asyncio import TimeoutError, create_subprocess_shell, gather
-from typing import Any, Literal, Optional
+from datetime import timedelta
+from typing import Any, Literal, Optional, Union
 
 from arq import ArqRedis, Worker, create_pool
 from arq.connections import RedisSettings
 from arq.jobs import Job, JobStatus
 from pydantic import BaseModel, RedisDsn, parse_obj_as
+from pydantic.types import PositiveInt
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
@@ -33,6 +35,17 @@ class ArqSchedulerConfig(BaseModel):
     type: Literal["arq"] = "arq"
     redis_dsn: RedisDsn = parse_obj_as(RedisDsn, "redis://localhost:6379")
     queue: str = "arq:queue"
+    max_jobs: PositiveInt = 10  # noqa: WPS462
+    """Maximum number of jobs to run at a time inside a single worker."""  # noqa: E501, WPS322, WPS428
+    job_timeout: Union[PositiveInt, timedelta] = 3600  # noqa: WPS462
+    """Maximum job run time.
+
+    Default is one hour.
+
+    In seconds or string in `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
+
+    For example, "PT12H" represents a max runtime of "twelve hours".
+    """  # noqa: E501, WPS428
 
     @property
     def redis_settings(self) -> RedisSettings:
@@ -146,6 +159,8 @@ def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
     return Worker(
         redis_settings=config.redis_settings,
         queue_name=config.queue,
+        max_jobs=config.max_jobs,
+        job_timeout=config.job_timeout,
         functions=functions,  # type: ignore
         burst=burst,
         allow_abort_jobs=True,

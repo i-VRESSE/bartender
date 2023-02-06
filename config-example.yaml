@@ -60,5 +60,7 @@ destinations:
   #   scheduler:
   #     type: arq
   #     redis_dsn: redis://localhost:6379
+  #     max_jobs: 1
+  #     job_timeout: PT12H  # 12 hours
   #   filesystem:
   #     type: local
