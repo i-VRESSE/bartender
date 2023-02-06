@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
+from DIRAC import initialize
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
 from pydantic import BaseModel
 
@@ -9,7 +10,7 @@ from bartender.schedulers.abstract import JobDescription
 
 
 class DiracFileSystemConfig(BaseModel):
-    """Configuration for Dirac file system.
+    """Configuration for DIRAC file system.
 
     :param lfn_root: Location on grid storage where files of jobs can be stored.
         Used to localize description.
@@ -25,7 +26,7 @@ class DiracFileSystemConfig(BaseModel):
 
 
 class DiracFileSystem(AbstractFileSystem):
-    """Interact with Dirac storage elements."""
+    """Interact with DIRAC storage elements."""
 
     def __init__(
         self,
@@ -37,6 +38,8 @@ class DiracFileSystem(AbstractFileSystem):
         """
         self.lfn_root = config.lfn_root
         self.storage_element = config.storage_element
+        # TODO make sure initialize is only called once per process
+        initialize()
         self.dm = DataManager()
 
     def localize_description(
@@ -65,24 +68,32 @@ class DiracFileSystem(AbstractFileSystem):
 
         :param src: Local directory to copy from.
         :param target: Remote directory to copy to.
+        :raises RuntimeError: When upload failed.
         """
         # TODO dirac does not put recursive dir
         # so create and put archive of src.job_dir
-        self.dm.putAndRegister(
+        result = self.dm.putAndRegister(
             lfn=target.job_dir,
             fileName=src.job_dir,
             diracSE=self.storage_element,
         )
+        if not result["OK"]:
+            raise RuntimeError(result["Message"])
 
     async def download(self, src: JobDescription, target: JobDescription) -> None:
         """Download job directory of source description to job directory of target.
 
         :param src: Remote directory to copy from.
         :param target: Local directory to copy to.
+        :raises RuntimeError: When download failed.
         """
         # TODO dirac does not get recursive dir
         # so get archive of src.job_dir and unpack
-        self.dm.getFile(src.job_dir, target.job_dir)
+        # TODO or use DIRAC.Interfaces.API.Dirac.Dirac.
+        # getOutputSandbox(..., unpack=True)?
+        result = self.dm.getFile(src.job_dir, target.job_dir)
+        if not result["OK"]:
+            raise RuntimeError(result["Message"])
 
     def close(self) -> None:
         """Close filesystem."""

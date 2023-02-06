@@ -21,7 +21,7 @@ dirac_status_map: dict[str, State] = {
 
 
 class DiracScheduler(AbstractScheduler):
-    """Dirac scheduler.
+    """DIRAC scheduler.
 
     [More info](http://diracgrid.org/).
     """
@@ -30,6 +30,8 @@ class DiracScheduler(AbstractScheduler):
         """Constructor."""
         # TODO make sure initialize is only called once per process
         initialize()
+        # TODO use single client Dirac client instead of multiple clients.
+        # See https://dirac.readthedocs.io/en/latest/CodeDocumentation/Interfaces/API/Dirac.html  # noqa: E501
         self.wms_client = WMSClient()
         self.monitoring = JobMonitoringClient()
 
@@ -103,7 +105,6 @@ class DiracScheduler(AbstractScheduler):
         files_in_job_dir = description.job_dir.rglob("*")
         job_input_files = [f'"{file.absolute()}"' for file in files_in_job_dir]
         input_sandbox = ",".join(job_input_files)
-        # TODO return DIRAC.Interfaces.API.Job object instead of string
         return dedent(
             f"""\
             Executable = "/bin/sh";

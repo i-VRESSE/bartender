@@ -9,6 +9,7 @@
     - [Applications](#applications)
     - [Job destinations](#job-destinations)
     - [Destination picker](#destination-picker)
+    - [DIRAC support](#dirac-support)
     - [Job flow](#job-flow)
   - [User management](#user-management)
     - [GitHub login](#github-login)
@@ -48,13 +49,6 @@ This project was generated using [fastapi_template](https://github.com/s3rius/Fa
     ```bash
     python3 -m venv venv
     source venv/bin/activate
-    ```
-
-If you need DIRAC support create a Conda environment instead of a virtual environment.
-
-    ```bash
-    mamba create --name bartender dirac-grid
-    conda activate bartender
     ```
 
 3. Install poetry
@@ -179,7 +173,7 @@ A destination is a combination of a scheduler and filesystem.
 Supported schedulers
 * memory, Scheduler which has queue in memory and can specified number of jobs (slots) concurrently.
 * slurm, Scheduler which calls commands of [Slurm batch scheduler](https://slurm.schedmd.com/) on either local machine or remote machine via SSH.
-* dirac, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/)
+* dirac, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/).
 
 Supported file systems
 * local: Uploading or downloading of files does nothing
@@ -203,6 +197,23 @@ The value should be formatted as `<module>:<function>`, for example to rotate ov
 The picker function should have type `bartender.picker.DestinationPicker`.
 
 By default jobs are submitted to the first destination.
+
+### DIRAC support
+
+If you need DIRAC support create a Conda environment instead of a creating virtual environment.
+
+```bash
+mamba create --name bartender dirac-grid python=3.10
+conda activate bartender
+```
+
+The conda environment contains all DIRAC dependencies.
+Install DIRAC itself with
+
+```bash
+pip install DIRAC==8.0
+```
+(Cannot use `poetry install --with=dirac` as Poetry gets stuck resolving dependencies because it ignores the already installed DIRAC dependencies.)
 
 ### Job flow
 
