@@ -129,7 +129,8 @@ class HTTPBearerTransport(Transport):
     def get_openapi_login_responses_success() -> OpenAPIResponseType:
         """Return a dictionary to use for the openapi responses route parameter.
 
-        :return: An OpenAPI response
+        Returns:
+            An OpenAPI response
         """
         return {
             status.HTTP_200_OK: {
@@ -153,7 +154,8 @@ class HTTPBearerTransport(Transport):
     def get_openapi_logout_responses_success() -> OpenAPIResponseType:
         """Return a dictionary to use for the openapi responses route parameter.
 
-        :return: An OpenAPI response
+        Returns:
+            An OpenAPI response
         """
         return {}
 
@@ -185,7 +187,8 @@ async def current_api_token(user: User = Depends(current_active_user)) -> str:
     Returns:
         The token that can be put in HTTP header `Authorization: Bearer
         <token>`.
-    """  # noqa: DAR203 https://github.com/terrencepreilly/darglint/issues/53
+    """  # noqa: DAR203
+    # https://github.com/terrencepreilly/darglint/issues/53
     strategy: JWTStrategy[User, UUID] = JWTStrategy(
         secret=settings.secret,
         lifetime_seconds=API_TOKEN_LIFETIME,

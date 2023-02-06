@@ -12,9 +12,10 @@ from bartender.schedulers.abstract import JobDescription
 class DiracFileSystemConfig(BaseModel):
     """Configuration for DIRAC file system.
 
-    :param lfn_root: Location on grid storage where files of jobs can be stored.
-        Used to localize description.
-    :param storage_element: Storage element for lfn_root.
+    Args:
+        lfn_root: Location on grid storage where files of jobs can be stored. Used to
+            localize description.
+        storage_element: Storage element for lfn_root.
     """
 
     lfn_root: str
@@ -34,7 +35,8 @@ class DiracFileSystem(AbstractFileSystem):
     ):
         """Constructor.
 
-        :param config: The config.
+        Args:
+            config: The config.
         """
         self.lfn_root = config.lfn_root
         self.storage_element = config.storage_element
@@ -49,13 +51,15 @@ class DiracFileSystem(AbstractFileSystem):
     ) -> JobDescription:
         """Make given job description local to this file system.
 
-        :param description: A job description.
-        :param entry: The path to replace with the entry path of this file system.
-            For example given a file system with entry path of /remote/jobs
-            and given job_dir in job description of /local/jobs/myjobid
-            and given entry of /local/jobs
-            will return description with job dir /remote/jobs/myjobid .
-        :return: A job description local to this file system.
+        Args:
+            description: A job description.
+            entry: The path to replace with the entry path of this file system. For
+                example given a file system with entry path of /remote/jobs and given
+                job_dir in job description of /local/jobs/myjobid and given entry of
+                /local/jobs will return description with job dir /remote/jobs/myjobid .
+
+        Returns:
+            A job description local to this file system.
         """
         localized_desciption = description.copy()
         localized_desciption.job_dir = self.lfn_root / Path(
@@ -66,9 +70,12 @@ class DiracFileSystem(AbstractFileSystem):
     async def upload(self, src: JobDescription, target: JobDescription) -> None:
         """Uploads job directory of source description to job directory of target.
 
-        :param src: Local directory to copy from.
-        :param target: Remote directory to copy to.
-        :raises RuntimeError: When upload failed.
+        Args:
+            src: Local directory to copy from.
+            target: Remote directory to copy to.
+
+        Raises:
+            RuntimeError: When upload failed.
         """
         # TODO dirac does not put recursive dir
         # so create and put archive of src.job_dir
@@ -83,9 +90,12 @@ class DiracFileSystem(AbstractFileSystem):
     async def download(self, src: JobDescription, target: JobDescription) -> None:
         """Download job directory of source description to job directory of target.
 
-        :param src: Remote directory to copy from.
-        :param target: Local directory to copy to.
-        :raises RuntimeError: When download failed.
+        Args:
+            src: Remote directory to copy from.
+            target: Local directory to copy to.
+
+        Raises:
+            RuntimeError: When download failed.
         """
         # TODO dirac does not get recursive dir
         # so get archive of src.job_dir and unpack

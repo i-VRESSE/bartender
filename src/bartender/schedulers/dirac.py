@@ -38,9 +38,14 @@ class DiracScheduler(AbstractScheduler):
     async def submit(self, description: JobDescription) -> str:
         """Submit a job description for running.
 
-        :param description: Description for a job.
-        :raises RuntimeError: When submission fails.
-        :return: Identifier that can be used later to interact with job.
+        Args:
+            description: Description for a job.
+
+        Raises:
+            RuntimeError: When submission fails.
+
+        Returns:
+            Identifier that can be used later to interact with job.
         """
         jdl = self._submit_script(description)
         # TODO ship application to where it is run
@@ -56,9 +61,14 @@ class DiracScheduler(AbstractScheduler):
 
         Once job is completed, then scheduler can forget job.
 
-        :param job_id: Identifier of job.
-        :raises RuntimeError: When getting job status fails.
-        :return: State of job.
+        Args:
+            job_id: Identifier of job.
+
+        Raises:
+            RuntimeError: When getting job status fails.
+
+        Returns:
+            State of job.
         """
         # Dirac has Status,MinorStatus,ApplicationStatus
         # TODO Should we also store MinorStatus,ApplicationStatus?
@@ -73,9 +83,14 @@ class DiracScheduler(AbstractScheduler):
 
         Once a job is completed, then scheduler can forget job.
 
-        :param job_ids: Identifiers of jobs.
-        :raises RuntimeError: When getting jobs status fails.
-        :return: States of jobs.
+        Args:
+            job_ids: Identifiers of jobs.
+
+        Raises:
+            RuntimeError: When getting jobs status fails.
+
+        Returns:
+            States of jobs.
         """
         result = self.monitoring.getJobsStatus(job_ids)
         if not result["OK"]:
@@ -89,8 +104,11 @@ class DiracScheduler(AbstractScheduler):
 
         Once a queued job is cancelled, then the scheduler can forget job.
 
-        :param job_id: Identifier of job.
-        :raises RuntimeError: When cancelling of job fails.
+        Args:
+            job_id: Identifier of job.
+
+        Raises:
+            RuntimeError: When cancelling of job fails.
         """
         state = await self.state(job_id)
         if state == "running":
