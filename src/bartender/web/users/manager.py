@@ -65,8 +65,11 @@ async def get_user_manager(
 ) -> AsyncGenerator[UserManager, None]:
     """Factory to get user manager.
 
-    :param user_db: User database.
-    :yield: The manager.
+    Args:
+        user_db: User database.
+
+    Yields:
+        The manager.
     """
     yield UserManager(user_db)
 
@@ -77,7 +80,8 @@ LIFETIME = 3600  # 1 hour
 def get_jwt_strategy() -> JWTStrategy[User, UUID]:
     """Get jwt strategy.
 
-    :return: The strategy.
+    Returns:
+        The strategy.
     """
     return JWTStrategy(secret=settings.secret, lifetime_seconds=LIFETIME)
 
@@ -100,17 +104,23 @@ class HTTPBearerTransport(Transport):
     async def get_login_response(self, token: str, response: Response) -> Any:
         """Returns token after login.
 
-        :param token: The token
-        :param response: The response
-        :return: Token as JSON
+        Args:
+            token: The token
+            response: The response
+
+        Returns:
+            Token as JSON
         """
         return BearerResponse(access_token=token, token_type="bearer")  # noqa: S106
 
     async def get_logout_response(self, response: Response) -> Any:
         """Logout response.
 
-        :param response: The response
-        :raises TransportLogoutNotSupportedError: Always raises as JWT can not logout
+        Args:
+            response: The response
+
+        Raises:
+            TransportLogoutNotSupportedError: Always raises as JWT can not logout
         """
         raise TransportLogoutNotSupportedError()
 
@@ -136,9 +146,14 @@ API_TOKEN_LIFETIME = 14400  # 4 hours
 async def current_api_token(user: User = Depends(current_active_user)) -> str:
     """Generate token that job can use to talk to bartender service.
 
-    :param user: User that is currently logged in.
-    :return: The token that can be put in HTTP header `Authorization: Bearer <token>`.
-    """
+    Args:
+        user: User that is currently logged in.
+
+    Returns:
+        The token that can be put in HTTP header `Authorization: Bearer
+        <token>`.
+    """  # noqa: DAR203
+    # https://github.com/terrencepreilly/darglint/issues/53
     strategy: JWTStrategy[User, UUID] = JWTStrategy(
         secret=settings.secret,
         lifetime_seconds=API_TOKEN_LIFETIME,

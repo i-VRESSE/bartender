@@ -12,10 +12,15 @@ def has_config_file(
 ) -> Literal[True]:
     """Check if config file required by application is present in job directory.
 
-    :param application: Name of application to check config file for.
-    :param job_dir: In which directory to look.
-    :raises IndexError: When config file could not be found
-    :return: True when found.
+    Args:
+        application: Name of application to check config file for.
+        job_dir: In which directory to look.
+
+    Raises:
+        IndexError: When config file could not be found
+
+    Returns:
+        True when found.
     """
     app_config = application.config
     job_config = job_dir / app_config

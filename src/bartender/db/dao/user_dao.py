@@ -18,7 +18,10 @@ async def get_user_db(
 ) -> AsyncGenerator[SQLAlchemyUserDatabase[User, UUID], None]:
     """Factory method for accessing user table.
 
-    :param session: SQLAlchemy session
-    :yield: Database adaptor
+    Args:
+        session: SQLAlchemy session
+
+    Yields:
+        Database adaptor
     """
     yield SQLAlchemyUserDatabase(session, User, OAuthAccount)

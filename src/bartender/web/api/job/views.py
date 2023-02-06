@@ -25,15 +25,17 @@ async def retrieve_jobs(
     user: User = Depends(current_active_user),
     context: Context = Depends(get_context),
 ) -> List[Job]:
-    """
-    Retrieve all jobs of user from the database.
+    """Retrieve all jobs of user from the database.
 
-    :param limit: limit of jobs.
-    :param offset: offset of jobs.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :return: stream of jobs.
+    Args:
+        limit: limit of jobs.
+        offset: offset of jobs.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+
+    Returns:
+        stream of jobs.
     """
     # TODO now list jobs that user submitted,
     # later also list jobs which are visible by admin
@@ -51,15 +53,19 @@ async def retrieve_job(
     user: User = Depends(current_active_user),
     context: Context = Depends(get_context),
 ) -> Job:
-    """
-    Retrieve specific job from the database.
+    """Retrieve specific job from the database.
 
-    :param jobid: identifier of job instance.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :raises HTTPException: When job is not found or user is not allowed to see job.
-    :return: job models.
+    Args:
+        jobid: identifier of job instance.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+
+    Raises:
+        HTTPException: When job is not found or user is not allowed to see job.
+
+    Returns:
+        job models.
     """
     try:
         # TODO now get job that user submitted,
@@ -84,9 +90,12 @@ async def retrieve_job(
 def get_job_dir(jobid: int, job_root_dir: Path = Depends(get_job_root_dir)) -> Path:
     """Get directory where input and output files of a job reside.
 
-    :param jobid: The job identifier.
-    :param job_root_dir: Directory in which all jobs are stored.
-    :return: Directory of job.
+    Args:
+        jobid: The job identifier.
+        job_root_dir: Directory in which all jobs are stored.
+
+    Returns:
+        Directory of job.
     """
     job_dir = job_root_dir / str(jobid)
     # TODO check it exist and is directory
@@ -101,10 +110,15 @@ def get_dir_of_completed_job(
 ) -> Path:
     """Get directory of a completed job.
 
-    :param job: A job in any state.
-    :param job_dir: Directory of job.
-    :raises HTTPException: When job is not completed.
-    :return: Directory of a completed job.
+    Args:
+        job: A job in any state.
+        job_dir: Directory of job.
+
+    Raises:
+        HTTPException: When job is not completed.
+
+    Returns:
+        Directory of a completed job.
     """
     if job.state not in {"ok", "error"}:
         raise HTTPException(
@@ -121,10 +135,15 @@ def retrieve_job_files(
 ) -> FileResponse:
     """Retrieve files from a completed job.
 
-    :param path: Path to file that job has produced.
-    :param job_dir: Directory with job output files.
-    :raises HTTPException: When file is not found or is outside job directory.
-    :return: The file content.
+    Args:
+        path: Path to file that job has produced.
+        job_dir: Directory with job output files.
+
+    Raises:
+        HTTPException: When file is not found or is outside job directory.
+
+    Returns:
+        The file content.
     """
     try:
         full_path = (job_dir / path).expanduser().resolve(strict=True)
@@ -154,8 +173,11 @@ def retrieve_job_stdout(
 ) -> FileResponse:
     """Retrieve the jobs standard output.
 
-    :param job_dir: Directory with job output files.
-    :return: Content of standard output.
+    Args:
+        job_dir: Directory with job output files.
+
+    Returns:
+        Content of standard output.
     """
     return retrieve_job_files("stdout.txt", job_dir)
 
@@ -166,7 +188,10 @@ def retrieve_job_stderr(
 ) -> FileResponse:
     """Retrieve the jobs standard error.
 
-    :param job_dir: Directory with job output files.
-    :return: Content of standard error.
+    Args:
+        job_dir: Directory with job output files.
+
+    Returns:
+        Content of standard error.
     """
     return retrieve_job_files("stderr.txt", job_dir)
