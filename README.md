@@ -8,7 +8,6 @@
   - [Configuration](#configuration)
     - [Applications](#applications)
     - [Job destinations](#job-destinations)
-    - [DIRAC](#dirac)
     - [Destination picker](#destination-picker)
     - [Job flow](#job-flow)
   - [User management](#user-management)
@@ -180,6 +179,7 @@ A destination is a combination of a scheduler and filesystem.
 Supported schedulers
 * memory, Scheduler which has queue in memory and can specified number of jobs (slots) concurrently.
 * slurm, Scheduler which calls commands of [Slurm batch scheduler](https://slurm.schedmd.com/) on either local machine or remote machine via SSH.
+* dirac, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/)
 
 Supported file systems
 * local: Uploading or downloading of files does nothing
@@ -191,12 +191,6 @@ When the filesystem is on a remote system with non-shared file system or a diffe
 
 Destinations can be configured in the `config.yaml` file under `destinations` key.
 By default a single slot in-memory scheduler with a local filesystem is used.
-
-### [DIRAC](#dirac)
-
-Scheduler which uses [DIRAC](http://diracgrid.org/).
-
-
 
 ### [Destination picker](#destination-picker)
 
