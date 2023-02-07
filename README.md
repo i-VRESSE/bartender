@@ -32,6 +32,13 @@
 
 Bartender is a middleware web service to schedule jobs on various infrastructures.
 
+The bartender is a web service that offers to run command line applications for visitors.
+The application input should be a configuration file with links to data files in the same directory. After authenticating with your local account or social login like ORCID or GitHub, you can upload your configuration file and data files as an archive to the web service for submission. Once the application has been executed the output files can be browsed with a web browser.
+
+Bartender can be configured to run applications on a Slurm batch scheduler, pilot job framework, the grid or in the cloud. Bartender will take care of moving the input and output files to the right place. To pick where an application should be run you can choose from a list of existing Python functions or supply your own.
+
+Bartender can be used as the computational backend for a web application, the web application should guide visitors into the submission and show the results.
+
 This project was generated using [fastapi_template](https://github.com/s3rius/FastAPI-template).
 
 ## [Step-by-step setup of proof-of-concept](#step-by-step-setup-of-proof-of-concept)
