@@ -1,6 +1,6 @@
 # bartender
 
-[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8F%20%20%E2%97%8B-orange)](https://fair-software.eu)
+[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7614737.svg)](https://doi.org/10.5281/zenodo.7614737)
 [![Research Software Directory Badge](https://img.shields.io/badge/rsd-bartender-00a3e3.svg)](https://research-software-directory.org/software/bartender)
 
