@@ -16,4 +16,8 @@ authors:
     family-names: Honorato
     affiliation:  Utrecht University @ BonvinLab
     orcid: 'https://orcid.org/0000-0001-5267-3002'
+  - affiliation: "Netherlands eScience Center"
+    family-names: Kalverla
+    given-names: Peter
+    orcid: "https://orcid.org/0000-0002-5025-7862"    
 license: Apache-2.0
