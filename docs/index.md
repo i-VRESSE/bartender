@@ -8,7 +8,7 @@
 :caption: Contents
 
 self
+develop
 user_management
 configuration
-develop
 ```

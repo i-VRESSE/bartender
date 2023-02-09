@@ -1,8 +1,40 @@
 # Detailed instructions
 
-## Contributing
+The instructions here are meant for developers that would like to modify the
+source code. In case you'd like to contribute your changes, please refer to our
+[contributing
+guidelines](https://github.com/i-VRESSE/bartender/blob/main/CONTRIBUTING.md) and
+[code of
+conduct](https://github.com/i-VRESSE/bartender/blob/main/CODE_OF_CONDUCT.md)
 
-Please see our [code of conduct]() and [contributing guidelines]().
+## Project structure
+
+This project was generated using the
+[fastapi_template](https://github.com/s3rius/FastAPI-template). Its main
+structure is outlined below.
+
+```bash
+$ tree .
+├── tests                       # Tests for project.
+│   └── conftest.py             # Fixtures for all tests.
+├── docs                        # Documentatin for project.
+|   ├── index.rst               # Main documentation page.
+│   └── conf.py                 # Sphinx config file.
+└── src
+    └── bartender
+        ├── db                  # module contains db configurations
+        │   ├── dao             # Data Access Objects. Contains different classes to interact with database.
+        │   └── models          # Package contains different models for ORMs.
+        ├── __main__.py         # Startup script. Starts uvicorn.
+        ├── services            # Package for different external services such as rabbit or redis etc.
+        ├── settings.py         # Main configuration settings for project.
+        ├── static              # Static content.
+        └── web                 # Package contains web server. Handlers, startup config.
+            ├── api             # Package with all handlers.
+            │   └── router.py   # Main router.
+            ├── application.py  # FastAPI application configuration.
+            └── lifetime.py     # Contains actions to perform on startup and shutdown.
+```
 
 ## Obtaining a copy of the source code
 
@@ -14,62 +46,21 @@ changes, possibly from the 'upstream' repository (follow the instructions
 [here](https://help.github.com/articles/syncing-a-fork/));
 
 
-Clone the project to obtain a local copy of the source code:
+## Installing from source
+
+This project uses [poetry](https://python-poetry.org/). It's a modern dependency
+management tool. We recommend setting up a dedicated python virtual environment
+and install bartender inside it.
 
 ```bash
-git clone https://github.com/i-VRESSE/bartender.git
-cd bartender
-```
-
-### Poetry
-
-This project uses [poetry](https://python-poetry.org/). It's a modern dependency management
-tool.
-
-To run the project use this set of commands:
-
-```bash
+python3 -m venv venv
+source venv/bin/activate
 poetry install
-poetry run bartender serve
 ```
 
 This will start the server on the configured host.
 
-### Docker
-
-You can start the project with docker using this command:
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . up --build
-```
-
-If you want to develop in docker with autoreload add `-f deploy/docker-compose.dev.yml` to your docker command.
-Like this:
-
-```bash
-docker-compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml --project-directory . up
-```
-
-This command exposes the web application on port 8000, mounts current directory and enables autoreload.
-
-But you have to rebuild image every time you modify `poetry.lock` or `pyproject.toml` with this command:
-
-```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . build
-```
-
-### Pre-commit
-
-[pre-commit](https://pre-commit.com/) is very useful to check your code before publishing it.
-It's configured using `.pre-commit-config.yaml` file.
-
-To install pre-commit simply run inside the shell:
-
-```bash
-pre-commit install
-```
-
-### Migrations
+## Migrations
 
 Bartender uses [alembic](https://alembic.sqlalchemy.org) to create database tables and perform migrations.
 
@@ -83,7 +74,7 @@ alembic upgrade "<revision_id>"
 alembic upgrade "head"
 ```
 
-#### Reverting migrations
+### Reverting migrations
 
 If you want to revert migrations, you should run:
 
@@ -95,7 +86,7 @@ alembic downgrade <revision_id>
  alembic downgrade base
 ```
 
-#### Migration generation
+### Migration generation
 
 To generate migrations you should run:
 
@@ -107,20 +98,32 @@ alembic revision --autogenerate
 alembic revision
 ```
 
-### Running tests
+## Style guide
 
-If you want to run it in docker, simply run:
+We follow the
+[wemake-python-styleguide](https://wemake-python-styleguide.readthedocs.io/en/latest/)
+which integrates various linters. Autoformatters like black and isort are also
+configured. An easy way to run everything is by using [pre-commit](https://pre-commit.com/).
+It's configured using `.pre-commit-config.yaml` file.
+
+You can run pre-commit as a standalone command:
+```
+pre-commit run --all-files
+```
+
+Or configure it such that it always runs automatically when you commit something:
 
 ```bash
-docker-compose -f deploy/docker-compose.yml --project-directory . run --rm api pytest -vv .
-docker-compose -f deploy/docker-compose.yml --project-directory . down
+pre-commit install
 ```
+
+## Running tests
 
 For running tests on your local machine.
 
 1. you need to start a database.
 
-    I prefer doing it with docker:
+    Here's a way to do it with docker:
 
     ```text
     docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bartender" -e "POSTGRES_DB=bartender" postgres:13.6-bullseye
@@ -138,7 +141,7 @@ To get a PostgreSQL terminal do
 docker exec -ti <id or name of docker container> psql -U bartender
 ```
 
-### Documentation
+## Documentation
 
 Documentation is generated with [Sphinx](https://www.sphinx-doc.org/en/master/),
 and can be written in
