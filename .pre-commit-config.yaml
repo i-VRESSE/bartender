@@ -23,6 +23,11 @@ repos:
     - --preserve-quotes
     - --indent=2
 
+- repo: https://github.com/jackdewinter/pymarkdown
+  rev: 0.9.8
+  hooks:
+  - id: pymarkdown
+
 - repo: local
   hooks:
   - id: yesqa
