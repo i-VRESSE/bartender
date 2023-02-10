@@ -8,6 +8,8 @@ If you want to make a pull request:
 
 1. discuss your idea first, before putting in a lot of effort
 1. refer to the [documentation](#) for developers
+1. if needed, fork the repository to your own Github profile
+1. work on your own feature branch
 1. make sure the existing tests still work and add new tests (if necessary)
 1. update or expand the documentation;
 1. make sure your code follows the style guidelines
