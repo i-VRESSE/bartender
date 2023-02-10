@@ -2,6 +2,7 @@ import enum
 import logging
 from pathlib import Path
 from tempfile import gettempdir
+from typing import Optional
 
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 TEMP_DIR = Path(gettempdir())
 
 
-class LogLevel(str, enum.Enum):  # noqa: WPS600
+class LogLevel(str, enum.Enum):
     """Possible log levels."""
 
     NOTSET = "NOTSET"
@@ -72,10 +73,13 @@ class Settings(BaseSettings):
     # must set to non '' to have GitHub social login enabled
     github_client_id: str = ""
     github_client_secret: str = ""
+    github_redirect_url: Optional[str] = None
     orcidsandbox_client_id: str = ""
     orcidsandbox_client_secret: str = ""
+    orcidsandboxd_redirect_url: Optional[str] = None
     orcid_client_id: str = ""
     orcid_client_secret: str = ""
+    orcid_redirect_url: Optional[str] = None
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)

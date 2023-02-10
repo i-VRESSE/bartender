@@ -246,6 +246,7 @@ To enable perform following steps:
 2. Append GitHub app credentials to `.env` file
     1. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of GitHub app>`
     2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client secret of GitHub app>`
+    3. (Optionally) Add `BARTENDER_GITHUB_REDIRECT_URL=<URL of frontend server that captures token>`
 
 ### [Orcid sandbox login](#orcid-sandbox-login)
 
