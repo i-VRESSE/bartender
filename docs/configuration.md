@@ -62,14 +62,17 @@ Bartender can run job in different destinations.
 
 A destination is a combination of a scheduler and filesystem.
 Supported schedulers
+
 * memory, Scheduler which has queue in memory and can specified number of jobs (slots) concurrently.
 * slurm, Scheduler which calls commands of [Slurm batch scheduler](https://slurm.schedmd.com/) on either local machine or remote machine via SSH.
 
 Supported file systems
+
 * local: Uploading or downloading of files does nothing
 * sftp: Uploading or downloading of files is done using SFTP.
 
 When the filesystem is on a remote system with non-shared file system or a different user, then
+
 * the input files will be uploaded before submission to the scheduler and
 * the output files will be downloaded after the job has completed.
 
