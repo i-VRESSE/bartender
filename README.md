@@ -219,7 +219,7 @@ pip install DIRAC==8.0
 
 Diagram of a job flowing through web service, schedulers and filesystems.
 
-```mermaidjs
+```mermaid
 graph TD
     A[User upload] --> B{Pick destination}
     A2[User status] --> I{Retrieve status\nfrom scheduler}
