@@ -96,7 +96,7 @@ It's configured using `.pre-commit-config.yaml` file.
 
 You can run pre-commit as a standalone command:
 
-```
+```bash
 pre-commit run --all-files
 ```
 
