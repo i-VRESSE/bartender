@@ -2,7 +2,7 @@
 
 <details>
 
-<summary>~Vagrant VM with DIRAC server~Use dirac integration test script<summary>
+<summary>~Vagrant VM with DIRAC server~Use dirac integration test script</summary>
 
 Spinup docker containers which can be used to connect from bartender,
 using https://github.com/DIRACGrid/DIRAC/blob/v8.0.13/integration_tests.py
