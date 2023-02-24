@@ -1,0 +1,6 @@
+# .markdownlint.yaml
+# https://github.com/DavidAnson/markdownlint/blob/main/schema/.markdownlint.yaml
+# MD013/line-length - Line length
+MD013:
+  # Exclude code blocks
+  code_blocks: false
