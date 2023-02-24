@@ -1,8 +1,7 @@
-import enum
 import logging
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
@@ -12,16 +11,18 @@ logger = logging.getLogger(__name__)
 
 TEMP_DIR = Path(gettempdir())
 
+LogLevel = Literal[
+    "critical",
+    "error",
+    "warning",
+    "info",
+    "debug",
+    "trace",
+]  # noqa: WPS462
+"""Log level of web service.
 
-class LogLevel(str, enum.Enum):
-    """Possible log levels."""
-
-    NOTSET = "NOTSET"
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    FATAL = "FATAL"
+Choices: critical, error, warning, info, debug, trace.
+"""  # noqa: WPS428
 
 
 def default_config_filename() -> Path:
@@ -56,7 +57,7 @@ class Settings(BaseSettings):
     # Current environment
     environment: str = "dev"
 
-    log_level: LogLevel = LogLevel.INFO
+    log_level: LogLevel = "info"
 
     # Variables for the database
     db_host: str = "localhost"
