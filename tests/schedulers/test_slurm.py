@@ -1,4 +1,4 @@
-from asyncio import new_event_loop, sleep
+from asyncio import new_event_loop
 from pathlib import Path
 from typing import Generator
 
@@ -7,12 +7,12 @@ from asyncssh.misc import ConnectionLost
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.waiting_utils import wait_container_is_ready
 
-from bartender.db.models.job_model import CompletedStates
 from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
 from bartender.ssh_utils import SshConnectConfig
+from tests.schedulers.helpers import assert_output, prepare_input, wait_for_job
 
 
 class SlurmContainer(DockerContainer):
@@ -72,11 +72,7 @@ async def test_ok_running_job_with_input_and_output_file(
     try:
         ssh_config = slurm_server.get_config()
         scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
-        (job_dir / "input").write_text("Lorem ipsum")
-        description = JobDescription(
-            command="echo -n hello && wc input > output",
-            job_dir=str(job_dir),
-        )
+        description = prepare_input(job_dir)
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)
 
@@ -91,24 +87,6 @@ async def test_ok_running_job_with_input_and_output_file(
         assert_output(job_dir)
     finally:
         await scheduler.close()
-
-
-def assert_output(job_dir: Path) -> None:
-    assert (job_dir / "returncode").read_text() == "0"
-    assert (job_dir / "stdout.txt").read_text() == "hello"
-    assert (job_dir / "stderr.txt").read_text() == ""
-    assert (job_dir / "input").exists()
-    assert (job_dir / "output").read_text().strip() == "0  2 11 input"
-
-
-async def wait_for_job(scheduler: SlurmScheduler, job_id: str) -> None:
-    for _ in range(30):
-        state = await scheduler.state(job_id)
-        if state in CompletedStates:
-            break
-        await sleep(0.5)
-
-    assert state == "ok"
 
 
 @pytest.mark.anyio
