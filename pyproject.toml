@@ -54,7 +54,8 @@ sphinx = "^6.1.3"
 sphinx-autoapi = "^2.0.0"
 furo = "^2022.12.7"
 sphinx-copybutton = "^0.5.1"
-# TODO add myst-parser for CommonMark support, but release with Sphinx 6 support not available yet
+# TODO switch to released version of myst-parser
+myst-parser = {git = "https://github.com/executablebooks/MyST-Parser"}
 
 [tool.poetry.scripts]
 bartender = 'bartender.__main__:main'
