@@ -1,10 +1,12 @@
 from asyncio import TimeoutError, create_subprocess_shell, gather
-from typing import Any, Literal, Optional
+from datetime import timedelta
+from typing import Any, Literal, Optional, Union
 
 from arq import ArqRedis, Worker, create_pool
 from arq.connections import RedisSettings
 from arq.jobs import Job, JobStatus
 from pydantic import BaseModel, RedisDsn, parse_obj_as
+from pydantic.types import PositiveInt
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
@@ -23,7 +25,7 @@ def _map_arq_status(arq_status: JobStatus, success: bool) -> State:
     try:
         return status_map[arq_status]
     except KeyError:
-        # fallback to error when srq status is unmapped.
+        # fallback to error when arq status is unmapped.
         return "error"
 
 
@@ -33,12 +35,24 @@ class ArqSchedulerConfig(BaseModel):
     type: Literal["arq"] = "arq"
     redis_dsn: RedisDsn = parse_obj_as(RedisDsn, "redis://localhost:6379")
     queue: str = "arq:queue"
+    max_jobs: PositiveInt = 10  # noqa: WPS462
+    """Maximum number of jobs to run at a time inside a single worker."""  # noqa: E501, WPS322, WPS428
+    job_timeout: Union[PositiveInt, timedelta] = 3600  # noqa: WPS462
+    """Maximum job run time.
+
+    Default is one hour.
+
+    In seconds or string in `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
+
+    For example, "PT12H" represents a max runtime of "twelve hours".
+    """  # noqa: E501, WPS428
 
     @property
     def redis_settings(self) -> RedisSettings:
         """Settings for arq.
 
-        :returns: The settings based on redis_dsn.
+        Returns:
+            The settings based on redis_dsn.
         """
         return RedisSettings.from_dsn(self.redis_dsn)
 
@@ -52,7 +66,8 @@ class ArqScheduler(AbstractScheduler):
     def __init__(self, config: ArqSchedulerConfig) -> None:
         """Arq scheduler.
 
-        :param config: The config.
+        Args:
+            config: The config.
         """
         self.config: ArqSchedulerConfig = config
         self.connection: Optional[ArqRedis] = None
@@ -133,15 +148,19 @@ async def _exec(  # noqa: WPS210
 def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
     """Worker that runs jobs submitted to arq queue.
 
-    :param config: The config.
-        Should be equal to the one used to submit job.
-    :param burst: Whether to stop the worker once all jobs have been run.
-    :return: A worker.
+    Args:
+        config: The config. Should be equal to the one used to submit job.
+        burst: Whether to stop the worker once all jobs have been run.
+
+    Returns:
+        A worker.
     """
     functions = [_exec]
     return Worker(
         redis_settings=config.redis_settings,
         queue_name=config.queue,
+        max_jobs=config.max_jobs,
+        job_timeout=config.job_timeout,
         functions=functions,  # type: ignore
         burst=burst,
         allow_abort_jobs=True,
@@ -151,7 +170,8 @@ def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
 async def run_workers(configs: list[ArqSchedulerConfig]) -> None:
     """Run worker for each arq scheduler config.
 
-    :param configs: The configs.
+    Args:
+        configs: The configs.
     """
     workers = [arq_worker(config) for config in configs]
     await gather(*[worker.async_run() for worker in workers])

@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentParser
 from importlib.metadata import version
 from pathlib import Path
+from typing import Optional
 
 import uvicorn
 
@@ -30,8 +31,11 @@ def serve() -> None:
 async def make_super_async(email: str) -> None:
     """Async method to grant a user super rights.
 
-    :param email: Email of user
-    :raises ValueError: When user can not be found
+    Args:
+        email: Email of user
+
+    Raises:
+        ValueError: When user can not be found
     """
     session_factory = make_session_factory(make_engine())
     get_user_db_context = contextlib.asynccontextmanager(get_user_db)
@@ -49,27 +53,38 @@ async def make_super_async(email: str) -> None:
 def make_super(email: str) -> None:
     """Grant a user super rights.
 
-    :param email: Email of user
+    Args:
+        email: Email of user
     """
     asyncio.run(make_super_async(email))
 
 
-def mix(config: Path) -> None:
+def perform(config: Path, destination_names: Optional[list[str]] = None) -> None:
     """Runs arq worker to run queued jobs.
 
-    Like a bartender mixes the cocktails,
-    the i-vresse bartender mixes aka runs queued jobs.
+    Like a bartender performing something entertaining,
+    the i-vresse bartender performs by running queued jobs.
 
-    :param config: Path to config file.
-    :raises ValueError: When no usefull destination found in config file.
+    Args:
+        config: Path to config file.
+        destination_names: Name of destinations to run workers for.
+            Each destination must have `scheduler.type:arq`.
+            By default runs workers for all destinations with `scheduler.type:arq`.
+
+    Raises:
+        ValueError: When no valid destination is found in config file.
     """
     validated_config = build_config(config)
     configs: list[ArqSchedulerConfig] = []
-    for destination in validated_config.destinations.values():
-        if isinstance(destination.scheduler, ArqSchedulerConfig):
+    for destination_name, destination in validated_config.destinations.items():
+        included = destination_names is None or destination_name in destination_names
+        if isinstance(destination.scheduler, ArqSchedulerConfig) and included:
+            print(  # noqa: WPS421 -- user feedback on command line
+                f"Worker running for '{destination_name}' destination in {config}.",
+            )
             configs.append(destination.scheduler)
     if not configs:
-        raise ValueError("No destination found in config file using arq scheduler")
+        raise ValueError("No valid destination found in config file.")
 
     asyncio.run(run_workers(configs))
 
@@ -77,7 +92,8 @@ def mix(config: Path) -> None:
 def build_parser() -> ArgumentParser:
     """Build an argument parser.
 
-    :return: parser
+    Returns:
+        parser
     """
     parser = ArgumentParser(prog="bartender")
     parser.add_argument("--version", action="version", version=version("bartender"))
@@ -90,14 +106,22 @@ def build_parser() -> ArgumentParser:
     super_sp.add_argument("email", help="Email address of logged in user")
     super_sp.set_defaults(func=make_super)
 
-    mix_sp = subparsers.add_parser("mix", help="Async Redis queue job worker")
-    mix_sp.add_argument(
+    perform_sp = subparsers.add_parser("perform", help="Async Redis queue job worker")
+    perform_sp.add_argument(
         "--config",
         default=Path("config.yaml"),
         type=Path,
         help="Configuration with schedulers that need arq workers",
     )
-    mix_sp.set_defaults(func=mix)
+    perform_sp.add_argument(
+        "--destination",
+        nargs="+",
+        help="""Name of destinations to run workers for.
+            Each destination must have `scheduler.type:arq`.
+            By default runs workers for all destinations with `scheduler.type:arq`.""",
+        dest="destination_names",
+    )
+    perform_sp.set_defaults(func=perform)
 
     return parser
 
@@ -105,7 +129,8 @@ def build_parser() -> ArgumentParser:
 def main(argv: list[str] = sys.argv[1:]) -> None:
     """Entrypoint of the application.
 
-    :param argv: Arguments to parse
+    Args:
+        argv: Arguments to parse
     """
     parser = build_parser()
     args = parser.parse_args(argv)

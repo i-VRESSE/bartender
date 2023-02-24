@@ -13,14 +13,13 @@ from bartender.settings import settings
 
 
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
-    """
-    Creates connection to the database.
+    """Creates connection to the database.
 
-    This function creates SQLAlchemy engine instance,
-    session_factory for creating sessions
-    and stores them in the application's state property.
+    This function creates SQLAlchemy engine instance, session_factory for
+    creating sessions and stores them in the application's state property.
 
-    :param app: fastAPI application.
+    Args:
+        app: fastAPI application.
     """
     app.state.db_engine = make_engine()
     app.state.db_session_factory = make_session_factory(app.state.db_engine)
@@ -29,14 +28,15 @@ def _setup_db(app: FastAPI) -> None:  # pragma: no cover
 def register_startup_event(
     app: FastAPI,
 ) -> Callable[[], Awaitable[None]]:  # pragma: no cover
-    """
-    Actions to run on application startup.
+    """Actions to run on application startup.
 
-    This function uses fastAPI app to store data
-    inthe state, such as db_engine.
+    This function uses fastAPI app to store data inthe state, such as db_engine.
 
-    :param app: the fastAPI application.
-    :return: function that actually performs actions.
+    Args:
+        app: the fastAPI application.
+
+    Returns:
+        function that actually performs actions.
     """
 
     @app.on_event("startup")
@@ -51,11 +51,13 @@ def register_startup_event(
 def register_shutdown_event(
     app: FastAPI,
 ) -> Callable[[], Awaitable[None]]:  # pragma: no cover
-    """
-    Actions to run on application's shutdown.
+    """Actions to run on application's shutdown.
 
-    :param app: fastAPI application.
-    :return: function that actually performs actions.
+    Args:
+        app: fastAPI application.
+
+    Returns:
+        function that actually performs actions.
     """
 
     @app.on_event("shutdown")
@@ -72,7 +74,8 @@ def _parse_context(app: FastAPI) -> None:
 
     Sets `app.state.config` and `app.state.context`.
 
-    :param app: fastAPI application.
+    Args:
+        app: fastAPI application.
     """
     config = build_config(settings.config_filename)
     app.state.config = config
@@ -82,6 +85,7 @@ def _parse_context(app: FastAPI) -> None:
 async def _teardown_context(app: FastAPI) -> None:
     """Teardown schedulers and file systems.
 
-    :param app: fastAPI application.
+    Args:
+        app: fastAPI application.
     """
     await close_context(app.state.context)

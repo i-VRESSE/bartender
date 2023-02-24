@@ -17,7 +17,10 @@ async def profile(
     """
     Retrieve profile of currently logged in user.
 
-    :param user: Current active user.
-    :return: user profile.
+    Args:
+        user: Current active user.
+
+    Returns:
+        user profile.
     """
     return user

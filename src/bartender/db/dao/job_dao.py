@@ -24,15 +24,17 @@ class JobDAO:
         updated_on: Optional[datetime] = None,
         created_on: Optional[datetime] = None,
     ) -> Optional[int]:
-        """
-        Add single job to session.
+        """Add single job to session.
 
-        :param name: name of a job.
-        :param application: name of application to run job for.
-        :param submitter: User who submitted the job.
-        :param updated_on: Datetime when job was last updated.
-        :param created_on: Datetime when job was created.
-        :return: id of a job.
+        Args:
+            name: name of a job.
+            application: name of application to run job for.
+            submitter: User who submitted the job.
+            updated_on: Datetime when job was last updated.
+            created_on: Datetime when job was created.
+
+        Returns:
+            id of a job.
         """
         job = Job(
             name=name,
@@ -46,13 +48,15 @@ class JobDAO:
         return job.id
 
     async def get_all_jobs(self, limit: int, offset: int, user: User) -> List[Job]:
-        """
-        Get all job models of user with limit/offset pagination.
+        """Get all job models of user with limit/offset pagination.
 
-        :param limit: limit of jobs.
-        :param offset: offset of jobs.
-        :param user: Which user to get jobs from.
-        :return: stream of jobs.
+        Args:
+            limit: limit of jobs.
+            offset: offset of jobs.
+            user: Which user to get jobs from.
+
+        Returns:
+            stream of jobs.
         """
         raw_jobs = await self.session.execute(
             select(Job)
@@ -64,12 +68,14 @@ class JobDAO:
         return raw_jobs.scalars().fetchall()
 
     async def get_job(self, jobid: int, user: User) -> Job:
-        """
-        Get specific job model.
+        """Get specific job model.
 
-        :param jobid: name of job instance.
-        :param user: Which user to get jobs from.
-        :return: job model.
+        Args:
+            jobid: name of job instance.
+            user: Which user to get jobs from.
+
+        Returns:
+            job model.
         """
         # This is the Asyncrhonous session;
         #  https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncSession.refresh
@@ -81,11 +87,11 @@ class JobDAO:
         return result.scalar_one()
 
     async def update_job_state(self, jobid: int, state: State) -> None:
-        """
-        Update state of a job.
+        """Update state of a job.
 
-        :param jobid: name of job instance.
-        :param state: new state of job instance.
+        Args:
+            jobid: name of job instance.
+            state: new state of job instance.
         """
         job = await self.session.get(Job, jobid)
         if job is None:
@@ -99,12 +105,12 @@ class JobDAO:
         internal_job_id: str,
         destination: str,
     ) -> None:
-        """
-        Update internal id and destination of a job.
+        """Update internal id and destination of a job.
 
-        :param jobid: name of job instance.
-        :param internal_job_id: new internal job id of job instance.
-        :param destination: To which scheduler/filesystem the job was submitted.
+        Args:
+            jobid: name of job instance.
+            internal_job_id: new internal job id of job instance.
+            destination: To which scheduler/filesystem the job was submitted.
         """
         job = await self.session.get(Job, jobid)
         if job is None:

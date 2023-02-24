@@ -1,7 +1,7 @@
 from asyncio import sleep
 from pathlib import Path
 
-from bartender.db.models.job_model import CompletedStates
+from bartender.db.models.job_model import CompletedStates, State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
 
@@ -21,11 +21,17 @@ def assert_output(job_dir: Path) -> None:
     assert (job_dir / "output").read_text().strip() == "0  2 11 input"
 
 
-async def wait_for_job(scheduler: AbstractScheduler, job_id: str) -> None:
-    for _ in range(30):
+async def wait_for_job(
+    scheduler: AbstractScheduler,
+    job_id: str,
+    expected: State = "ok",
+    delay: float = 0.5,
+    attempts: int = 30,
+) -> None:
+    for _ in range(attempts):
         state = await scheduler.state(job_id)
         if state in CompletedStates:
             break
-        await sleep(0.5)
+        await sleep(delay)
 
-    assert state == "ok"
+    assert state == expected

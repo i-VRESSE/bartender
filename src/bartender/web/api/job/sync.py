@@ -18,13 +18,14 @@ async def sync_state(
 ) -> None:
     """Sync state of job from scheduler to database.
 
-    :param job: Job instance.
-    :param job_dao: JobDAO object.
-    :param destination: Job destination used to submit job.
-    :param job_root_dir: Directory where all jobs can be found.
-    :param file_staging_queue: When scheduler reports job is complete.
-        The output files need to be copied back.
-        Use queue to perform download outside request/response handling.
+    Args:
+        job: Job instance.
+        job_dao: JobDAO object.
+        destination: Job destination used to submit job.
+        job_root_dir: Directory where all jobs can be found.
+        file_staging_queue: When scheduler reports job is complete.
+            The output files need to be copied back.
+            Use queue to perform download outside request/response handling.
     """
     if job.state not in CompletedStates and job.internal_id is not None:
         state = await destination.scheduler.state(job.internal_id)
@@ -55,9 +56,10 @@ class UpdateStateHelper:
     ):
         """Contruct with non job specific arguments.
 
-        :param job_dao: Object to update jobs in database.
-        :param job_root_dir: In which directory the job directory was made.
-        :param file_staging_queue: Queue used to defer downloading.
+        Args:
+            job_dao: Object to update jobs in database.
+            job_root_dir: In which directory the job directory was made.
+            file_staging_queue: Queue used to defer downloading.
         """
         self.job_dao = job_dao
         self.job_root_dir = job_root_dir
@@ -71,10 +73,12 @@ class UpdateStateHelper:
     ) -> None:
         """Perform update with job specific arguments.
 
-        :param job: Job for which new state should be set.
-        :param state: The new state, most likely retrieved from a scheduler.
-        :param filesystem: Filesystem on which scheduler executed the job.
-            Where the output files of the job reside.
+        Args:
+            job: Job for which new state should be set.
+            state: The new state, most likely retrieved from a
+                scheduler.
+            filesystem: Filesystem on which scheduler executed the job.
+                Where the output files of the job reside.
         """
         if job.state != state and job.id is not None and job.state != "staging_out":
             if state in CompletedStates:
@@ -103,13 +107,14 @@ async def sync_states(
 ) -> None:
     """Sync state of jobs from scheduler to database.
 
-    :param jobs: Job instances.
-    :param destinations: Job destinations.
-    :param job_dao: JobDAO object.
-    :param job_root_dir: Directory where all jobs can be found.
-    :param file_staging_queue: When scheduler reports job is complete.
-        The output files need to be copied back.
-        Use queue to perform download outside request/response handling.
+    Args:
+        jobs: Job instances.
+        destinations: Job destinations.
+        job_dao: JobDAO object.
+        job_root_dir: Directory where all jobs can be found.
+        file_staging_queue: When scheduler reports job is complete.
+            The output files need to be copied back.
+            Use queue to perform download outside request/response handling.
     """
     jobs2sync = [
         job
@@ -183,14 +188,17 @@ def download2queue(
     1. Download files from job on `filesystem` to `job_root_dir/job.id`.
     2. Update state of job in db to `state`.
 
-    :param job: Completed job to download for.
-    :param job_dao: Object to interact with database.
-    :param state: The new state to set.
-    :param filesystem: File system where job wrote its output files.
-    :param job_root_dir: Directory on server where this Python process is running.
-        A subdirectory of this is the job directory
-        and the destination to copy files to.
-    :return: Function that can be passed to `FileStagingQueue.put(item)`.
+    Args:
+        job: Completed job to download for.
+        job_dao: Object to interact with database.
+        state: The new state to set.
+        filesystem: File system where job wrote its output files.
+        job_root_dir: Directory on server where this Python process is
+            running. A subdirectory of this is the job directory and the
+            destination to copy files to.
+
+    Returns:
+        Function that can be passed to `FileStagingQueue.put(item)`.
     """
     # TODO instead of passing function to queue,
     # pass just the (job.id, state and destination_name)

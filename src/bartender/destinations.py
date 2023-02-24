@@ -29,7 +29,8 @@ class DestinationConfig(BaseModel):
 def default_destinations() -> dict[str, DestinationConfig]:
     """Default destinations when empty dict was given as Config.destinations.
 
-    :returns: Dict with local in-memory scheduler and file system.
+    Returns:
+        Dict with local in-memory scheduler and file system.
     """
     return {
         "": DestinationConfig(
@@ -49,8 +50,8 @@ class Destination:
     async def close(self) -> None:
         """Cleanup destination.
 
-        A job destination can have connections to remote systems.
-        Call this method to clean those up.
+        A job destination can have connections to remote systems. Call this
+        method to clean those up.
         """
         await self.scheduler.close()
         self.filesystem.close()
@@ -59,8 +60,11 @@ class Destination:
 def build(config: dict[str, DestinationConfig]) -> dict[str, Destination]:
     """Build job destinations dictionary from a configuration dictionary.
 
-    :param config: The configuration dictionary.
-    :return: Job destinations dictionary
+    Args:
+        config: The configuration dictionary.
+
+    Returns:
+        Job destinations dictionary
     """
     destinations = {}
     for name, dest_config in config.items():
@@ -71,8 +75,11 @@ def build(config: dict[str, DestinationConfig]) -> dict[str, Destination]:
 def build_destination(config: DestinationConfig) -> Destination:
     """Build job destination from configuration.
 
-    :param config: Configuration for a destination.
-    :returns: A job destination.
+    Args:
+        config: Configuration for a destination.
+
+    Returns:
+        A job destination.
     """
     scheduler = build_scheduler(config.scheduler)
     filesystem = build_filesystem(config.filesystem)

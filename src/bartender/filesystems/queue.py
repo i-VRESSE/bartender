@@ -21,7 +21,8 @@ async def _file_staging_worker(queue: FileStagingQueue) -> None:
 def setup_file_staging_queue(app: FastAPI) -> None:
     """Create file staging queue and inject in to app state.
 
-    :param app: FastAPI application.
+    Args:
+        app: FastAPI application.
     """
     queue, task = build_file_staging_queue()
     app.state.file_staging_queue = queue
@@ -31,7 +32,8 @@ def setup_file_staging_queue(app: FastAPI) -> None:
 def build_file_staging_queue() -> tuple[FileStagingQueue, Task[None]]:
     """Create file staging queue and single worker task.
 
-    :return: The queue and the task.
+    Returns:
+        The queue and the task.
     """
     queue: FileStagingQueue = Queue()
     task = create_task(_file_staging_worker(queue))
@@ -41,7 +43,8 @@ def build_file_staging_queue() -> tuple[FileStagingQueue, Task[None]]:
 async def stop_file_staging_queue(task: Task[None]) -> None:
     """Stop file staging queue and its task consumer.
 
-    :param task: Task to cancel and wait for.
+    Args:
+        task: Task to cancel and wait for.
     """
     # TODO Should we complete queued+running file staging tasks
     # or leave incomplete (=current)?
@@ -53,7 +56,8 @@ async def stop_file_staging_queue(task: Task[None]) -> None:
 async def teardown_file_staging_queue(app: FastAPI) -> None:
     """Stop file staging queue and its task consumer.
 
-    :param app: fastAPI application.
+    Args:
+        app: fastAPI application.
     """
     await stop_file_staging_queue(app.state.file_staging_queue_task)
 
@@ -61,8 +65,12 @@ async def teardown_file_staging_queue(app: FastAPI) -> None:
 def get_file_staging_queue(request: Request) -> FileStagingQueue:
     """Retrieve file staging queue.
 
-    :param request: The request injected by FastAPI.
-    :return: queue for downloading/uploading files from/to remote filesystems.
+    Args:
+        request: The request injected by FastAPI.
+
+    Returns:
+        queue for downloading/uploading files from/to remote
+        filesystems.
 
     Can be used in dependency injection in a FastAPI route.
     Requires :func:`setup_file_staging_queue` and :func:`teardown_file_staging_queue`
@@ -77,7 +85,6 @@ def get_file_staging_queue(request: Request) -> FileStagingQueue:
             file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
         ):
             return file_staging_queue.qsize()
-
 
     """
     return request.app.state.file_staging_queue

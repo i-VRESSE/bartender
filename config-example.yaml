@@ -1,16 +1,8 @@
-# By default the files of jobs are stored in /tmp/jobs
-# job_root_dir: /tmp/jobs
-# By default jobs are submitted to the first destination
-# destination_picker: bartender.picker:pick_first
-# To use a custom picker set `destination_picker` to a `<module>:<function>`
-# The picker should have type bartender.picker.DestinationPicker .
+job_root_dir: /tmp/jobs
+destination_picker: bartender.picker:pick_first
 applications:
-  # The label of the application
   wc:
-    # Command line interface command to run application.
-    # `$config` occurences will be replaced value of config parameter.
     command: wc $config
-    # Name of config file that the application needs
     config: README.md
 destinations:
   local:
@@ -19,46 +11,3 @@ destinations:
       slots: 1
     filesystem:
       type: local
-  ## Example of running jobs by current user on snellius.
-  # remote:
-  #   scheduler:
-  #     type: slurm
-  #     partition: thin
-  #     ssh_config:
-  #       hostname: snellius.surf.nl
-  #   filesystem:
-  #     type: sftp
-  #     ssh_config:
-  #       hostname: snellius.surf.nl
-  #     entry: /scratch-shared/bartender/jobs
-  ## Example of running jobs on a slurm Docker container.
-  ## Start a container with `docker run --detach --publish 10022:22 xenonmiddleware/slurm:20`
-  # slurmcontainer:
-  #   scheduler:
-  #       type: slurm
-  #       partition: mypartition
-  #       ssh_config:
-  #           port: 10022
-  #           hostname: localhost
-  #           username: xenon
-  #           password: javagat
-  #   filesystem:
-  #       type: sftp
-  #       ssh_config:
-  #           port: 10022
-  #           hostname: localhost
-  #           username: xenon
-  #           password: javagat
-  #       entry: /home/xenon
-  # Example of running jobs on an async Redis queue (arq)
-  # Requires a Redis server on default port to be running with:
-  # `docker run --detach --publish 6379:6379 redis:7`
-  # Requires at least one arq worker to run in another shell
-  # with same config file with:
-  # `bartender mix --config config.yaml`
-  # redis:
-  #   scheduler:
-  #     type: arq
-  #     redis_dsn: redis://localhost:6379
-  #   filesystem:
-  #     type: local

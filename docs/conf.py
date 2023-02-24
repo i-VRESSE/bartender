@@ -13,6 +13,7 @@ release = "0.1.0"  # TODO have version only in one place pyproject.toml
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "myst_parser",
     "autoapi.extension",
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
@@ -23,6 +24,7 @@ extensions = [
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+myst_heading_anchors = 3
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

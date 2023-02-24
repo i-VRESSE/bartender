@@ -4,11 +4,11 @@ from httpx_oauth.errors import GetIdEmailError
 from httpx_oauth.oauth2 import BaseOAuth2
 from starlette import status
 
-AUTHORIZE_ENDPOINT = "https://{domain}/oauth/authorize"  # noqa: S105 -- not a password
+AUTHORIZE_ENDPOINT = "https://{domain}/oauth/authorize"
 ACCESS_TOKEN_ENDPOINT = "https://{domain}/oauth/token"  # noqa: S105 -- not a password
 BASE_SCOPES = ["openid"]
-PROFILE_ENDPOINT = "https://{domain}/oauth/userinfo"  # noqa: S105 -- not a password
-EMAILS_ENDPOINT = "https://pub.{domain}/v3.0/{id}/email"  # noqa: S105 -- not a password
+PROFILE_ENDPOINT = "https://{domain}/oauth/userinfo"
+EMAILS_ENDPOINT = "https://pub.{domain}/v3.0/{id}/email"
 
 
 class OrcidOAuth2(BaseOAuth2[Dict[str, Any]]):
@@ -34,8 +34,11 @@ class OrcidOAuth2(BaseOAuth2[Dict[str, Any]]):
     async def get_id_email(self, token: str) -> Tuple[str, str]:
         """Retrieve account id and email.
 
-        :param token: Orcid token
-        :return: Tuple with account id and email
+        Args:
+            token: Orcid token
+
+        Returns:
+            Tuple with account id and email
         """
         orcid_id = await self._get_orcid_id(token)
         email = await self._get_email(orcid_id)

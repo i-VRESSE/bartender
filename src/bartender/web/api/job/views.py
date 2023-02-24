@@ -27,18 +27,20 @@ async def retrieve_jobs(  # noqa: WPS211
     context: Context = Depends(get_context),
     file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
 ) -> List[Job]:
-    """
-    Retrieve all jobs of user from the database.
+    """Retrieve all jobs of user from the database.
 
-    :param limit: limit of jobs.
-    :param offset: offset of jobs.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :param file_staging_queue: When scheduler reports job is complete.
-        The output files need to be copied back.
-        Use queue to perform download outside request/response handling.
-    :return: stream of jobs.
+    Args:
+        limit: limit of jobs.
+        offset: offset of jobs.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+        file_staging_queue: When scheduler reports job is complete.
+            The output files need to be copied back.
+            Use queue to perform download outside request/response handling.
+
+    Returns:
+        stream of jobs.
     """
     # TODO now list jobs that user submitted,
     # later also list jobs which are visible by admin
@@ -63,18 +65,22 @@ async def retrieve_job(
     context: Context = Depends(get_context),
     file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
 ) -> Job:
-    """
-    Retrieve specific job from the database.
+    """Retrieve specific job from the database.
 
-    :param jobid: identifier of job instance.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :param file_staging_queue: When scheduler reports job is complete.
-        The output files need to be copied back.
-        Use queue to perform download outside request/response handling.
-    :raises HTTPException: When job is not found or user is not allowed to see job.
-    :return: job models.
+    Args:
+        jobid: identifier of job instance.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+        file_staging_queue: When scheduler reports job is complete.
+            The output files need to be copied back.
+            Use queue to perform download outside request/response handling.
+
+    Raises:
+        HTTPException: When job is not found or user is not allowed to see job.
+
+    Returns:
+        job models.
     """
     try:
         # TODO now get job that user submitted,
@@ -109,12 +115,17 @@ async def retrieve_job_stdout(
 ) -> FileResponse:
     """Retrieve stdout of a job.
 
-    :param jobid: identifier of job instance.
-    :param job_dao: JobDAO object.
-    :param user: Current active user.
-    :param context: Context with destinations.
-    :raises HTTPException: When job is not found or user is not allowed to see job.
-    :return: stdout of job.
+    Args:
+        jobid: identifier of job instance.
+        job_dao: JobDAO object.
+        user: Current active user.
+        context: Context with destinations.
+
+    Raises:
+        HTTPException: When job is not found or user is not allowed to see job.
+
+    Returns:
+        stdout of job.
     """
     job = await retrieve_job(
         jobid=jobid,
