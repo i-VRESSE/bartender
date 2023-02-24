@@ -140,7 +140,8 @@ class MemoryScheduler(AbstractScheduler):
 
     def __repr__(self) -> str:
         slots = len(self.workers)
-        return f"MemoryScheduler(slots={slots})"
+        config = repr(MemorySchedulerConfig(slots=slots))
+        return f"MemoryScheduler(config={config})"
 
     def _add_worker(self) -> None:
         worker_index = len(self.workers)

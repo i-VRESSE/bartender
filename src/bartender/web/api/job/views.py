@@ -76,8 +76,6 @@ async def retrieve_job(
         job = await job_dao.get_job(jobid=jobid, user=user)
         if job.destination is not None:
             destination = context.destinations[job.destination]
-            # TODO perform syncing of states in background task
-            # sync can include downloading of big job dir from remote to local,
             await sync_state(job, job_dao, destination, context.job_root_dir)
         return job
     except NoResultFound as exc:

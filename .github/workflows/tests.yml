@@ -93,7 +93,7 @@ jobs:
         # Workaround for random install failures
         POETRY_INSTALLER_PARALLEL: false
     - name: Run pytest check
-      run: poetry run pytest -vv --cov="bartender" .
+      run: poetry run pytest -vv --cov="src" .
       env:
         BARTENDER_HOST: "0.0.0.0"
         BARTENDER_DB_HOST: localhost
