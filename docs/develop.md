@@ -1,4 +1,4 @@
-# Detailed instructions
+# Developer guidelines
 
 These instructions are meant for developers that want to modify bartender. If
 you're willing to contribute your changes, please refer to our [contributing
