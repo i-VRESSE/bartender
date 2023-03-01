@@ -158,3 +158,6 @@ async def current_api_token(user: User = Depends(current_active_user)) -> str:
         lifetime_seconds=API_TOKEN_LIFETIME,
     )
     return await strategy.write_token(user)
+
+
+current_super_user = fastapi_users.current_user(active=True, superuser=True)
