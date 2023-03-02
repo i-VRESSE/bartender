@@ -2,10 +2,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from bartender.config import get_roles
 from bartender.db.dao.user_dao import get_user_db
 from bartender.db.dependencies import get_db_session
 from bartender.db.models.user import Role, User
@@ -16,23 +16,21 @@ router = APIRouter()
 
 @router.get("/")
 async def list_roles(
-    session: AsyncSession = Depends(get_db_session),
+    roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
-) -> list[str]:
+) -> set[str]:
     """List available roles.
 
     Requires logged in user to be a super user.
 
     Args:
-        session: DB session.
+        roles: Roles from config.
         super_user: Checks if current user is super.
 
     Returns:
         List of role names.
     """
-    raw_jobs = await session.execute(select(Role))
-    # TODO find nicer way to return just ids instead of looping
-    return [role.id for role in raw_jobs.scalars().fetchall()]
+    return roles
 
 
 @router.put("/{role_id}")
