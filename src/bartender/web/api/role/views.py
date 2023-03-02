@@ -32,62 +32,14 @@ async def list_roles(
     """
     return roles
 
-
-@router.put("/{role_id}")
-async def add_role(
-    role_id: str,
-    session: AsyncSession = Depends(get_db_session),
-    super_user: User = Depends(current_super_user),
-) -> str:
-    """Add role.
-
-    Requires logged in user to be a super user.
-
-    Args:
-        role_id: Name of role
-        session: DB session.
-        super_user: Checks if current user is super.
-
-    Returns:
-        Name of role
-    """
-    role = Role(id=role_id)
-    session.add(role)
-    await session.commit()
-    return role_id
-
-
-@router.delete("/{role_id}")
-async def remove_role(
-    role_id: str,
-    session: AsyncSession = Depends(get_db_session),
-    super_user: User = Depends(current_super_user),
-) -> str:
-    """Remove role.
-
-    Requires logged in user to be a super user.
-
-    Args:
-        role_id: Name of role
-        session: DB session.
-        super_user: Checks if current user is super.
-
-    Returns:
-        Name of role
-    """
-    role = Role(id=role_id)
-    await session.delete(role)
-    await session.commit()
-    return role_id
-
-
 @router.put("/{role_id}/{user_id}")
 async def grant_role_to_user(
     role_id: str,
     user_id: str,
+    roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
     user_db: SQLAlchemyUserDatabase[User, UUID] = Depends(get_user_db),
-) -> list[Role]:
+) -> list[str]:
     """Grant role to user.
 
     Args:
@@ -118,6 +70,7 @@ async def grant_role_to_user(
 async def revoke_role_from_user(
     role_id: str,
     user_id: str,
+    roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
     user_db: SQLAlchemyUserDatabase[User, UUID] = Depends(get_user_db),
 ) -> list[Role]:
