@@ -1,11 +1,10 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from starlette import status
 
 from bartender.config import get_roles
-from bartender.db.dao.user_dao import get_user_db
+from bartender.db.dao.user_dao import UserDatabase, get_user_db
 from bartender.db.models.user import User
 from bartender.web.users.manager import current_super_user
 
@@ -37,7 +36,7 @@ async def grant_role_to_user(
     user_id: str,
     roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
-    user_db: SQLAlchemyUserDatabase[User, UUID] = Depends(get_user_db),
+    user_db: UserDatabase = Depends(get_user_db),
 ) -> list[str]:
     """Grant role to user.
 
@@ -67,10 +66,7 @@ async def grant_role_to_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found",
         )
-    if role_id not in user.roles:
-        user.roles.append(role_id)
-        await user_db.session.commit()
-        await user_db.session.refresh(user)
+    await user_db.grant_role(user, role_id)
     return user.roles
 
 
@@ -80,7 +76,7 @@ async def revoke_role_from_user(
     user_id: str,
     roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
-    user_db: SQLAlchemyUserDatabase[User, UUID] = Depends(get_user_db),
+    user_db: UserDatabase = Depends(get_user_db),
 ) -> list[str]:
     """Revoke role from user.
 
@@ -110,9 +106,7 @@ async def revoke_role_from_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found",
         )
-    user.roles.remove(role_id)
-    await user_db.session.commit()
-    await user_db.session.refresh(user)
+    await user_db.revoke_role(user, role_id)
     return user.roles
 
 

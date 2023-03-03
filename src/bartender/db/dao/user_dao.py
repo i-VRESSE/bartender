@@ -31,6 +31,29 @@ class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
         results = await self.session.execute(statement)
         return results.unique().scalars().all()
 
+    async def grant_role(self, user: User, role: str) -> None:
+        """Grant a role to a user.
+
+        Args:
+            user: The user.
+            role: The role.
+        """
+        if role not in user.roles:
+            user.roles.append(role)
+            await self.session.commit()
+            await self.session.refresh(user)
+
+    async def revoke_role(self, user: User, role: str) -> None:
+        """Revoke a role to a user.
+
+        Args:
+            user: The user.
+            role: The role.
+        """
+        user.roles.remove(role)
+        await self.session.commit()
+        await self.session.refresh(user)
+
 
 async def get_user_db(
     session: AsyncSession = Depends(get_db_session),
