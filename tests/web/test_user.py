@@ -29,5 +29,6 @@ async def test_profile(
     expected = {
         "email": "me@example.com",
         "oauth_accounts": [],
+        "roles": [],
     }
     assert response.json() == expected

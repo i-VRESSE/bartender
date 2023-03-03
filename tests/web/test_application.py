@@ -34,6 +34,7 @@ async def test_get_application(
     expected = {
         "command": "wc $config",
         "config": "job.ini",
+        "allowed_roles": [],
     }
     assert app == expected
 
