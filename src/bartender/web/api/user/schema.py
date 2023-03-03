@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -17,6 +19,16 @@ class UserProfileInputDTO(BaseModel):
 
     email: str
     oauth_accounts: list[OAuthAccountName]
+    roles: list[str]
 
     class Config:
         orm_mode = True
+
+
+class UserAsListItem(UserProfileInputDTO):
+    """DTO for user in a list."""
+
+    id: UUID
+    is_active: bool
+    is_superuser: bool
+    is_verified: bool

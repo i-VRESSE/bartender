@@ -135,7 +135,7 @@ def get_roles(config: Config = Depends(get_config)) -> set[str]:
         list of roles
     """
     roles = set()
-    for app_name, app in config.applications.items():
+    for app in config.applications.values():
         for role in app.allowed_roles:
-            roles.add(f"{app_name}:{role}")
+            roles.add(role)
     return roles

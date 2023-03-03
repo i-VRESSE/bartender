@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from starlette import status
 from starlette.background import BackgroundTask
@@ -92,6 +92,7 @@ async def upload_job(  # noqa: WPS211
     if application not in context.applications:
         valid = context.applications.keys()
         raise KeyError(f"Invalid application. Valid applications: {valid}")
+    _check_role(application, submitter, context)
     job_id = await job_dao.create_job(upload.filename, application, submitter)
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
@@ -123,3 +124,28 @@ async def upload_job(  # noqa: WPS211
         status_code=status.HTTP_303_SEE_OTHER,
         background=task,
     )
+
+
+def _check_role(application: str, submitter: User, context: Context) -> None:
+    """Check where submitter is allowed to use application.
+
+    When application has some allowed_roles defined then
+    the submitter should have at least one of those roles to continue.
+
+    When application has no allowed_roles defined then
+    the submitter is allowed to continue.
+
+    Args:
+        application: Name of application to run job for.
+        submitter: User who submitted job.
+        context: Context with applications.
+
+    Raises:
+        HTTPException: When submitter is missing role.
+    """
+    allowed_roles = context.applications[application].allowed_roles
+    if allowed_roles and not set(submitter.roles) & set(allowed_roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Missing role.",
+        )

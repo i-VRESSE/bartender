@@ -5,9 +5,10 @@ from fastapi_users_db_sqlalchemy import (
     SQLAlchemyBaseUserTableUUID,
 )
 from sqlalchemy import BigInteger, Column
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import String
-from sqlalchemy.dialects.postgresql import ARRAY
 
 from bartender.db.base import Base
 
@@ -38,7 +39,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         "Job",
         back_populates="submitter",
     )
-    roles = Column(ARRAY(String(24), as_tuple=True, dimensions=1))
+    roles: List[str] = Column(
+        MutableList.as_mutable(ARRAY(String(100), dimensions=1)),
+        default=[],
+    )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})"

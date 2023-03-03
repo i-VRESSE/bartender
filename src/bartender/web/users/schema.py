@@ -9,6 +9,8 @@ from fastapi_users import schemas
 class UserRead(schemas.BaseUser[uuid.UUID]):
     """DTO for read user."""
 
+    roles: list[str]
+
 
 class UserCreate(schemas.BaseUserCreate):
     """DTO to create user."""

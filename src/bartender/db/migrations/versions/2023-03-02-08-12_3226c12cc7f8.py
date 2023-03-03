@@ -22,8 +22,8 @@ def upgrade() -> None:
         "user",
         sa.Column(
             "roles",
-            postgresql.ARRAY(sa.String(length=24), as_tuple=True, dimensions=1),
-            nullable=True,
+            postgresql.ARRAY(sa.String(length=100), dimensions=1),
+            default=[],
         ),
     )
     # ### end Alembic commands ###

@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import Depends
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bartender.db.dependencies import get_db_session
@@ -13,9 +14,27 @@ from bartender.db.models.user import OAuthAccount, User
 # https://fastapi-users.github.io/fastapi-users/10.1/configuration/oauth/#sqlalchemy_1
 
 
+class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
+    """Database adapter for SQLAlchemy with extra methods."""
+
+    async def list(self, limit: int, offset: int) -> list[User]:
+        """Get list of users.
+
+        Args:
+            limit: limit of users.
+            offset: offset of users.
+
+        Returns:
+            list of users.
+        """
+        statement = select(self.user_table).limit(limit).offset(offset)
+        results = await self.session.execute(statement)
+        return results.unique().scalars().all()
+
+
 async def get_user_db(
     session: AsyncSession = Depends(get_db_session),
-) -> AsyncGenerator[SQLAlchemyUserDatabase[User, UUID], None]:
+) -> AsyncGenerator[UserDatabase, None]:
     """Factory method for accessing user table.
 
     Args:
@@ -24,4 +43,4 @@ async def get_user_db(
     Yields:
         Database adaptor
     """
-    yield SQLAlchemyUserDatabase(session, User, OAuthAccount)
+    yield UserDatabase(session, User, OAuthAccount)

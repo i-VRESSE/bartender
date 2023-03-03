@@ -2,13 +2,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from bartender.config import get_roles
 from bartender.db.dao.user_dao import get_user_db
-from bartender.db.dependencies import get_db_session
-from bartender.db.models.user import Role, User
+from bartender.db.models.user import User
 from bartender.web.users.manager import current_super_user
 
 router = APIRouter()
@@ -32,6 +30,7 @@ async def list_roles(
     """
     return roles
 
+
 @router.put("/{role_id}/{user_id}")
 async def grant_role_to_user(
     role_id: str,
@@ -42,9 +41,12 @@ async def grant_role_to_user(
 ) -> list[str]:
     """Grant role to user.
 
+    Requires super user powers.
+
     Args:
         role_id: Role id
         user_id: User id
+        roles: Set of allowed roles
         super_user: Check if current user is super.
         user_db: User db.
 
@@ -60,9 +62,15 @@ async def grant_role_to_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    user.roles.append(Role(id=role_id))
-    await user_db.session.commit()
-    await user_db.session.refresh(user)
+    if role_id not in roles:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role not found",
+        )
+    if role_id not in user.roles:
+        user.roles.append(role_id)
+        await user_db.session.commit()
+        await user_db.session.refresh(user)
     return user.roles
 
 
@@ -73,12 +81,15 @@ async def revoke_role_from_user(
     roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
     user_db: SQLAlchemyUserDatabase[User, UUID] = Depends(get_user_db),
-) -> list[Role]:
+) -> list[str]:
     """Revoke role from user.
+
+    Requires super user powers.
 
     Args:
         role_id: Role id
         user_id: User id
+        roles: Set of allowed roles
         super_user: Check if current user is super.
         user_db: User db.
 
@@ -94,18 +105,15 @@ async def revoke_role_from_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    user.roles.remove(Role(id=role_id))
+    if role_id not in roles or role_id not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role not found",
+        )
+    user.roles.remove(role_id)
     await user_db.session.commit()
     await user_db.session.refresh(user)
     return user.roles
 
 
 # TODO test all methods here
-# TODO add roles to jwt token
-# TODO list roles in /users/me + /api/users/profile
-# TODO add allowed roles to application config
-# while reading config should make sure roles are present in db
-# eg. ['haddock3:easy', 'haddock3:expert', 'haddock3:guru']
-# TODO add required roles to application config
-# eg. ['haddock:'] -> any haddock:* role will suffice
-# eg. [] or None -> no role required

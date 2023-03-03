@@ -135,3 +135,49 @@ However you need a first super user. This can be done by running
 ```text
 bartender super <email address of logged in user>
 ```
+
+## Roles
+
+An application can be configured to only allow users to submit jobs which
+have a certain role.
+
+See [Configuration docs](configuration.md#applications) how to set allowed
+roles on applications.
+
+To grant and revoke roles you will need to be a super user.
+
+Roles can be granted to a user by calling
+
+```text
+curl -X 'PUT' \
+  'http://localhost:8000/api/roles/<role name>/<user id>' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
+
+Roles can be revoked from a user by calling
+
+```text
+curl -X 'DELETE' \
+  'http://localhost:8000/api/roles/<role name>/<user id>' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
+
+The available roles can be found with
+
+```text
+curl -X 'GET' \
+  'http://localhost:8000/api/roles/' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
+
+The id of a user can be found with
+
+```text
+curl -X 'GET' \
+  'http://localhost:8000/api/users' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
