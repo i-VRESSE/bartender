@@ -76,11 +76,13 @@ schedulers
   machine via SSH.
 * **arq**, Scheduler which uses a Redis server as a job queue and
   1 or more workers (`bartender perform` command) to run the jobs.
+* **dirac**, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/).
 
 Supported file systems
 
 * **local**: Uploading or downloading of files does nothing
 * **sftp**: Uploading or downloading of files is done using SFTP.
+* **dirac**, Uploading or downloading of files using [DIRAC](http://diracgrid.org/).
 
 When the filesystem is on a remote system with non-shared file system or a
 different user, then
@@ -231,6 +233,26 @@ def picker(
     return 'large'
   return 'medium'
 ```
+
+### DIRAC support
+
+If you need DIRAC support create a Conda environment instead of
+creating a virtual environment.
+
+```bash
+mamba create --name bartender dirac-grid python=3.10
+conda activate bartender
+```
+
+The conda environment contains all DIRAC dependencies.
+Install DIRAC itself with
+
+```bash
+pip install DIRAC==8.0
+```
+
+(Cannot use `poetry install --with=dirac` as Poetry gets stuck resolving
+dependencies because it ignores the already installed DIRAC dependencies.)
 
 ## Destination picker
 
