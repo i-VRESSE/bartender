@@ -11,7 +11,7 @@ from bartender.web.users.manager import current_super_user
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=list[str])
 async def list_roles(
     roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
