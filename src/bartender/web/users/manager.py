@@ -74,7 +74,7 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
-LIFETIME = 3600  # 1 hour
+LIFETIME = 3600 * 24 # 24 hours
 
 
 class JWTStrategyWithRoles(JWTStrategy[User, UUID]):
