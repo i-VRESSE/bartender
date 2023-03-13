@@ -1,19 +1,20 @@
-FROM python:3.9.6-slim-buster
+FROM python:3.10-slim-buster
 
-RUN pip install poetry==1.2.0
+RUN pip install poetry==1.4.0
 
 # Configuring poetry
 RUN poetry config virtualenvs.create false
 
-# Copying requirements of a project
-COPY pyproject.toml poetry.lock /app/src/
 WORKDIR /app/src
 
+# Copying requirements of a project
+COPY pyproject.toml poetry.lock ./
+
 # Installing requirements
-RUN poetry install
+RUN poetry install --without=dev --no-root --no-interaction --no-ansi
 
 # Copying actuall application
-COPY . /app/src/
-RUN poetry install
+COPY . .
+RUN poetry install --without=dev --no-interaction --no-ansi
 
 CMD ["/usr/local/bin/bartender", "serve"]
