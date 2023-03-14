@@ -11,20 +11,3 @@ destinations:
       slots: 1
     filesystem:
       type: local
-  slurmcontainer:
-    scheduler:
-      type: slurm
-      partition: mypartition
-      ssh_config:
-        port: 10022
-        hostname: localhost
-        username: xenon
-        password: javagat
-    filesystem:
-      type: sftp
-      ssh_config:
-        port: 10022
-        hostname: localhost
-        username: xenon
-        password: javagat
-      entry: /home/xenon
