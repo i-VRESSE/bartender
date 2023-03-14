@@ -192,22 +192,52 @@ async def client(
         yield ac
 
 
+async def new_user(
+    email: str,
+    password: str,
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+) -> Any:
+    new_user = {"email": email, "password": password}
+    register_url = fastapi_app.url_path_for("register:register")
+    return await client.post(register_url, json=new_user)
+
+
 MockUser = TypedDict("MockUser", {"id": str, "email": str, "password": str})
 
 
 @pytest.fixture
 async def current_user_model(fastapi_app: FastAPI, client: AsyncClient) -> MockUser:
-    new_user = {"email": "me@example.com", "password": "mysupersecretpassword"}
-    register_url = fastapi_app.url_path_for("register:register")
-    response = await client.post(register_url, json=new_user)
+    email = "me@example.com"
+    password = "mysupersecretpassword"  # noqa: S105 needed for tests
+    response = await new_user(email, password, fastapi_app, client)
     body = response.json()
-    body["password"] = new_user["password"]
+    body["password"] = password
     return body
 
 
 @pytest.fixture
 def current_user_id(current_user_model: MockUser) -> str:
     return current_user_model["id"]
+
+
+async def new_user_token(
+    email: str,
+    password: str,
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+) -> str:
+    await new_user(email, password, fastapi_app, client)
+    login_url = fastapi_app.url_path_for("auth:local.login")
+    login_response = await client.post(
+        login_url,
+        data={
+            "grant_type": "password",
+            "username": email,
+            "password": password,
+        },
+    )
+    return login_response.json()["access_token"]
 
 
 @pytest.fixture
@@ -218,29 +248,38 @@ async def current_user_token(
 ) -> str:
     """Registers dummy user and returns its auth token.
 
-    Returns:
-        token
+    :return: token
     """
-    login_url = fastapi_app.url_path_for("auth:local.login")
-    login_response = await client.post(
-        login_url,
-        data={
-            "grant_type": "password",
-            "username": current_user_model["email"],
-            "password": current_user_model["password"],
-        },
+    return await new_user_token(
+        current_user_model["email"],
+        current_user_model["password"],
+        fastapi_app,
+        client,
     )
-    return login_response.json()["access_token"]
 
 
 @pytest.fixture
-async def auth_headers(current_user_token: str) -> Dict[str, str]:
+def auth_headers(current_user_token: str) -> Dict[str, str]:
     """Headers for AsyncClient to do authenticated requests.
 
     Returns:
         Headers needed for auth.
     """
     return {"Authorization": f"Bearer {current_user_token}"}
+
+
+@pytest.fixture
+async def second_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
+    """Registers second dummy user and returns its auth token.
+
+    :return: token
+    """
+    return await new_user_token(
+        "user2@example.com",
+        "mysupersecretpassword2",
+        fastapi_app,
+        client,
+    )
 
 
 @pytest.fixture

@@ -265,3 +265,34 @@ path.
 ```yaml
 job_root_dir: /tmp/jobs
 ```
+
+## Job flow
+
+Diagram of a job flowing through web service, schedulers and filesystems.
+
+```mermaid
+graph TD
+    A[User upload] --> B{Pick destination}
+    A2[User status] --> I{Retrieve status\nfrom scheduler}
+    I -->|Completed| J[Copy output files\nfrom remote storage\nto web service]
+    I -->|Incomplete| I
+    J --> Z[Show results]
+    B -->|Memory| D[Run in in-memory queue]
+    B -->|Redis| E[Add job description\n to queue]
+    E --> E2{Wait for work}
+    subgraph redisworker
+        E3 --> E2
+        E2 -->|Job description| E3[Run command]
+    end
+    B -->|Slurm| F[Copy input files\nfrom web service\nto sftp server]
+    F --> H[Sbatch]
+    B -->|Dirac| G[Copy input files\nfrom web service\nto grid storage]
+    G --> K[Wms job submit]
+    K --> R[Install command]
+    K --> O[Copy input files\nfrom grid storage\nto compute node]
+    subgraph diracjob
+        R --> P
+        O --> P[Run command]
+        P --> Q[Copy output files\nfrom compute node\nto grid storage]
+    end
+```
