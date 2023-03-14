@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict
+from typing import Any, AsyncGenerator, Dict, Generator
 
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from testcontainers.redis import RedisContainer
 
 from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.context import Context, get_context
@@ -244,3 +245,15 @@ async def second_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
         fastapi_app,
         client,
     )
+
+
+def redis_server() -> Generator[RedisContainer, None, None]:
+    with RedisContainer("redis:7") as container:
+        yield container
+
+
+@pytest.fixture
+def redis_dsn(redis_server: RedisContainer) -> str:
+    host = redis_server.get_container_host_ip()
+    port = redis_server.get_exposed_port(redis_server.port_to_expose)
+    return f"redis://{host}:{port}/0"

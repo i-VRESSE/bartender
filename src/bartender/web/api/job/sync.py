@@ -87,8 +87,6 @@ async def _store_updated_state(
     if job.id is not None:
         state = states[job.id]
         if job.state != state and job.destination is not None:
-            # TODO prevent downloading multiple times, when state is polled frequently
-            # aka add staging_out state
             filesystem = destinations[job.destination].filesystem
             await _download_job_files(job, state, filesystem, job_root_dir)
             await job_dao.update_job_state(job.id, state)

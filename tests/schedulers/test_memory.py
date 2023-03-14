@@ -9,6 +9,7 @@ from bartender.schedulers.memory import (
     MemoryScheduler,
     MemorySchedulerConfig,
 )
+from tests.schedulers.helpers import wait_for_job
 
 
 @pytest.mark.anyio
@@ -33,8 +34,7 @@ async def test_bad_running_job(tmp_path: Path) -> None:
         jid = await scheduler.submit(description)
 
         # Wait for job to complete
-        await sleep(0.01)
-        assert (await scheduler.state(jid)) == "error"
+        await wait_for_job(scheduler, jid, "error", 0.01)
         assert (tmp_path / "returncode").read_text() == "42"
 
 

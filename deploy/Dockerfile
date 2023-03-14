@@ -1,19 +1,28 @@
-FROM python:3.9.6-slim-buster
+FROM python:3.10-slim-buster
 
-RUN pip install poetry==1.2.0
+# Install healthcheck dependency
+RUN apt update && apt install -y curl
+
+RUN pip install poetry==1.4.0
 
 # Configuring poetry
 RUN poetry config virtualenvs.create false
 
-# Copying requirements of a project
-COPY pyproject.toml poetry.lock /app/src/
 WORKDIR /app/src
 
+# Copying requirements of a project
+COPY pyproject.toml poetry.lock ./
+
 # Installing requirements
-RUN poetry install
+RUN poetry install --without=dev --no-root --no-interaction --no-ansi
 
 # Copying actuall application
-COPY . /app/src/
-RUN poetry install
+COPY . .
+RUN poetry install --without=dev --no-interaction --no-ansi
+
+ENV BARTENDER_HOST=0.0.0.0
+ENV BARTENDER_PORT=8000
 
 CMD ["/usr/local/bin/bartender", "serve"]
+
+HEALTHCHECK --interval=5m --timeout=3s CMD curl -f http://${BARTENDER_HOST}:${BARTENDER_PORT}/api/health || exit 1
