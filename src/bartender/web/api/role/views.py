@@ -11,11 +11,11 @@ from bartender.web.users.manager import current_super_user
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=list[str])
 async def list_roles(
-    roles: set[str] = Depends(get_roles),
+    roles: list[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
-) -> set[str]:
+) -> list[str]:
     """List available roles.
 
     Requires logged in user to be a super user.
@@ -34,7 +34,7 @@ async def list_roles(
 async def grant_role_to_user(
     role_id: str,
     user_id: str,
-    roles: set[str] = Depends(get_roles),
+    roles: list[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
     user_db: UserDatabase = Depends(get_user_db),
 ) -> list[str]:

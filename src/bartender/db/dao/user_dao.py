@@ -15,7 +15,11 @@ from bartender.db.models.user import OAuthAccount, User
 
 
 class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
-    """Database adapter for SQLAlchemy with extra methods."""
+    """Class for accessing user tables.
+
+    Extends fastapi_users.SQLAlchemyUserDatabase see
+    https://github.com/fastapi-users/fastapi-users-db-sqlalchemy/blob/main/fastapi_users_db_sqlalchemy/__init__.py#L96
+    """
 
     async def list(self, limit: int, offset: int) -> list[User]:
         """Get list of users.

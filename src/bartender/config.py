@@ -125,7 +125,7 @@ def get_config(request: Request) -> Config:
     return request.app.state.config
 
 
-def get_roles(config: Config = Depends(get_config)) -> set[str]:
+def get_roles(config: Config = Depends(get_config)) -> list[str]:
     """Get roles from config.
 
     Args:
@@ -134,8 +134,8 @@ def get_roles(config: Config = Depends(get_config)) -> set[str]:
     Returns:
         list of roles
     """
-    roles = set()
+    roles = []
     for app in config.applications.values():
         for role in app.allowed_roles:
-            roles.add(role)
+            roles.append(role)
     return roles
