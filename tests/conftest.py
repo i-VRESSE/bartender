@@ -234,7 +234,7 @@ def auth_headers(current_user_token: str) -> Dict[str, str]:
 
 @pytest.fixture
 async def second_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
-    """Registers scond dummy user and returns its auth token.
+    """Registers second dummy user and returns its auth token.
 
     :return: token
     """
