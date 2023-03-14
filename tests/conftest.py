@@ -246,6 +246,7 @@ async def second_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
         client,
     )
 
+
 @pytest.fixture
 def redis_server() -> Generator[RedisContainer, None, None]:
     with RedisContainer("redis:7") as container:
