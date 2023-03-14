@@ -1,8 +1,9 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
@@ -147,8 +148,6 @@ def retrieve_job_files(
         full_path = (job_dir / path).expanduser().resolve(strict=True)
         if not full_path.is_relative_to(job_dir):
             raise FileNotFoundError()
-        # TODO if path == '' or path is directory then return file listing?
-        # Similar to AWS S3 ListObjectsV2 or Webdav PROPFIND
         if not full_path.is_file():
             raise FileNotFoundError()
     except FileNotFoundError as exc:
@@ -193,3 +192,63 @@ def retrieve_job_stderr(
         Content of standard error.
     """
     return retrieve_job_files("stderr.txt", job_dir)
+
+
+class DirectoryItem(BaseModel):
+    """A entry in a directory."""
+
+    name: str
+    path: Path
+    is_dir: bool
+    is_file: bool
+    children: Optional[list["DirectoryItem"]]
+
+
+@router.get(
+    "/{jobid}/directories",
+    response_model=DirectoryItem,
+    response_model_exclude_none=True,
+)
+def retrieve_job_directories(
+    depth: int = 1,
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> DirectoryItem:
+    """List directory contents of a job.
+
+    Args:
+        depth: Number of directories to traverse into.
+        job_dir: The job directory.
+
+    Returns:
+        DirectoryItem: Listing of files and directories.
+    """
+    return walk_job_dir(job_dir, job_dir, depth)
+
+
+def walk_job_dir(path: Path, root: Path, max_depth: int) -> DirectoryItem:
+    """Traverse job dir returning the file names and directory names inside.
+
+    Args:
+        path: Path relative to root.
+        root: The starting path.
+        max_depth: Number of directories to traverse into.
+
+    Returns:
+        a tree of directory items.
+    """
+    # TODO make async using aiofiles
+    is_dir = path.is_dir()
+    rpath = path.relative_to(root)
+    item = DirectoryItem(
+        name=rpath.name,
+        path=rpath,
+        is_dir=is_dir,
+        is_file=path.is_file(),
+    )
+    if is_dir:
+        current_depth = len(rpath.parts)
+        if current_depth < max_depth:
+            item.children = [
+                walk_job_dir(sub_path, root, max_depth) for sub_path in path.iterdir()
+            ]
+    return item
