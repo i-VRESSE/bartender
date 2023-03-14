@@ -108,6 +108,3 @@ async def revoke_role_from_user(
         )
     await user_db.revoke_role(user, role_id)
     return user.roles
-
-
-# TODO test all methods here

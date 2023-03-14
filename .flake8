@@ -80,7 +80,7 @@ ignore =
 
 per-file-ignores =
   ; all tests
-  /tests/**,./tests/**:
+  /tests/**,./tests/**,/tests/*/*:
   ; Use of assert detected
   S101,
   ; Found outer scope names shadowing
@@ -113,6 +113,7 @@ per-file-ignores =
   F403,
   ; Found wrong metadata variable
   WPS410,
+
 
 exclude =
   ./.cache,

@@ -58,6 +58,14 @@ class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
         await self.session.commit()
         await self.session.refresh(user)
 
+    async def give_super_powers(self, user: User) -> None:
+        """Give user super powers.
+
+        Args:
+            user (User): The user.
+        """
+        await self.update(user, {"is_superuser": True})
+
 
 async def get_user_db(
     session: AsyncSession = Depends(get_db_session),
