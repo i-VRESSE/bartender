@@ -293,14 +293,14 @@ async def test_directories(
             {
                 "is_dir": False,
                 "is_file": True,
-                "name": "stderr.txt",
-                "path": "stderr.txt",
+                "name": "somefile.txt",
+                "path": "somefile.txt",
             },
             {
                 "is_dir": False,
                 "is_file": True,
-                "name": "somefile.txt",
-                "path": "somefile.txt",
+                "name": "stderr.txt",
+                "path": "stderr.txt",
             },
             {
                 "is_dir": False,

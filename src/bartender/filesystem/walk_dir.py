@@ -47,5 +47,5 @@ async def walk_dir(
                 for sub_entry in await scandir(path)
             ]
             if children:
-                item.children = children
+                item.children = sorted(children, key=lambda entry: entry.name)
     return item
