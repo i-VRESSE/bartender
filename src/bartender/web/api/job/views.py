@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
@@ -200,7 +201,7 @@ def retrieve_job_stderr(
     response_model_exclude_none=True,
 )
 async def retrieve_job_directories(
-    depth: int = 1,
+    depth: PositiveInt = 1,
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
     """List directory contents of a job.
@@ -222,7 +223,7 @@ async def retrieve_job_directories(
 )
 async def retrieve_job_directories_from_path(
     path: str,
-    depth: int = 1,
+    depth: PositiveInt = 1,
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
     """List directory contents of a job.
