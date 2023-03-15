@@ -225,6 +225,44 @@ def retrieve_job_directories(
     return walk_job_dir(job_dir, job_dir, depth)
 
 
+@router.get(
+    "/{jobid}/directories/{path:path}",
+    response_model=DirectoryItem,
+    response_model_exclude_none=True,
+)
+def retrieve_job_directories_from_path(
+    path: str,
+    depth: int = 1,
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> DirectoryItem:
+    """List directory contents of a job.
+
+    Args:
+        path: Sub directory inside job directory to start from.
+        depth: Number of directories to traverse into.
+        job_dir: The job directory.
+
+    Raises:
+        HTTPException: When path is not found or is outside job directory.
+
+    Returns:
+        DirectoryItem: Listing of files and directories.
+    """
+    try:
+        start_dir = (job_dir / path).expanduser().resolve(strict=True)
+        if not start_dir.is_relative_to(job_dir):
+            raise FileNotFoundError()
+        if not start_dir.is_dir():
+            raise FileNotFoundError()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        ) from exc
+    current_depth = len(start_dir.relative_to(job_dir).parts)
+    return walk_job_dir(start_dir, job_dir, current_depth + depth)
+
+
 def walk_job_dir(path: Path, root: Path, max_depth: int) -> DirectoryItem:
     """Traverse job dir returning the file names and directory names inside.
 
