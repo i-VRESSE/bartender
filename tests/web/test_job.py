@@ -270,3 +270,83 @@ async def test_stderr(
     assert response.text == "this is stderr"
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
     assert response.headers["content-disposition"] == 'inline; filename="stderr.txt"'
+
+
+@pytest.mark.anyio
+async def test_directories(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("retrieve_job_directories", jobid=job_id)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    expected = {
+        "name": "",
+        "path": ".",
+        "is_dir": True,
+        "is_file": False,
+        "children": [
+            {
+                "is_dir": False,
+                "is_file": True,
+                "name": "stderr.txt",
+                "path": "stderr.txt",
+            },
+            {
+                "is_dir": False,
+                "is_file": True,
+                "name": "somefile.txt",
+                "path": "somefile.txt",
+            },
+            {
+                "is_dir": False,
+                "is_file": True,
+                "name": "stdout.txt",
+                "path": "stdout.txt",
+            },
+        ],
+    }
+    assert response.json() == expected
+
+
+@pytest.mark.anyio
+async def test_directories_from_path(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    job_root_dir: Path,
+) -> None:
+    job_id = str(mock_ok_job)
+    job_dir = job_root_dir / str(job_id)
+    dir1 = job_dir / "somedir"
+    dir1.mkdir()
+    (dir1 / "somefile1.txt").write_text("some text")
+
+    url = fastapi_app.url_path_for(
+        "retrieve_job_directories_from_path",
+        jobid=job_id,
+        path="somedir",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    expected = {
+        "name": "somedir",
+        "path": "somedir",
+        "is_dir": True,
+        "is_file": False,
+        "children": [
+            {
+                "is_dir": False,
+                "is_file": True,
+                "name": "somefile1.txt",
+                "path": "somedir/somefile1.txt",
+            },
+        ],
+    }
+    assert response.json() == expected

@@ -1,9 +1,8 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
@@ -11,6 +10,7 @@ from bartender.context import Context, get_context, get_job_root_dir
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import Job
 from bartender.db.models.user import User
+from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users.manager import current_active_user
@@ -194,22 +194,12 @@ def retrieve_job_stderr(
     return retrieve_job_files("stderr.txt", job_dir)
 
 
-class DirectoryItem(BaseModel):
-    """A entry in a directory."""
-
-    name: str
-    path: Path
-    is_dir: bool
-    is_file: bool
-    children: Optional[list["DirectoryItem"]]
-
-
 @router.get(
     "/{jobid}/directories",
     response_model=DirectoryItem,
     response_model_exclude_none=True,
 )
-def retrieve_job_directories(
+async def retrieve_job_directories(
     depth: int = 1,
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
@@ -222,7 +212,7 @@ def retrieve_job_directories(
     Returns:
         DirectoryItem: Listing of files and directories.
     """
-    return walk_job_dir(job_dir, job_dir, depth)
+    return await walk_dir(job_dir, job_dir, depth)
 
 
 @router.get(
@@ -230,7 +220,7 @@ def retrieve_job_directories(
     response_model=DirectoryItem,
     response_model_exclude_none=True,
 )
-def retrieve_job_directories_from_path(
+async def retrieve_job_directories_from_path(
     path: str,
     depth: int = 1,
     job_dir: Path = Depends(get_dir_of_completed_job),
@@ -260,33 +250,4 @@ def retrieve_job_directories_from_path(
             detail="File not found",
         ) from exc
     current_depth = len(start_dir.relative_to(job_dir).parts)
-    return walk_job_dir(start_dir, job_dir, current_depth + depth)
-
-
-def walk_job_dir(path: Path, root: Path, max_depth: int) -> DirectoryItem:
-    """Traverse job dir returning the file names and directory names inside.
-
-    Args:
-        path: Path relative to root.
-        root: The starting path.
-        max_depth: Number of directories to traverse into.
-
-    Returns:
-        a tree of directory items.
-    """
-    # TODO make async using aiofiles
-    is_dir = path.is_dir()
-    rpath = path.relative_to(root)
-    item = DirectoryItem(
-        name=rpath.name,
-        path=rpath,
-        is_dir=is_dir,
-        is_file=path.is_file(),
-    )
-    if is_dir:
-        current_depth = len(rpath.parts)
-        if current_depth < max_depth:
-            item.children = [
-                walk_job_dir(sub_path, root, max_depth) for sub_path in path.iterdir()
-            ]
-    return item
+    return await walk_dir(start_dir, job_dir, current_depth + depth)
