@@ -5,7 +5,12 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_scoped_session,
+    create_async_engine,
+)
 from sqlalchemy.orm import sessionmaker
 from testcontainers.redis import RedisContainer
 
@@ -64,10 +69,10 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
 
 
 @pytest.fixture
-async def dbsession(
+async def session_maker(
     _engine: AsyncEngine,
-) -> AsyncGenerator[AsyncSession, None]:
-    """Get session to database.
+) -> AsyncGenerator[sessionmaker[AsyncSession], None]:
+    """Get session maker.
 
     Fixture that returns a SQLAlchemy session with a SAVEPOINT, and the rollback to it
     after the test completes.
@@ -76,24 +81,35 @@ async def dbsession(
         _engine: current engine.
 
     Yields:
-        async session.
+        async session maker
     """
     connection = await _engine.connect()
     trans = await connection.begin()
-
-    session_maker = sessionmaker(
-        connection,
-        expire_on_commit=False,
-        class_=AsyncSession,
-    )
-    session = session_maker()
-
     try:
-        yield session
+        yield sessionmaker(
+            connection,
+            expire_on_commit=False,
+            class_=AsyncSession,
+        )
     finally:
-        await session.close()
         await trans.rollback()
         await connection.close()
+
+
+@pytest.fixture
+async def dbsession(
+    session_maker: async_scoped_session,
+) -> AsyncGenerator[AsyncSession, None]:
+    """Get session to database.
+
+    Args:
+        session_maker: current session maker.
+
+    Yields:
+        async session.
+    """
+    async with session_maker() as session:
+        yield session
 
 
 @pytest.fixture
@@ -160,8 +176,16 @@ def demo_context(
 
 
 @pytest.fixture
-async def demo_file_staging_queue() -> AsyncGenerator[FileStagingQueue, None]:
-    queue, task = build_file_staging_queue()
+async def demo_file_staging_queue(
+    demo_config: Config,
+    demo_context: Context,
+    session_maker: async_scoped_session,
+) -> AsyncGenerator[FileStagingQueue, None]:
+    queue, task = build_file_staging_queue(
+        demo_config.job_root_dir,
+        demo_context.destinations,
+        session_maker,
+    )
     yield queue
     await stop_file_staging_queue(task)
 

@@ -51,7 +51,6 @@ async def retrieve_jobs(  # noqa: WPS211
         jobs,
         context.destinations,
         job_dao,
-        context.job_root_dir,
         file_staging_queue,
     )
     return jobs
@@ -83,7 +82,7 @@ async def retrieve_job(
         job models.
     """
     try:
-        # TODO now get job that user submitted,
+        # TODO now gets job that user submitted,
         # later also list jobs which are visible by admin
         # or are shared with current user
         # TODO When job has state==ok then include URL to applications result page
@@ -95,7 +94,6 @@ async def retrieve_job(
                 job,
                 job_dao,
                 destination,
-                context.job_root_dir,
                 file_staging_queue,
             )
         return job

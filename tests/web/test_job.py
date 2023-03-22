@@ -9,7 +9,6 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from bartender.config import ApplicatonConfiguration
 from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import State
@@ -17,7 +16,6 @@ from bartender.db.models.user import User
 from bartender.destinations import Destination
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.queue import FileStagingQueue
-from bartender.picker import pick_first
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 from bartender.web.api.job.views import retrieve_job, retrieve_jobs
 
@@ -128,24 +126,22 @@ async def test_retrieve_job_queued2running(
     dbsession: AsyncSession,
     current_user: User,
     demo_file_staging_queue: FileStagingQueue,
-    job_root_dir: Path,
-    demo_applications: dict[str, ApplicatonConfiguration],
+    demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, context, download_mock = await prepare_job(
+    job_id, download_mock = await prepare_job(
         db_state="queued",
         scheduler_state="running",
         dao=dao,
         current_user=current_user,
-        job_root_dir=job_root_dir,
-        demo_applications=demo_applications,
+        demo_context=demo_context,
     )
 
     job = await retrieve_job(
         job_id,
         dao,
         current_user,
-        context,
+        demo_context,
         file_staging_queue=demo_file_staging_queue,
     )
 
@@ -157,24 +153,22 @@ async def test_retrieve_job_completed(
     dbsession: AsyncSession,
     current_user: User,
     demo_file_staging_queue: FileStagingQueue,
-    job_root_dir: Path,
-    demo_applications: dict[str, ApplicatonConfiguration],
+    demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, context, download_mock = await prepare_job(
+    job_id, download_mock = await prepare_job(
         db_state="ok",
         scheduler_state="ok",
         dao=dao,
         current_user=current_user,
-        job_root_dir=job_root_dir,
-        demo_applications=demo_applications,
+        demo_context=demo_context,
     )
 
     job = await retrieve_job(
         job_id,
         dao,
         current_user,
-        context,
+        demo_context,
         file_staging_queue=demo_file_staging_queue,
     )
 
@@ -186,24 +180,22 @@ async def test_retrieve_job_running2ok(
     dbsession: AsyncSession,
     current_user: User,
     demo_file_staging_queue: FileStagingQueue,
-    job_root_dir: Path,
-    demo_applications: dict[str, ApplicatonConfiguration],
+    demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, context, download_mock = await prepare_job(
+    job_id, download_mock = await prepare_job(
         db_state="running",
         scheduler_state="ok",
         dao=dao,
         current_user=current_user,
-        job_root_dir=job_root_dir,
-        demo_applications=demo_applications,
+        demo_context=demo_context,
     )
 
     job1 = await retrieve_job(
         job_id,
         dao,
         current_user,
-        context,
+        demo_context,
         file_staging_queue=demo_file_staging_queue,
     )
 
@@ -216,7 +208,7 @@ async def test_retrieve_job_running2ok(
         job_id,
         dao,
         current_user,
-        context,
+        demo_context,
         file_staging_queue=demo_file_staging_queue,
     )
 
@@ -229,23 +221,21 @@ async def test_retrieve_jobs_queued2running(
     dbsession: AsyncSession,
     current_user: User,
     demo_file_staging_queue: FileStagingQueue,
-    job_root_dir: Path,
-    demo_applications: dict[str, ApplicatonConfiguration],
+    demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, context, download_mock = await prepare_job(
+    job_id, download_mock = await prepare_job(
         db_state="queued",
         scheduler_state="running",
         dao=dao,
         current_user=current_user,
-        job_root_dir=job_root_dir,
-        demo_applications=demo_applications,
+        demo_context=demo_context,
     )
 
     jobs = await retrieve_jobs(
         job_dao=dao,
         user=current_user,
-        context=context,
+        context=demo_context,
         file_staging_queue=demo_file_staging_queue,
     )
 
@@ -260,23 +250,21 @@ async def test_retrieve_jobs_running2staging_out(
     dbsession: AsyncSession,
     current_user: User,
     demo_file_staging_queue: FileStagingQueue,
-    job_root_dir: Path,
-    demo_applications: dict[str, ApplicatonConfiguration],
+    demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, context, download_mock = await prepare_job(
+    job_id, download_mock = await prepare_job(
         db_state="running",
         scheduler_state="ok",
         dao=dao,
         current_user=current_user,
-        job_root_dir=job_root_dir,
-        demo_applications=demo_applications,
+        demo_context=demo_context,
     )
 
     jobs = await retrieve_jobs(
         job_dao=dao,
         user=current_user,
-        context=context,
+        context=demo_context,
         file_staging_queue=demo_file_staging_queue,
     )
 
@@ -336,9 +324,8 @@ async def prepare_job(
     scheduler_state: State,
     dao: JobDAO,
     current_user: User,
-    job_root_dir: Path,
-    demo_applications: dict[str, ApplicatonConfiguration],
-) -> tuple[int, Context, Mock]:
+    demo_context: Context,
+) -> tuple[int, Mock]:
     job_id = await dao.create_job(
         name="testjob1",
         application="app1",
@@ -357,10 +344,5 @@ async def prepare_job(
         scheduler=FakeScheduler(scheduler_state),
         filesystem=FakeFileSystem(download_mock),
     )
-    context = Context(
-        destination_picker=pick_first,
-        job_root_dir=job_root_dir,
-        applications=demo_applications,
-        destinations={"dest1": destination},
-    )
-    return job_id, context, download_mock
+    demo_context.destinations["dest1"] = destination
+    return job_id, download_mock
