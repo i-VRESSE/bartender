@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, Generator
+from typing import Any, AsyncGenerator, Callable, Dict, Generator
 
 import pytest
 from fastapi import FastAPI
@@ -69,47 +69,50 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
 
 
 @pytest.fixture
-async def session_maker(
+async def dbsession(
     _engine: AsyncEngine,
-) -> AsyncGenerator[sessionmaker[AsyncSession], None]:
+) -> AsyncGenerator[AsyncSession, None]:
+    """Get session to database.
+
+    Args:
+        _engine: current engine.
+
+    Yields:
+        async session.
+    """
+    connection = await _engine.connect()
+    trans = await connection.begin()
+
+    session_maker = sessionmaker(
+        connection,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
+    session = session_maker()
+
+    try:
+        yield session
+    finally:
+        await session.close()
+        await trans.rollback()
+        await connection.close()
+
+
+@pytest.fixture
+def session_maker(dbsession: AsyncSession) -> Callable[[], AsyncSession]:
     """Get session maker.
 
     Fixture that returns a SQLAlchemy session with a SAVEPOINT, and the rollback to it
     after the test completes.
 
     Args:
-        _engine: current engine.
+        dbsession: async session.
 
-    Yields:
-        async session maker
+    Returns:
+        session maker
     """
-    connection = await _engine.connect()
-    trans = await connection.begin()
-    try:
-        yield sessionmaker(
-            connection,
-            expire_on_commit=False,
-            class_=AsyncSession,
-        )
-    finally:
-        await trans.rollback()
-        await connection.close()
-
-
-@pytest.fixture
-async def dbsession(
-    session_maker: async_scoped_session,
-) -> AsyncGenerator[AsyncSession, None]:
-    """Get session to database.
-
-    Args:
-        session_maker: current session maker.
-
-    Yields:
-        async session.
-    """
-    async with session_maker() as session:
-        yield session
+    # use same session everywhere so sqlalchemy does not get confused.
+    return lambda: dbsession
 
 
 @pytest.fixture

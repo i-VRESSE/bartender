@@ -70,7 +70,6 @@ async def _file_staging_worker(
                 JobDAO(session),
                 state,
             )
-            await session.commit()
         queue.task_done()
 
 
