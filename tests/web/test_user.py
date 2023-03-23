@@ -64,3 +64,31 @@ async def test_list_users(
         },
     ]
     assert response.json() == expected
+
+
+@pytest.mark.anyio
+async def test_list_users_given_current_user_is_not_super(
+    client: AsyncClient,
+    app_with_roles: FastAPI,
+    second_user_token: str,
+) -> None:
+    auth_headers = {"Authorization": f"Bearer {second_user_token}"}
+    url = app_with_roles.url_path_for(
+        "list_users",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.anyio
+async def test_list_users_given_anonymous_user(
+    client: AsyncClient,
+    app_with_roles: FastAPI,
+) -> None:
+    url = app_with_roles.url_path_for(
+        "list_users",
+    )
+    response = await client.get(url)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
