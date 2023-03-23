@@ -127,7 +127,7 @@ async def upload_job(  # noqa: WPS211
 
 
 def _check_role(application: str, submitter: User, context: Context) -> None:
-    """Check where submitter is allowed to use application.
+    """Check whether submitter is allowed to use application.
 
     When application has some allowed_roles defined then
     the submitter should have at least one of those roles to continue.
