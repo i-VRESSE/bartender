@@ -1,5 +1,7 @@
+import contextlib
 from pathlib import Path
-from typing import Any, AsyncGenerator, Callable, Dict, Generator
+from typing import Any, AsyncGenerator, Callable, Dict, Generator, TypedDict
+from uuid import UUID
 
 import pytest
 from fastapi import FastAPI
@@ -12,10 +14,12 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import sessionmaker
+from starlette import status
 from testcontainers.redis import RedisContainer
 
 from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.context import Context, get_context
+from bartender.db.dao.user_dao import get_user_db
 from bartender.db.dependencies import get_db_session
 from bartender.db.models.user import User
 from bartender.db.utils import create_database, drop_database
@@ -128,6 +132,7 @@ def demo_applications() -> dict[str, ApplicatonConfiguration]:
         "app1": ApplicatonConfiguration(
             command="wc $config",
             config="job.ini",
+            allowed_roles=[],
         ),
     }
 
@@ -233,37 +238,67 @@ async def client(
         yield ac
 
 
+async def new_user(
+    email: str,
+    password: str,
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+) -> Any:
+    new_user = {"email": email, "password": password}
+    register_url = fastapi_app.url_path_for("register:register")
+    return await client.post(register_url, json=new_user)
+
+
+MockUser = TypedDict("MockUser", {"id": str, "email": str, "password": str})
+
+
+@pytest.fixture
+async def current_user_model(fastapi_app: FastAPI, client: AsyncClient) -> MockUser:
+    email = "me@example.com"
+    password = "mysupersecretpassword"  # noqa: S105 needed for tests
+    response = await new_user(email, password, fastapi_app, client)
+    body = response.json()
+    body["password"] = password
+    return body
+
+
+@pytest.fixture
+def current_user_id(current_user_model: MockUser) -> str:
+    return current_user_model["id"]
+
+
 async def new_user_token(
     email: str,
     password: str,
     fastapi_app: FastAPI,
     client: AsyncClient,
 ) -> str:
-    new_user = {"email": email, "password": password}
-    register_url = fastapi_app.url_path_for("register:register")
-    await client.post(register_url, json=new_user)
-
+    await new_user(email, password, fastapi_app, client)
     login_url = fastapi_app.url_path_for("auth:local.login")
     login_response = await client.post(
         login_url,
         data={
             "grant_type": "password",
-            "username": new_user["email"],
-            "password": new_user["password"],
+            "username": email,
+            "password": password,
         },
     )
     return login_response.json()["access_token"]
 
 
 @pytest.fixture
-async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
+async def current_user_token(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    current_user_model: MockUser,
+) -> str:
     """Registers dummy user and returns its auth token.
 
     :return: token
     """
     return await new_user_token(
-        "me@example.com",
-        "mysupersecretpassword",
+        current_user_model["email"],
+        current_user_model["password"],
         fastapi_app,
         client,
     )
@@ -311,3 +346,42 @@ def redis_dsn(redis_server: RedisContainer) -> str:
     host = redis_server.get_container_host_ip()
     port = redis_server.get_exposed_port(redis_server.port_to_expose)
     return f"redis://{host}:{port}/0"
+
+
+@pytest.fixture
+async def current_user_is_super(dbsession: AsyncSession, current_user_id: str) -> None:
+    # First user can not become super user by calling routes,
+    # Must make user user super by talking to db directly.
+    get_user_db_context = contextlib.asynccontextmanager(get_user_db)
+    async with get_user_db_context(dbsession) as user_db:
+        user = await user_db.get(UUID(current_user_id))
+        if user is None:
+            raise ValueError(f"User with {current_user_id} id not found")
+        await user_db.give_super_powers(user)
+
+
+@pytest.fixture
+def app_with_roles(
+    fastapi_app: FastAPI,
+    demo_applications: dict[str, ApplicatonConfiguration],
+) -> FastAPI:
+    demo_applications["app1"].allowed_roles = ["role1"]
+    return fastapi_app
+
+
+@pytest.fixture
+async def current_user_with_role(
+    app_with_roles: FastAPI,
+    current_user_is_super: None,
+    current_user_id: str,
+    auth_headers: Dict[str, str],
+    client: AsyncClient,
+) -> None:
+    url = app_with_roles.url_path_for(
+        "assign_role_to_user",
+        role_id="role1",
+        user_id=current_user_id,
+    )
+    response = await client.put(url, headers=auth_headers)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == ["role1"]
