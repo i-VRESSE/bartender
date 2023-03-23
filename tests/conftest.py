@@ -378,7 +378,7 @@ async def current_user_with_role(
     client: AsyncClient,
 ) -> None:
     url = app_with_roles.url_path_for(
-        "grant_role_to_user",
+        "assign_role_to_user",
         role_id="role1",
         user_id=current_user_id,
     )

@@ -31,14 +31,14 @@ async def list_roles(
 
 
 @router.put("/{role_id}/{user_id}")
-async def grant_role_to_user(
+async def assign_role_to_user(
     role_id: str,
     user_id: str,
     roles: list[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
     user_db: UserDatabase = Depends(get_user_db),
 ) -> list[str]:
-    """Grant role to user.
+    """Assign role to user.
 
     Requires super user powers.
 
@@ -53,7 +53,7 @@ async def grant_role_to_user(
         HTTPException: When user is not found
 
     Returns:
-        Roles granted to user.
+        Roles assigned to user.
     """
     user = await user_db.get(UUID(user_id))
     if user is None:
@@ -71,14 +71,14 @@ async def grant_role_to_user(
 
 
 @router.delete("/{role_id}/{user_id}")
-async def revoke_role_from_user(
+async def unassign_role_from_user(
     role_id: str,
     user_id: str,
     roles: set[str] = Depends(get_roles),
     super_user: User = Depends(current_super_user),
     user_db: UserDatabase = Depends(get_user_db),
 ) -> list[str]:
-    """Revoke role from user.
+    """Unassign role from user.
 
     Requires super user powers.
 
@@ -93,7 +93,7 @@ async def revoke_role_from_user(
         HTTPException: When user is not found
 
     Returns:
-        Roles granted to user.
+        Roles assigned to user.
     """
     user = await user_db.get(UUID(user_id))
     if user is None:

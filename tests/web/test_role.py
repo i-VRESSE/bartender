@@ -25,13 +25,13 @@ async def test_list_roles(
 
 
 @pytest.mark.anyio
-async def test_grant_role_to_user(
+async def test_assign_role_to_user(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
     current_user_with_role: None,
 ) -> None:
-    # grant_role_to_user is exercised in current_user_with_role fixture.
+    # assign_role_to_user is exercised in current_user_with_role fixture.
 
     url = fastapi_app.url_path_for(
         "profile",
@@ -43,7 +43,7 @@ async def test_grant_role_to_user(
 
 
 @pytest.mark.anyio
-async def test_grant_role_to_user_given_bad_user(
+async def test_assign_role_to_user_given_bad_user(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
@@ -52,7 +52,7 @@ async def test_grant_role_to_user_given_bad_user(
     # uuid taken from https://en.wikipedia.org/wiki/Universally_unique_identifier
     bad_user_id = "123e4567-e89b-12d3-a456-426614174000"
     url = fastapi_app.url_path_for(
-        "grant_role_to_user",
+        "assign_role_to_user",
         role_id="role1",
         user_id=bad_user_id,
     )
@@ -63,7 +63,7 @@ async def test_grant_role_to_user_given_bad_user(
 
 
 @pytest.mark.anyio
-async def test_grant_role_to_user_given_bad_role(
+async def test_assign_role_to_user_given_bad_role(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
@@ -71,7 +71,7 @@ async def test_grant_role_to_user_given_bad_role(
     current_user_id: str,
 ) -> None:
     url = fastapi_app.url_path_for(
-        "grant_role_to_user",
+        "assign_role_to_user",
         role_id="badrole1",
         user_id=current_user_id,
     )
@@ -82,7 +82,7 @@ async def test_grant_role_to_user_given_bad_role(
 
 
 @pytest.mark.anyio
-async def test_revoke_role_from_user_given_role1_granted(
+async def test_unassign_role_from_user_given_role1_granted(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
@@ -90,7 +90,7 @@ async def test_revoke_role_from_user_given_role1_granted(
     current_user_id: str,
 ) -> None:
     url = fastapi_app.url_path_for(
-        "revoke_role_from_user",
+        "unassign_role_from_user",
         role_id="role1",
         user_id=current_user_id,
     )
@@ -106,7 +106,7 @@ async def test_revoke_role_from_user_given_role1_granted(
 
 
 @pytest.mark.anyio
-async def test_revoke_role_from_user_given_bad_user(
+async def test_unassign_role_from_user_given_bad_user(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
@@ -115,7 +115,7 @@ async def test_revoke_role_from_user_given_bad_user(
     # uuid taken from https://en.wikipedia.org/wiki/Universally_unique_identifier
     bad_user_id = "123e4567-e89b-12d3-a456-426614174000"
     url = fastapi_app.url_path_for(
-        "revoke_role_from_user",
+        "unassign_role_from_user",
         role_id="role1",
         user_id=bad_user_id,
     )
@@ -126,7 +126,7 @@ async def test_revoke_role_from_user_given_bad_user(
 
 
 @pytest.mark.anyio
-async def test_revoke_role_from_user_given_bad_role(
+async def test_unassign_role_from_user_given_bad_role(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
@@ -134,7 +134,7 @@ async def test_revoke_role_from_user_given_bad_role(
     current_user_id: str,
 ) -> None:
     url = fastapi_app.url_path_for(
-        "revoke_role_from_user",
+        "unassign_role_from_user",
         role_id="badrole1",
         user_id=current_user_id,
     )

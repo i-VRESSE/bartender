@@ -148,9 +148,9 @@ have a certain role.
 See [Configuration docs](configuration.md#applications) how to set allowed
 roles on applications.
 
-To grant and revoke roles you will need to be a super user.
+To assign and unassign roles you will need to be a super user.
 
-Roles can be granted to a user by calling
+Roles can be assigned to a user by calling
 
 ```text
 curl -X 'PUT' \
@@ -159,7 +159,7 @@ curl -X 'PUT' \
   -H 'Authorization: Bearer <the access token>'
 ```
 
-Roles can be revoked from a user by calling
+Roles can be unassigned from a user by calling
 
 ```text
 curl -X 'DELETE' \

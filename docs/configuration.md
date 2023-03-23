@@ -66,7 +66,7 @@ applications:
 * The `allowed_roles` key holds an array of role names, one of which a submitter
   should have. When key is not set or list is empty then any authorized user
   is allowed. See [User management docs](user_management.md#roles) how to
-  grant/revoke roles to/from users.
+  assign/unassign roles to/from users.
 
 ## Job destinations
 
