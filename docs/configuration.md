@@ -54,7 +54,7 @@ applications:
     command: haddock3 $config
     config: workflow.cfg
     allowed_roles:
-      - haddock3:easy
+      - easy
 ```
 
 * The key is the name of the application
