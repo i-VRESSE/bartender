@@ -35,8 +35,8 @@ class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
         results = await self.session.execute(statement)
         return results.unique().scalars().all()
 
-    async def grant_role(self, user: User, role: str) -> None:
-        """Grant a role to a user.
+    async def assign_role(self, user: User, role: str) -> None:
+        """Assign a role to a user.
 
         Args:
             user: The user.
@@ -47,16 +47,17 @@ class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
             await self.session.commit()
             await self.session.refresh(user)
 
-    async def revoke_role(self, user: User, role: str) -> None:
-        """Revoke a role to a user.
+    async def unassign_role(self, user: User, role: str) -> None:
+        """Unassign a role to a user.
 
         Args:
             user: The user.
             role: The role.
         """
-        user.roles.remove(role)
-        await self.session.commit()
-        await self.session.refresh(user)
+        if role in user.roles:
+            user.roles.remove(role)
+            await self.session.commit()
+            await self.session.refresh(user)
 
     async def give_super_powers(self, user: User) -> None:
         """Give user super powers.

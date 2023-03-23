@@ -66,9 +66,7 @@ async def assign_role_to_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found",
         )
-    if role_id in user.roles:
-        return user.roles
-    await user_db.grant_role(user, role_id)
+    await user_db.assign_role(user, role_id)
     return user.roles
 
 
@@ -108,7 +106,5 @@ async def unassign_role_from_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found",
         )
-    if role_id not in user.roles:
-        return user.roles
-    await user_db.revoke_role(user, role_id)
+    await user_db.unassign_role(user, role_id)
     return user.roles
