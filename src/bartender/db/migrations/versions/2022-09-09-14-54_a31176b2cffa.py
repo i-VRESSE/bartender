@@ -22,7 +22,7 @@ def upgrade() -> None:
         "job",
         sa.Column("application", sa.String(length=200), nullable=False),
     )
-    op.add_column("job", sa.Column("state", sa.String(length=10), nullable=False))
+    op.add_column("job", sa.Column("state", sa.String(length=20), nullable=False))
     op.add_column(
         "job",
         sa.Column(
