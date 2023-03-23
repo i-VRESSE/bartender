@@ -23,7 +23,7 @@ somedt = datetime(2022, 1, 1, tzinfo=timezone.utc)
 
 
 @pytest.fixture
-async def mock_db_job(
+async def mock_db_of_job(
     dbsession: AsyncSession,
     current_user: User,
 ) -> Optional[int]:
@@ -37,6 +37,24 @@ async def mock_db_job(
         created_on=somedt,
         updated_on=somedt,
     )
+
+
+@pytest.fixture
+async def mock_ok_job(
+    dbsession: AsyncSession,
+    mock_db_of_job: int,
+    job_root_dir: Path,
+) -> int:
+    job_id = mock_db_of_job
+    dao = JobDAO(dbsession)
+    await dao.update_internal_job_id(job_id, "internal-job-id", "dest1")
+    await dao.update_job_state(job_id, "ok")
+    job_dir = job_root_dir / str(job_id)
+    job_dir.mkdir()
+    (job_dir / "somefile.txt").write_text("hello")
+    (job_dir / "stderr.txt").write_text("this is stderr")
+    (job_dir / "stdout.txt").write_text("this is stdout")
+    return job_id
 
 
 @pytest.mark.anyio
@@ -55,7 +73,7 @@ async def test_retrieve_jobs_none(
 async def test_retrieve_jobs_one(
     fastapi_app: FastAPI,
     client: AsyncClient,
-    mock_db_job: int,
+    mock_db_of_job: int,
     auth_headers: Dict[str, str],
 ) -> None:
     retrieve_url = fastapi_app.url_path_for("retrieve_jobs")
@@ -65,7 +83,7 @@ async def test_retrieve_jobs_one(
     jobs = response.json()
     expected = [
         {
-            "id": mock_db_job,
+            "id": mock_db_of_job,
             "name": "testjob1",
             "application": "app1",
             "state": "new",
@@ -77,20 +95,64 @@ async def test_retrieve_jobs_one(
 
 
 @pytest.mark.anyio
-async def test_retrieve_job_new(
+async def test_retrieve_jobs_given_notowner_of_any(
     fastapi_app: FastAPI,
     client: AsyncClient,
-    mock_db_job: int,
+    mock_db_of_job: int,
+    second_user_token: str,
+) -> None:
+    url = fastapi_app.url_path_for("retrieve_jobs")
+    headers = {"Authorization": f"Bearer {second_user_token}"}
+    response = await client.get(url, headers=headers)
+
+    jobs = response.json()
+    assert not len(jobs)
+
+
+@pytest.mark.anyio
+async def test_retrieve_job_badid(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
     auth_headers: Dict[str, str],
 ) -> None:
     """Tests job instance retrieval."""
-    url = fastapi_app.url_path_for("retrieve_job", jobid=str(mock_db_job))
+    url = fastapi_app.url_path_for("retrieve_job", jobid="999999")
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Job not found"}
+
+
+@pytest.mark.anyio
+async def test_retrieve_job_given_notowner(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    mock_db_of_job: int,
+    second_user_token: str,
+) -> None:
+    url = fastapi_app.url_path_for("retrieve_job", jobid=str(mock_db_of_job))
+    headers = {"Authorization": f"Bearer {second_user_token}"}
+    response = await client.get(url, headers=headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Job not found"}
+
+
+@pytest.mark.anyio
+async def test_retrieve_job_new(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    mock_db_of_job: int,
+    auth_headers: Dict[str, str],
+) -> None:
+    """Tests job instance retrieval."""
+    url = fastapi_app.url_path_for("retrieve_job", jobid=str(mock_db_of_job))
     response = await client.get(url, headers=auth_headers)
 
     assert response.status_code == status.HTTP_200_OK
     job = response.json()
     expected = {
-        "id": mock_db_job,
+        "id": mock_db_of_job,
         "name": "testjob1",
         "application": "app1",
         "state": "new",
@@ -346,3 +408,118 @@ async def prepare_job(
     )
     demo_context.destinations["dest1"] = destination
     return job_id, download_mock
+
+
+@pytest.mark.anyio
+async def test_files_of_noncomplete_job(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_db_of_job: int,
+) -> None:
+    # mock_db_of_job has state==new
+    url = fastapi_app.url_path_for(
+        "retrieve_job_files",
+        jobid=str(mock_db_of_job),
+        path="README.md",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_425_TOO_EARLY
+    assert response.json() == {"detail": "Job has not completed"}
+
+
+@pytest.mark.anyio
+async def test_files_of_completed_job(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    path = "somefile.txt"
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=path)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.text == "hello"
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.headers["content-disposition"] == 'inline; filename="somefile.txt"'
+
+
+@pytest.mark.anyio
+async def test_files_given_path_is_dir(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    path = ""
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=path)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "File not found"}
+
+
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        "/etc/passwd",
+        "~/.ssh/id_rsa",
+        # Job dir is <pytest_tmp_path>/jobs/6
+        # to .. up to /etc/passwd use
+        # escape / with %2F as un-escaped will
+        # use resolve to URL that does not exist.
+        "..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd",  # noqa: WPS323
+    ],
+)
+@pytest.mark.anyio
+async def test_files_given_bad_paths(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    test_input: str,
+) -> None:
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=test_input)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "File not found"}
+
+
+@pytest.mark.anyio
+async def test_stdout(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("retrieve_job_stdout", jobid=job_id)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.text == "this is stdout"
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.headers["content-disposition"] == 'inline; filename="stdout.txt"'
+
+
+@pytest.mark.anyio
+async def test_stderr(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("retrieve_job_stderr", jobid=job_id)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.text == "this is stderr"
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.headers["content-disposition"] == 'inline; filename="stderr.txt"'

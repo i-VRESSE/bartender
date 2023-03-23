@@ -233,14 +233,13 @@ async def client(
         yield ac
 
 
-@pytest.fixture
-async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
-    """Registers dummy user and returns its auth token.
-
-    Returns:
-        token
-    """
-    new_user = {"email": "me@example.com", "password": "mysupersecretpassword"}
+async def new_user_token(
+    email: str,
+    password: str,
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+) -> str:
+    new_user = {"email": email, "password": password}
     register_url = fastapi_app.url_path_for("register:register")
     await client.post(register_url, json=new_user)
 
@@ -257,7 +256,21 @@ async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
 
 
 @pytest.fixture
-async def auth_headers(current_user_token: str) -> Dict[str, str]:
+async def current_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
+    """Registers dummy user and returns its auth token.
+
+    :return: token
+    """
+    return await new_user_token(
+        "me@example.com",
+        "mysupersecretpassword",
+        fastapi_app,
+        client,
+    )
+
+
+@pytest.fixture
+def auth_headers(current_user_token: str) -> Dict[str, str]:
     """Headers for AsyncClient to do authenticated requests.
 
     Returns:
@@ -271,6 +284,20 @@ async def current_user(dbsession: AsyncSession, current_user_token: str) -> User
     query = select(User).where(User.email == "me@example.com")
     result = await dbsession.execute(query)
     return result.unique().scalar_one()
+
+
+@pytest.fixture
+async def second_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
+    """Registers second dummy user and returns its auth token.
+
+    :return: token
+    """
+    return await new_user_token(
+        "user2@example.com",
+        "mysupersecretpassword2",
+        fastapi_app,
+        client,
+    )
 
 
 @pytest.fixture

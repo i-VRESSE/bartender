@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
-from bartender.context import Context, get_context
+from bartender.context import Context, get_context, get_job_root_dir
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import CompletedStates, Job
 from bartender.db.models.user import User
@@ -104,37 +104,111 @@ async def retrieve_job(
         ) from exc
 
 
-@router.get("/{jobid}/stdout", response_class=FileResponse)
-async def retrieve_job_stdout(
-    jobid: int,
-    job_dao: JobDAO = Depends(),
-    user: User = Depends(current_active_user),
-    context: Context = Depends(get_context),
-) -> FileResponse:
-    """Retrieve stdout of a job.
+def get_job_dir(jobid: int, job_root_dir: Path = Depends(get_job_root_dir)) -> Path:
+    """Get directory where input and output files of a job reside.
 
     Args:
-        jobid: identifier of job instance.
-        job_dao: JobDAO object.
-        user: Current active user.
-        context: Context with destinations.
-
-    Raises:
-        HTTPException: When job is not found or user is not allowed to see job.
+        jobid: The job identifier.
+        job_root_dir: Directory in which all jobs are stored.
 
     Returns:
-        stdout of job.
+        Directory of job.
     """
-    job = await retrieve_job(
-        jobid=jobid,
-        job_dao=job_dao,
-        user=user,
-        context=context,
-    )
+    job_dir = job_root_dir / str(jobid)
+    # TODO check it exist and is directory
+    # unable to use pydantic.types.DirectoryPath as raises:
+    # AttributeError: type object 'DirectoryPath' has no attribute '_flavour'
+    return Path(job_dir)
+
+
+def get_dir_of_completed_job(
+    job: Job = Depends(retrieve_job),
+    job_dir: Path = Depends(get_job_dir),
+) -> Path:
+    """Get directory of a completed job.
+
+    Args:
+        job: A job in any state.
+        job_dir: Directory of job.
+
+    Raises:
+        HTTPException: When job is not completed.
+
+    Returns:
+        Directory of a completed job.
+    """
     if job.state not in CompletedStates:
         raise HTTPException(
             status_code=status.HTTP_425_TOO_EARLY,
-            detail="Stdout not ready. Job has not completed.",
+            detail="Job has not completed",
         )
-    stdout: Path = context.job_root_dir / str(jobid) / "stdout.txt"
-    return FileResponse(stdout)
+    return job_dir
+
+
+@router.get("/{jobid}/files/{path:path}", response_class=FileResponse)
+def retrieve_job_files(
+    path: str,
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> FileResponse:
+    """Retrieve files from a completed job.
+
+    Args:
+        path: Path to file that job has produced.
+        job_dir: Directory with job output files.
+
+    Raises:
+        HTTPException: When file is not found or is outside job directory.
+
+    Returns:
+        The file content.
+    """
+    try:
+        full_path = (job_dir / path).expanduser().resolve(strict=True)
+        if not full_path.is_relative_to(job_dir):
+            raise FileNotFoundError()
+        # TODO if path == '' or path is directory then return file listing?
+        # Similar to AWS S3 ListObjectsV2 or Webdav PROPFIND
+        if not full_path.is_file():
+            raise FileNotFoundError()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        ) from exc
+    return FileResponse(
+        full_path,
+        filename=path,
+        # Allow browser to render file,
+        # instead of always presenting save as dialog.
+        content_disposition_type="inline",
+    )
+
+
+@router.get("/{jobid}/stdout", response_class=FileResponse)
+def retrieve_job_stdout(
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> FileResponse:
+    """Retrieve the jobs standard output.
+
+    Args:
+        job_dir: Directory with job output files.
+
+    Returns:
+        Content of standard output.
+    """
+    return retrieve_job_files("stdout.txt", job_dir)
+
+
+@router.get("/{jobid}/stderr", response_class=FileResponse)
+def retrieve_job_stderr(
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> FileResponse:
+    """Retrieve the jobs standard error.
+
+    Args:
+        job_dir: Directory with job output files.
+
+    Returns:
+        Content of standard error.
+    """
+    return retrieve_job_files("stderr.txt", job_dir)
