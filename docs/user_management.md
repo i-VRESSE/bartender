@@ -61,6 +61,8 @@ To enable perform following steps:
 
    1. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of GitHub app>`
    2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client secret of GitHub app>`
+   3. (Optionally) Add URL of frontend server that captures token
+      `BARTENDER_GITHUB_REDIRECT_URL=<URL>`
 
 ## Orcid sandbox login
 
@@ -106,6 +108,8 @@ To enable perform following steps:
    1. Add `BARTENDER_ORCIDSANDBOX_CLIENT_ID=<Client id of Orcid sandbox app>`
    2. Add `BARTENDER_ORCIDSANDBOX_CLIENT_SECRET=<Client secret of Orcid sandbox
       app>`
+   3. (Optionally) Add URL of frontend server that captures token
+      `BARTENDER_ORCIDSANDBOX_REDIRECT_URL=<URL>`
 
 The `GET /api/users/profile` route will return the Orcid ID in
 `oauth_accounts[oauth_name=sandbox.orcid.org].account_id`.
