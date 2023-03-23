@@ -82,7 +82,7 @@ async def test_assign_role_to_user_given_bad_role(
 
 
 @pytest.mark.anyio
-async def test_unassign_role_from_user_given_role1_granted(
+async def test_unassign_role_from_user_given_role1_has_been_assigned(
     client: AsyncClient,
     fastapi_app: FastAPI,
     auth_headers: Dict[str, str],
