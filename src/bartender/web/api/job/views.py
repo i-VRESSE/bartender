@@ -220,19 +220,19 @@ def retrieve_job_stderr(
     response_model_exclude_none=True,
 )
 async def retrieve_job_directories(
-    depth: PositiveInt = 1,
+    max_depth: PositiveInt = 1,
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
     """List directory contents of a job.
 
     Args:
-        depth: Number of directories to traverse into.
+        max_depth: Number of directories to traverse into.
         job_dir: The job directory.
 
     Returns:
         DirectoryItem: Listing of files and directories.
     """
-    return await walk_dir(job_dir, job_dir, depth)
+    return await walk_dir(job_dir, job_dir, max_depth)
 
 
 @router.get(
@@ -242,14 +242,14 @@ async def retrieve_job_directories(
 )
 async def retrieve_job_directories_from_path(
     path: str,
-    depth: PositiveInt = 1,
+    max_depth: PositiveInt = 1,
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
     """List directory contents of a job.
 
     Args:
         path: Sub directory inside job directory to start from.
-        depth: Number of directories to traverse into.
+        max_depth: Number of directories to traverse into.
         job_dir: The job directory.
 
     Raises:
@@ -270,4 +270,4 @@ async def retrieve_job_directories_from_path(
             detail="File not found",
         ) from exc
     current_depth = len(start_dir.relative_to(job_dir).parts)
-    return await walk_dir(start_dir, job_dir, current_depth + depth)
+    return await walk_dir(start_dir, job_dir, current_depth + max_depth)
