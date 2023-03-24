@@ -270,7 +270,7 @@ job_root_dir: /tmp/jobs
 
 Diagram of a job flowing through web service, schedulers and filesystems.
 
-```{mermaid}
+```mermaid
 graph TD
     A[User upload] --> B{Pick destination}
     A2[User status] --> I{Retrieve status\nfrom scheduler}
