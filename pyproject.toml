@@ -18,12 +18,12 @@ uvicorn = { version = "^0.20.0", extras = ["standard"] }
 pydantic = {version = "^1.9.0", extras = ["dotenv"]}
 yarl = "^1.7.2"
 ujson = "^5.1.0"
-SQLAlchemy = {version = "^1.4", extras = ["mypy", "asyncio"]}
-alembic = "^1.7.7"
-asyncpg = {version = "^0.25.0", extras = ["sa"]}
-python-multipart = "^0.0.5"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.7"}
+alembic = "^1.10.2"
+asyncpg = "^0.27.0"
+python-multipart = "^0.0.6"
 aiofiles = "^23.1.0"
-fastapi-users = {extras = ["sqlalchemy", "oauth"], version = "^10.1.5"}
+fastapi-users = {extras = ["oauth", "sqlalchemy"], version = "^10.4.1"}
 asyncssh = "^2.12.0"
 pyyaml = "^6.0"
 arq = "^0.25.0"
@@ -38,7 +38,6 @@ pre-commit = "^2.19.0"
 wemake-python-styleguide = "^0.16.1"
 black = "^22.3.0"
 autoflake = "^1.4"
-SQLAlchemy = {version = "^1.4", extras = ["mypy"]}
 pytest-cov = "^3.0.0"
 anyio = "^3.6.1"
 pytest-env = "^0.6.2"
@@ -78,7 +77,6 @@ allow_untyped_decorators = true
 warn_unused_ignores = false
 warn_return_any = false
 namespace_packages = true
-plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
