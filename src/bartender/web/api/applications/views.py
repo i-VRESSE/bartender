@@ -16,7 +16,7 @@ from bartender.web.users.manager import current_active_user, current_api_token
 router = APIRouter()
 
 
-@router.get("/", response_model=list[str])
+@router.get("/")
 def list_applications(config: Config = Depends(get_config)) -> list[str]:
     """List application names.
 
@@ -29,7 +29,7 @@ def list_applications(config: Config = Depends(get_config)) -> list[str]:
     return list(config.applications.keys())
 
 
-@router.get("/{application}", response_model=ApplicatonConfiguration)
+@router.get("/{application}")
 def get_application(
     application: str,
     config: Config = Depends(get_config),
@@ -48,8 +48,7 @@ def get_application(
 
 @router.put(
     "/{application}/job",
-    status_code=status.HTTP_303_SEE_OTHER,
-    response_class=RedirectResponse,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     openapi_extra={
         # Enfore uploaded file is a certain content type
         # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501

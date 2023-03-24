@@ -147,7 +147,7 @@ def get_dir_of_completed_job(
     return job_dir
 
 
-@router.get("/{jobid}/files/{path:path}", response_class=FileResponse)
+@router.get("/{jobid}/files/{path:path}")
 def retrieve_job_files(
     path: str,
     job_dir: Path = Depends(get_dir_of_completed_job),
@@ -184,7 +184,7 @@ def retrieve_job_files(
     )
 
 
-@router.get("/{jobid}/stdout", response_class=FileResponse)
+@router.get("/{jobid}/stdout")
 def retrieve_job_stdout(
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> FileResponse:
@@ -199,7 +199,7 @@ def retrieve_job_stdout(
     return retrieve_job_files("stdout.txt", job_dir)
 
 
-@router.get("/{jobid}/stderr", response_class=FileResponse)
+@router.get("/{jobid}/stderr")
 def retrieve_job_stderr(
     job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> FileResponse:
@@ -216,7 +216,6 @@ def retrieve_job_stderr(
 
 @router.get(
     "/{jobid}/directories",
-    response_model=DirectoryItem,
     response_model_exclude_none=True,
 )
 async def retrieve_job_directories(
@@ -237,7 +236,6 @@ async def retrieve_job_directories(
 
 @router.get(
     "/{jobid}/directories/{path:path}",
-    response_model=DirectoryItem,
     response_model_exclude_none=True,
 )
 async def retrieve_job_directories_from_path(
