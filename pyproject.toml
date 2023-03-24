@@ -22,7 +22,7 @@ SQLAlchemy = {version = "^1.4", extras = ["mypy", "asyncio"]}
 alembic = "^1.7.7"
 asyncpg = {version = "^0.25.0", extras = ["sa"]}
 python-multipart = "^0.0.5"
-aiofiles = "^0.8.0"
+aiofiles = "^23.1.0"
 fastapi-users = {extras = ["sqlalchemy", "oauth"], version = "^10.1.5"}
 asyncssh = "^2.12.0"
 pyyaml = "^6.0"
@@ -43,7 +43,7 @@ pytest-cov = "^3.0.0"
 anyio = "^3.6.1"
 pytest-env = "^0.6.2"
 httpx = "^0.22.0"
-types-aiofiles = "^0.8.11"
+types-aiofiles = "^23"
 testcontainers = "^3.7.0"
 types-pyyaml = "^6.0.12.2"
 

@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
@@ -10,6 +11,7 @@ from bartender.context import Context, get_context, get_job_root_dir
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import CompletedStates, Job
 from bartender.db.models.user import User
+from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import FileStagingQueue, get_file_staging_queue
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
@@ -166,8 +168,6 @@ def retrieve_job_files(
         full_path = (job_dir / path).expanduser().resolve(strict=True)
         if not full_path.is_relative_to(job_dir):
             raise FileNotFoundError()
-        # TODO if path == '' or path is directory then return file listing?
-        # Similar to AWS S3 ListObjectsV2 or Webdav PROPFIND
         if not full_path.is_file():
             raise FileNotFoundError()
     except FileNotFoundError as exc:
@@ -212,3 +212,62 @@ def retrieve_job_stderr(
         Content of standard error.
     """
     return retrieve_job_files("stderr.txt", job_dir)
+
+
+@router.get(
+    "/{jobid}/directories",
+    response_model=DirectoryItem,
+    response_model_exclude_none=True,
+)
+async def retrieve_job_directories(
+    max_depth: PositiveInt = 1,
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> DirectoryItem:
+    """List directory contents of a job.
+
+    Args:
+        max_depth: Number of directories to traverse into.
+        job_dir: The job directory.
+
+    Returns:
+        DirectoryItem: Listing of files and directories.
+    """
+    return await walk_dir(job_dir, job_dir, max_depth)
+
+
+@router.get(
+    "/{jobid}/directories/{path:path}",
+    response_model=DirectoryItem,
+    response_model_exclude_none=True,
+)
+async def retrieve_job_directories_from_path(
+    path: str,
+    max_depth: PositiveInt = 1,
+    job_dir: Path = Depends(get_dir_of_completed_job),
+) -> DirectoryItem:
+    """List directory contents of a job.
+
+    Args:
+        path: Sub directory inside job directory to start from.
+        max_depth: Number of directories to traverse into.
+        job_dir: The job directory.
+
+    Raises:
+        HTTPException: When path is not found or is outside job directory.
+
+    Returns:
+        DirectoryItem: Listing of files and directories.
+    """
+    try:
+        start_dir = (job_dir / path).expanduser().resolve(strict=True)
+        if not start_dir.is_relative_to(job_dir):
+            raise FileNotFoundError()
+        if not start_dir.is_dir():
+            raise FileNotFoundError()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        ) from exc
+    current_depth = len(start_dir.relative_to(job_dir).parts)
+    return await walk_dir(start_dir, job_dir, current_depth + max_depth)
