@@ -18,7 +18,7 @@ class JobDAO:
 
     async def create_job(  # noqa: WPS211
         self,
-        name: str,
+        name: Optional[str],
         application: str,
         submitter: User,
         updated_on: Optional[datetime] = None,
@@ -36,6 +36,8 @@ class JobDAO:
         Returns:
             id of a job.
         """
+        if name is None:
+            name = ""
         job = Job(
             name=name,
             application=application,
