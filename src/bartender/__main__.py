@@ -23,7 +23,7 @@ def serve() -> None:
         host=settings.host,
         port=settings.port,
         reload=settings.reload,
-        log_level=settings.log_level.value.lower(),
+        log_level=settings.log_level,
         factory=True,
     )
 
@@ -44,7 +44,7 @@ async def make_super_async(email: str) -> None:
             user = await user_db.get_by_email(email)
             if user is None:
                 raise ValueError(f"User with {email} not found")
-            await user_db.update(user, {"is_superuser": True})
+            await user_db.give_super_powers(user)
             print(  # noqa: WPS421 -- user feedback on command line
                 f"User with {email} is now super user",
             )

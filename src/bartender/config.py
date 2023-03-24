@@ -5,7 +5,7 @@ from string import Template
 from tempfile import gettempdir
 from typing import Any
 
-from fastapi import Request
+from fastapi import Depends, Request
 from pydantic import BaseModel, Field, validator
 from pydantic.types import DirectoryPath
 from yaml import safe_load as load_yaml
@@ -32,6 +32,7 @@ class ApplicatonConfiguration(BaseModel):
     config: str
     # TODO make config optional,
     # as some commands don't need a config file name as argument
+    allowed_roles: list[str] = []
 
     def description(self, job_dir: Path) -> JobDescription:
         """Construct job description for this application.
@@ -122,3 +123,19 @@ def get_config(request: Request) -> Config:
         The config.
     """
     return request.app.state.config
+
+
+def get_roles(config: Config = Depends(get_config)) -> list[str]:
+    """Get roles from config.
+
+    Args:
+        config: The config.
+
+    Returns:
+        list of roles
+    """
+    roles = []
+    for app in config.applications.values():
+        for role in app.allowed_roles:
+            roles.append(role)
+    return roles

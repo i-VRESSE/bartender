@@ -61,6 +61,8 @@ To enable perform following steps:
 
    1. Add `BARTENDER_GITHUB_CLIENT_ID=<Client id of GitHub app>`
    2. Add `BARTENDER_GITHUB_CLIENT_SECRET=<Client secret of GitHub app>`
+   3. (Optionally) Add URL of frontend server that captures token
+      `BARTENDER_GITHUB_REDIRECT_URL=<URL>`
 
 ## Orcid sandbox login
 
@@ -106,6 +108,8 @@ To enable perform following steps:
    1. Add `BARTENDER_ORCIDSANDBOX_CLIENT_ID=<Client id of Orcid sandbox app>`
    2. Add `BARTENDER_ORCIDSANDBOX_CLIENT_SECRET=<Client secret of Orcid sandbox
       app>`
+   3. (Optionally) Add URL of frontend server that captures token
+      `BARTENDER_ORCIDSANDBOX_REDIRECT_URL=<URL>`
 
 The `GET /api/users/profile` route will return the Orcid ID in
 `oauth_accounts[oauth_name=sandbox.orcid.org].account_id`.
@@ -134,4 +138,50 @@ However you need a first super user. This can be done by running
 
 ```text
 bartender super <email address of logged in user>
+```
+
+## Roles
+
+An application can be configured to only allow users to submit jobs which
+have a certain role.
+
+See [Configuration docs](configuration.md#applications) how to set allowed
+roles on applications.
+
+To assign and unassign roles you will need to be a super user.
+
+Roles can be assigned to a user by calling
+
+```text
+curl -X 'PUT' \
+  'http://localhost:8000/api/roles/<role name>/<user id>' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
+
+Roles can be unassigned from a user by calling
+
+```text
+curl -X 'DELETE' \
+  'http://localhost:8000/api/roles/<role name>/<user id>' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
+
+The available roles can be found with
+
+```text
+curl -X 'GET' \
+  'http://localhost:8000/api/roles/' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
+```
+
+The id of a user can be found with
+
+```text
+curl -X 'GET' \
+  'http://localhost:8000/api/users' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <the access token>'
 ```

@@ -1,12 +1,14 @@
 from asyncio import sleep
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Generator
 from zipfile import ZipFile
 
 import jwt
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
+from httpx._types import RequestFiles
 from starlette import status
 
 
@@ -34,6 +36,7 @@ async def test_get_application(
     expected = {
         "command": "wc $config",
         "config": "job.ini",
+        "allowed_roles": [],
     }
     assert app == expected
 
@@ -47,17 +50,8 @@ async def test_upload(
     auth_headers: Dict[str, str],
 ) -> None:
     """Test upload of a job archive."""
-    archive_fn = create_test_archive(tmp_path)
-
-    with open(archive_fn, "rb") as archive_file:
-        files = {
-            "upload": (
-                "upload.zip",
-                archive_file,
-                "application/zip",
-            ),
-        }
-        url = fastapi_app.url_path_for("upload_job", application="app1")
+    url = fastapi_app.url_path_for("upload_job", application="app1")
+    with prepare_form_data(tmp_path) as files:
         response = await client.put(url, files=files, headers=auth_headers)
 
     jurl = response.headers["location"]
@@ -68,6 +62,38 @@ async def test_upload(
     assert job["state"] == "ok"
 
     assert_job_dir(job_root_dir, str(job["id"]))
+
+
+@pytest.mark.anyio
+async def test_upload_with_role_granted(
+    current_user_with_role: None,
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    job_root_dir: Path,
+    tmp_path: Path,
+    auth_headers: Dict[str, str],
+) -> None:
+    url = fastapi_app.url_path_for("upload_job", application="app1")
+    with prepare_form_data(tmp_path) as files:
+        response = await client.put(url, files=files, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+
+@pytest.mark.anyio
+async def test_upload_with_no_role_granted(
+    app_with_roles: FastAPI,
+    client: AsyncClient,
+    job_root_dir: Path,
+    tmp_path: Path,
+    auth_headers: Dict[str, str],
+) -> None:
+    url = app_with_roles.url_path_for("upload_job", application="app1")
+    with prepare_form_data(tmp_path) as files:
+        response = await client.put(url, files=files, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "Missing role" in response.text
 
 
 def assert_job_dir(job_root_dir: Path, job_id: str) -> None:  # noqa: WPS218
@@ -117,3 +143,18 @@ def create_test_archive(tmp_path: Path) -> Path:
     archive.writestr("input.csv", "# Example input data file")
     archive.close()
     return archive_fn
+
+
+@contextmanager
+def prepare_form_data(
+    tmp_path: Path,
+) -> Generator[RequestFiles, None, None]:
+    archive_fn = create_test_archive(tmp_path)
+    with open(archive_fn, "rb") as archive_file:
+        yield {
+            "upload": (
+                "upload.zip",
+                archive_file.read(),
+                "application/zip",
+            ),
+        }
