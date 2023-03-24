@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 
 from fastapi import Depends
 from sqlalchemy import select
@@ -48,7 +48,7 @@ class JobDAO:
         await self.session.commit()
         return job.id
 
-    async def get_all_jobs(self, limit: int, offset: int, user: User) -> List[Job]:
+    async def get_all_jobs(self, limit: int, offset: int, user: User) -> list[Job]:
         """Get all job models of user with limit/offset pagination.
 
         Args:
@@ -59,14 +59,15 @@ class JobDAO:
         Returns:
             stream of jobs.
         """
-        raw_jobs = await self.session.execute(
+        # TODO also return shared jobs
+        raw_jobs = await self.session.scalars(
             select(Job)
-            .filter(Job.submitter == user)
+            .where(Job.submitter == user)
             .limit(limit)
-            .offset(offset),  # TODO also return shared jobs
+            .offset(offset),
         )
 
-        return raw_jobs.scalars().fetchall()
+        return raw_jobs.all()
 
     async def get_job(self, jobid: int, user: User) -> Job:
         """Get specific job model.

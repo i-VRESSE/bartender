@@ -1,12 +1,10 @@
-from asyncio import current_task
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
-    async_scoped_session,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
 
 from bartender.settings import settings
 
@@ -20,7 +18,7 @@ def make_engine() -> AsyncEngine:
     return create_async_engine(str(settings.db_url), echo=settings.db_echo)
 
 
-def make_session_factory(engine: AsyncEngine) -> async_scoped_session:
+def make_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     """Create session_factory for creating sessions.
 
     Args:
@@ -29,11 +27,6 @@ def make_session_factory(engine: AsyncEngine) -> async_scoped_session:
     Returns:
         session factory
     """
-    return async_scoped_session(
-        sessionmaker(
-            engine,
-            expire_on_commit=False,
-            class_=AsyncSession,
-        ),
-        scopefunc=current_task,
-    )
+    # TODO replace with async sessionmaker
+    # see https://fastapi-users.github.io/fastapi-users/10.4/configuration/full-example/
+    return async_sessionmaker(engine, expire_on_commit=False)

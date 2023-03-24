@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -19,7 +19,7 @@ from bartender.web.users.manager import CurrentUser
 router = APIRouter()
 
 
-@router.get("/", response_model=List[JobModelDTO])
+@router.get("/", response_model=list[JobModelDTO])
 async def retrieve_jobs(  # noqa: WPS211
     job_dao: CurrentJobDAO,
     user: CurrentUser,
@@ -27,7 +27,7 @@ async def retrieve_jobs(  # noqa: WPS211
     file_staging_queue: CurrentFileOutStagingQueue,
     limit: int = 10,
     offset: int = 0,
-) -> List[Job]:
+) -> list[Job]:
     """Retrieve all jobs of user from the database.
 
     Args:

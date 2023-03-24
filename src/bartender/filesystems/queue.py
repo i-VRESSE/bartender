@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request
-from sqlalchemy.ext.asyncio import async_scoped_session
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import State
@@ -58,7 +58,7 @@ async def _file_staging_worker(
     queue: FileStagingQueue,
     job_root_dir: Path,
     destinations: dict[str, Destination],
-    factory: async_scoped_session,
+    factory: async_sessionmaker[AsyncSession],
 ) -> None:
     while True:  # noqa: WPS457 can be escaped by task.cancel() throwing CancelledError
         (job_id, destination_name, state) = await queue.get()
@@ -91,7 +91,7 @@ def setup_file_staging_queue(app: FastAPI) -> None:
 def build_file_staging_queue(
     job_root_dir: Path,
     destinations: dict[str, Destination],
-    factory: async_scoped_session,
+    factory: async_sessionmaker[AsyncSession],
 ) -> tuple[FileStagingQueue, Task[None]]:
     """Create file staging queue and single worker task.
 
