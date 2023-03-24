@@ -1,4 +1,4 @@
-from typing import Any, AsyncGenerator, Optional
+from typing import Annotated, Any, AsyncGenerator, Optional
 from uuid import UUID
 
 from fastapi import Depends, Response
@@ -17,7 +17,7 @@ from fastapi_users.authentication.transport.bearer import BearerResponse
 from fastapi_users.jwt import generate_jwt
 from httpx_oauth.clients.github import GitHubOAuth2
 
-from bartender.db.dao.user_dao import UserDatabase, get_user_db
+from bartender.db.dao.user_dao import CurrentUserDatabase
 from bartender.db.models.user import User
 from bartender.settings import settings
 from bartender.web.users.orcid import OrcidOAuth2
@@ -61,7 +61,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
 
 
 async def get_user_manager(
-    user_db: UserDatabase = Depends(get_user_db),
+    user_db: CurrentUserDatabase,
 ) -> AsyncGenerator[UserManager, None]:
     """Factory to get user manager.
 
@@ -159,12 +159,14 @@ fastapi_users = FastAPIUsers[User, UUID](
 
 current_active_user = fastapi_users.current_user(active=True)
 
+CurrentUser = Annotated[User, Depends(current_active_user)]
+
 # TODO Token used by a job should be valid for as long as job can run.
 
 API_TOKEN_LIFETIME = 14400  # 4 hours
 
 
-async def current_api_token(user: User = Depends(current_active_user)) -> str:
+async def current_api_token(user: CurrentUser) -> str:
     """Generate token that job can use to talk to bartender service.
 
     Args:
@@ -183,3 +185,5 @@ async def current_api_token(user: User = Depends(current_active_user)) -> str:
 
 
 current_super_user = fastapi_users.current_user(active=True, superuser=True)
+
+CurrentSuperUser = Annotated[User, Depends(current_super_user)]

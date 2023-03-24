@@ -1,11 +1,10 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from fastapi import Depends
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from bartender.db.dependencies import get_db_session
+from bartender.db.dependencies import CurrentSession
 from bartender.db.models.job_model import Job, State
 from bartender.db.models.user import User
 
@@ -13,7 +12,7 @@ from bartender.db.models.user import User
 class JobDAO:
     """Class for accessing job table."""
 
-    def __init__(self, session: AsyncSession = Depends(get_db_session)):
+    def __init__(self, session: CurrentSession):
         self.session = session
 
     async def create_job(  # noqa: WPS211
@@ -120,3 +119,6 @@ class JobDAO:
         job.internal_id = internal_job_id
         job.destination = destination
         await self.session.commit()
+
+
+CurrentJobDAO = Annotated[JobDAO, Depends()]

@@ -3,7 +3,7 @@
 from pathlib import Path
 from string import Template
 from tempfile import gettempdir
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 from pydantic import BaseModel, Field, validator
@@ -125,7 +125,10 @@ def get_config(request: Request) -> Config:
     return request.app.state.config
 
 
-def get_roles(config: Config = Depends(get_config)) -> list[str]:
+CurrentConfig = Annotated[Config, Depends(get_config)]
+
+
+def get_roles(config: CurrentConfig) -> list[str]:
     """Get roles from config.
 
     Args:
@@ -139,3 +142,6 @@ def get_roles(config: Config = Depends(get_config)) -> list[str]:
         for role in app.allowed_roles:
             roles.append(role)
     return roles
+
+
+CurrentRoles = Annotated[list[str], Depends(get_roles)]

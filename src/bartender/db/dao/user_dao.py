@@ -1,12 +1,11 @@
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator
 from uuid import UUID
 
 from fastapi import Depends
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from bartender.db.dependencies import get_db_session
+from bartender.db.dependencies import CurrentSession
 from bartender.db.models.user import OAuthAccount, User
 
 # From app/db.py at
@@ -69,7 +68,7 @@ class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
 
 
 async def get_user_db(
-    session: AsyncSession = Depends(get_db_session),
+    session: CurrentSession,
 ) -> AsyncGenerator[UserDatabase, None]:
     """Factory method for accessing user table.
 
@@ -80,3 +79,6 @@ async def get_user_db(
         Database adaptor
     """
     yield UserDatabase(session, User, OAuthAccount)
+
+
+CurrentUserDatabase = Annotated[UserDatabase, Depends(get_user_db)]

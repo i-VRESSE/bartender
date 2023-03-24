@@ -1,20 +1,19 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from starlette import status
 
-from bartender.config import get_roles
-from bartender.db.dao.user_dao import UserDatabase, get_user_db
-from bartender.db.models.user import User
-from bartender.web.users.manager import current_super_user
+from bartender.config import CurrentRoles
+from bartender.db.dao.user_dao import CurrentUserDatabase
+from bartender.web.users.manager import CurrentSuperUser
 
 router = APIRouter()
 
 
 @router.get("/")
 async def list_roles(
-    roles: list[str] = Depends(get_roles),
-    super_user: User = Depends(current_super_user),
+    roles: CurrentRoles,
+    super_user: CurrentSuperUser,
 ) -> list[str]:
     """List available roles.
 
@@ -34,9 +33,9 @@ async def list_roles(
 async def assign_role_to_user(
     role_id: str,
     user_id: str,
-    roles: list[str] = Depends(get_roles),
-    super_user: User = Depends(current_super_user),
-    user_db: UserDatabase = Depends(get_user_db),
+    roles: CurrentRoles,
+    super_user: CurrentSuperUser,
+    user_db: CurrentUserDatabase,
 ) -> list[str]:
     """Assign role to user.
 
@@ -74,9 +73,9 @@ async def assign_role_to_user(
 async def unassign_role_from_user(
     role_id: str,
     user_id: str,
-    roles: set[str] = Depends(get_roles),
-    super_user: User = Depends(current_super_user),
-    user_db: UserDatabase = Depends(get_user_db),
+    roles: CurrentRoles,
+    super_user: CurrentSuperUser,
+    user_db: CurrentUserDatabase,
 ) -> list[str]:
     """Unassign role from user.
 

@@ -1,7 +1,8 @@
 from asyncio import Queue, Task, create_task, gather
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from sqlalchemy.ext.asyncio import async_scoped_session
 
 from bartender.db.dao.job_dao import JobDAO
@@ -143,15 +144,28 @@ def get_file_staging_queue(request: Request) -> FileStagingQueue:
     Requires :func:`setup_file_staging_queue` and :func:`teardown_file_staging_queue`
     to be added to FastAPI startup and shutdown events.
 
-    For example
+    Example:
+        To make route which returns number of jobs that are
+        waiting for their files to be staged out.
 
-    .. code-block:: python
+        .. code-block:: python
 
-        @router.get("/staging-queue-size")
-        async def file_staging_queue_size(
-            file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
-        ):
-            return file_staging_queue.qsize()
+            from fastapi import APIRouter
+            from bartender.filesystems.queue import CurrentFileOutStagingQueue
+
+            router = APIRouter()
+
+            @router.get("/staging-queue-size")
+            async def file_staging_queue_size(
+                file_staging_queue: CurrentFileOutStagingQueue
+            ):
+                return file_staging_queue.qsize()
 
     """
     return request.app.state.file_staging_queue
+
+
+CurrentFileOutStagingQueue = Annotated[
+    FileStagingQueue,
+    Depends(get_file_staging_queue),
+]
