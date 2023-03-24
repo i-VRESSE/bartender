@@ -11,7 +11,8 @@ build:
   jobs:
     # https://github.com/readthedocs/readthedocs.org/issues/4912#issuecomment-1143587902
     post_install:
-    - pip install poetry
+    # TODO remove pin once furo can be installed with poetry>=1.4.1
+    - pip install poetry==1.4.0
     - poetry config virtualenvs.create false
     - poetry install --with docs
 sphinx:
