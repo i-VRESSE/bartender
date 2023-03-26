@@ -60,14 +60,11 @@ class JobDAO:
             stream of jobs.
         """
         # TODO also return shared jobs
-        raw_jobs = await self.session.scalars(
-            select(Job)
-            .where(Job.submitter == user)
-            .limit(limit)
-            .offset(offset),
-        )
 
-        return raw_jobs.all()
+        stmt = select(Job).where(Job.submitter == user)
+        stmt = stmt.limit(limit).offset(offset)
+        raw_jobs = await self.session.scalars(stmt)
+        return list(raw_jobs.all())
 
     async def get_job(self, jobid: int, user: User) -> Job:
         """Get specific job model.
@@ -83,8 +80,8 @@ class JobDAO:
         #  https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncSession.refresh
         result = await self.session.execute(
             select(Job)
-            .filter(Job.id == jobid)
-            .filter(Job.submitter == user),  # TODO also return shared jobs
+            .where(Job.id == jobid)
+            .where(Job.submitter == user),  # TODO also return shared jobs
         )
         return result.scalar_one()
 

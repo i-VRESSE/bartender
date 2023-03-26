@@ -1,6 +1,6 @@
 import contextlib
 from pathlib import Path
-from typing import Any, AsyncGenerator, Callable, Dict, Generator, TypedDict
+from typing import Any, AsyncGenerator, Callable, Dict, Generator, TypedDict, cast
 from uuid import UUID
 
 import pytest
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import Mapped
 from starlette import status
 from testcontainers.redis import RedisContainer
 
@@ -309,7 +310,10 @@ def auth_headers(current_user_token: str) -> Dict[str, str]:
 
 @pytest.fixture
 async def current_user(dbsession: AsyncSession, current_user_token: str) -> User:
-    query = select(User).where(User.email == "me@example.com")
+    # User.email is typed as str in fastapi-user package, which confuses mypy,
+    # cast it to correct type
+    user_column = cast(Mapped[str], User.email)
+    query = select(User).where(user_column == "me@example.com")
     result = await dbsession.execute(query)
     return result.unique().scalar_one()
 

@@ -13,7 +13,7 @@ class DirectoryItem(BaseModel):
     path: Path
     is_dir: bool
     is_file: bool
-    children: Optional[list["DirectoryItem"]]
+    children: Optional[list["DirectoryItem"]] = None
 
 
 async def walk_dir(

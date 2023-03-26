@@ -98,7 +98,7 @@ async def test_ok_running_job_without_iofiles(
     try:
         ssh_config = slurm_server.get_config()
         scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
-        description = JobDescription(command="echo -n hello", job_dir=str(job_dir))
+        description = JobDescription(command="echo -n hello", job_dir=job_dir)
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)
 

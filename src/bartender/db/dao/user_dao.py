@@ -31,8 +31,8 @@ class UserDatabase(SQLAlchemyUserDatabase[User, UUID]):
             list of users.
         """
         statement = select(self.user_table).limit(limit).offset(offset)
-        results = await self.session.execute(statement)
-        return results.unique().scalars().all()
+        results = await self.session.scalars(statement)
+        return list(results.unique().all())
 
     async def assign_role(self, user: User, role: str) -> None:
         """Assign a role to a user.

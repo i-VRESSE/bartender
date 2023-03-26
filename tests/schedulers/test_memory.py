@@ -15,7 +15,7 @@ from tests.schedulers.helpers import wait_for_job
 @pytest.mark.anyio
 async def test_ok_running_job(tmp_path: Path) -> None:
     async with MemoryScheduler(MemorySchedulerConfig(slots=1)) as scheduler:
-        description = JobDescription(command="echo -n hello", job_dir=str(tmp_path))
+        description = JobDescription(command="echo -n hello", job_dir=tmp_path)
 
         jid = await scheduler.submit(description)
 
@@ -29,7 +29,7 @@ async def test_ok_running_job(tmp_path: Path) -> None:
 @pytest.mark.anyio
 async def test_bad_running_job(tmp_path: Path) -> None:
     async with MemoryScheduler(MemorySchedulerConfig(slots=1)) as scheduler:
-        description = JobDescription(command="exit 42", job_dir=str(tmp_path))
+        description = JobDescription(command="exit 42", job_dir=tmp_path)
 
         jid = await scheduler.submit(description)
 
@@ -42,7 +42,7 @@ async def make_occupied_scheduler(
     tmp_path: Path,
 ) -> tuple[MemoryScheduler, str, JobDescription]:
     scheduler = MemoryScheduler(MemorySchedulerConfig(slots=1))
-    description = JobDescription(command="sleep 5", job_dir=str(tmp_path))
+    description = JobDescription(command="sleep 5", job_dir=tmp_path)
     jid = await scheduler.submit(description)
     # Wait for job to start running
     await sleep(0.01)
