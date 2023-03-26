@@ -59,8 +59,14 @@ class Job(Base):
     )
     submitter: Mapped[User] = relationship(back_populates="jobs")
     # Identifier for job used by the scheduler
-    internal_id: Mapped[str] = mapped_column(String(length=200))  # noqa: WPS432
-    destination: Mapped[str] = mapped_column(String(length=200))  # noqa: WPS432
+    internal_id: Mapped[str] = mapped_column(
+        String(length=200),  # noqa: WPS432
+        nullable=True,
+    )
+    destination: Mapped[str] = mapped_column(
+        String(length=200),  # noqa: WPS432
+        nullable=True,
+    )
     created_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=now,
