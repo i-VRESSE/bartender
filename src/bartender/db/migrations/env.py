@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio.engine import create_async_engine
 from sqlalchemy.future import Connection
 
 from bartender.db.base import Base
+from bartender.db.models import load_all_models
 from bartender.settings import settings
 
 # this is the Alembic Config object, which provides
@@ -14,6 +15,7 @@ from bartender.settings import settings
 config = context.config
 
 
+load_all_models()
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
