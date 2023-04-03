@@ -113,7 +113,7 @@ For running tests on your local machine
 1. You need a database. Here's a way to start one with docker:
 
     ```text
-    docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bartender" -e "POSTGRES_DB=bartender" postgres:13.6-bullseye
+    docker run -p "5432:5432" -e "POSTGRES_PASSWORD=bartender" -e "POSTGRES_USER=bartender" -e "POSTGRES_DB=bartender" postgres:15.2-bullseye
     ```
 
 2. Run the pytest.
