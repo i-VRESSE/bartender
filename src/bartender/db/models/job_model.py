@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi_users_db_sqlalchemy.generics import GUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -45,36 +45,29 @@ class Job(Base):
     name: Mapped[str] = mapped_column(String(length=200))  # noqa: WPS432
     application: Mapped[str] = mapped_column(
         String(length=200),  # noqa: WPS432
-        nullable=False,
     )
     state: Mapped[State] = mapped_column(
         String(length=20),  # noqa: WPS432
         default="new",
-        nullable=False,
     )
     submitter_id: Mapped[GUID] = mapped_column(
         GUID(),
         ForeignKey("user.id"),
-        nullable=False,
     )
     submitter: Mapped[User] = relationship(back_populates="jobs")
     # Identifier for job used by the scheduler
-    internal_id: Mapped[str] = mapped_column(
+    internal_id: Mapped[Optional[str]] = mapped_column(
         String(length=200),  # noqa: WPS432
-        nullable=True,
     )
-    destination: Mapped[str] = mapped_column(
+    destination: Mapped[Optional[str]] = mapped_column(
         String(length=200),  # noqa: WPS432
-        nullable=True,
     )
     created_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=now,
-        nullable=False,
     )
     updated_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         onupdate=now,
         default=now,
-        nullable=False,
     )
