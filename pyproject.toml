@@ -14,7 +14,7 @@ packages = [{include = "bartender", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.9"
 fastapi = "^0.95.0"
-uvicorn = { version = "^0.20.0", extras = ["standard"] }
+uvicorn = {version = "^0.21.1", extras = ["standard"]}
 pydantic = {version = "^1.10.7", extras = ["dotenv"]}
 yarl = "^1.7.2"
 ujson = "^5.1.0"
@@ -24,7 +24,7 @@ asyncpg = "^0.27.0"
 python-multipart = "^0.0.6"
 aiofiles = "^23.1.0"
 fastapi-users = {extras = ["oauth", "sqlalchemy"], version = "^10.4.1"}
-asyncssh = "^2.12.0"
+asyncssh = "^2.13.1"
 pyyaml = "^6.0"
 arq = "^0.25.0"
 
