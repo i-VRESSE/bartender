@@ -112,7 +112,7 @@ destinations:
 
 ### Example of running jobs on a slurm Docker container
 
-To use this, start a container with `docker run --detach --publish 10022:22
+To use this, start a [container](https://github.com/xenon-middleware/xenon-docker-images/tree/master/slurm-20) with `docker run --detach --publish 10022:22
 xenonmiddleware/slurm:20`
 
 ```yaml
