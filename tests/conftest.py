@@ -1,6 +1,6 @@
 import contextlib
 from pathlib import Path
-from typing import Any, AsyncGenerator, Callable, Dict, Generator, TypedDict
+from typing import Any, AsyncGenerator, Callable, Dict, Generator, TypedDict, cast
 from uuid import UUID
 
 import pytest
@@ -10,15 +10,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
-    async_scoped_session,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Mapped
 from starlette import status
 from testcontainers.redis import RedisContainer
 
 from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.context import Context, get_context
+from bartender.db.base import Base
 from bartender.db.dao.user_dao import get_user_db
 from bartender.db.dependencies import get_db_session
 from bartender.db.models.user import User
@@ -54,16 +55,11 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
     Yields:
         new engine.
     """
-    from bartender.db.meta import meta  # noqa: WPS433
-    from bartender.db.models import load_all_models  # noqa: WPS433
-
-    load_all_models()
-
     await create_database()
 
     engine = create_async_engine(str(settings.db_url))
     async with engine.begin() as conn:
-        await conn.run_sync(meta.create_all)
+        await conn.run_sync(Base.metadata.create_all)
 
     try:
         yield engine
@@ -87,19 +83,17 @@ async def dbsession(
     connection = await _engine.connect()
     trans = await connection.begin()
 
-    session_maker = sessionmaker(
+    session_maker = async_sessionmaker(
         connection,
         expire_on_commit=False,
-        class_=AsyncSession,
     )
-    session = session_maker()
-
-    try:
-        yield session
-    finally:
-        await session.close()
-        await trans.rollback()
-        await connection.close()
+    async with session_maker() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+            await trans.rollback()
+            await connection.close()
 
 
 @pytest.fixture
@@ -187,7 +181,7 @@ def demo_context(
 async def demo_file_staging_queue(
     demo_config: Config,
     demo_context: Context,
-    session_maker: async_scoped_session,
+    session_maker: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[FileStagingQueue, None]:
     queue, task = build_file_staging_queue(
         demo_config.job_root_dir,
@@ -316,7 +310,10 @@ def auth_headers(current_user_token: str) -> Dict[str, str]:
 
 @pytest.fixture
 async def current_user(dbsession: AsyncSession, current_user_token: str) -> User:
-    query = select(User).where(User.email == "me@example.com")
+    # User.email is typed as str in fastapi-user package, which confuses mypy,
+    # cast it to correct type
+    user_column = cast(Mapped[str], User.email)
+    query = select(User).where(user_column == "me@example.com")
     result = await dbsession.execute(query)
     return result.unique().scalar_one()
 

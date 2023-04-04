@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from bartender.db.dao.user_dao import UserDatabase, get_user_db
+from bartender.db.dao.user_dao import CurrentUserDatabase
 from bartender.db.models.user import User
 from bartender.web.api.user.schema import UserAsListItem, UserProfileInputDTO
-from bartender.web.users.manager import current_active_user, current_super_user
+from bartender.web.users.manager import CurrentSuperUser, CurrentUser
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/profile", response_model=UserProfileInputDTO)
 async def profile(
-    user: User = Depends(current_active_user),
+    user: CurrentUser,
 ) -> User:
     """
     Retrieve profile of currently logged in user.
@@ -32,10 +32,10 @@ async def profile(
     response_model=list[UserAsListItem],
 )
 async def list_users(
+    super_user: CurrentSuperUser,
+    user_db: CurrentUserDatabase,
     limit: int = 50,
     offset: int = 0,
-    super_user: User = Depends(current_super_user),
-    user_db: UserDatabase = Depends(get_user_db),
 ) -> list[User]:
     """List of users.
 

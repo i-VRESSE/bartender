@@ -1,23 +1,23 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from starlette import status
 from starlette.background import BackgroundTask
 
-from bartender.config import ApplicatonConfiguration, Config, get_config
-from bartender.context import Context, get_context
-from bartender.db.dao.job_dao import JobDAO
+from bartender.config import ApplicatonConfiguration, CurrentConfig
+from bartender.context import Context, CurrentContext
+from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.web.api.applications.submit import submit
-from bartender.web.users.manager import current_active_user, current_api_token
+from bartender.web.users.manager import CurrentUser, current_api_token
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[str])
-def list_applications(config: Config = Depends(get_config)) -> list[str]:
+@router.get("/")
+def list_applications(config: CurrentConfig) -> list[str]:
     """List application names.
 
     Args:
@@ -29,10 +29,10 @@ def list_applications(config: Config = Depends(get_config)) -> list[str]:
     return list(config.applications.keys())
 
 
-@router.get("/{application}", response_model=ApplicatonConfiguration)
+@router.get("/{application}")
 def get_application(
     application: str,
-    config: Config = Depends(get_config),
+    config: CurrentConfig,
 ) -> ApplicatonConfiguration:
     """Retrieve application configuration.
 
@@ -48,8 +48,7 @@ def get_application(
 
 @router.put(
     "/{application}/job",
-    status_code=status.HTTP_303_SEE_OTHER,
-    response_class=RedirectResponse,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     openapi_extra={
         # Enfore uploaded file is a certain content type
         # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
@@ -66,10 +65,10 @@ def get_application(
 async def upload_job(  # noqa: WPS211
     application: str,
     request: Request,
+    job_dao: CurrentJobDAO,
+    submitter: CurrentUser,
+    context: CurrentContext,
     upload: UploadFile = File(description="Archive with config file for application"),
-    job_dao: JobDAO = Depends(),
-    submitter: User = Depends(current_active_user),
-    context: Context = Depends(get_context),
 ) -> RedirectResponse:
     """Creates job model in the database, stage archive locally and submit to scheduler.
 

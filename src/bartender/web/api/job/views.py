@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -7,28 +7,27 @@ from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
-from bartender.context import Context, get_context, get_job_root_dir
-from bartender.db.dao.job_dao import JobDAO
+from bartender.context import CurrentContext, get_job_root_dir
+from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import CompletedStates, Job
-from bartender.db.models.user import User
 from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
-from bartender.filesystems.queue import FileStagingQueue, get_file_staging_queue
+from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
-from bartender.web.users.manager import current_active_user
+from bartender.web.users.manager import CurrentUser
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[JobModelDTO])
+@router.get("/", response_model=list[JobModelDTO])
 async def retrieve_jobs(  # noqa: WPS211
+    job_dao: CurrentJobDAO,
+    user: CurrentUser,
+    context: CurrentContext,
+    file_staging_queue: CurrentFileOutStagingQueue,
     limit: int = 10,
     offset: int = 0,
-    job_dao: JobDAO = Depends(),
-    user: User = Depends(current_active_user),
-    context: Context = Depends(get_context),
-    file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
-) -> List[Job]:
+) -> list[Job]:
     """Retrieve all jobs of user from the database.
 
     Args:
@@ -61,10 +60,10 @@ async def retrieve_jobs(  # noqa: WPS211
 @router.get("/{jobid}", response_model=JobModelDTO)
 async def retrieve_job(
     jobid: int,
-    job_dao: JobDAO = Depends(),
-    user: User = Depends(current_active_user),
-    context: Context = Depends(get_context),
-    file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
+    job_dao: CurrentJobDAO,
+    user: CurrentUser,
+    context: CurrentContext,
+    file_staging_queue: CurrentFileOutStagingQueue,
 ) -> Job:
     """Retrieve specific job from the database.
 
@@ -106,7 +105,10 @@ async def retrieve_job(
         ) from exc
 
 
-def get_job_dir(jobid: int, job_root_dir: Path = Depends(get_job_root_dir)) -> Path:
+def get_job_dir(
+    jobid: int,
+    job_root_dir: Annotated[Path, Depends(get_job_root_dir)],
+) -> Path:
     """Get directory where input and output files of a job reside.
 
     Args:
@@ -124,8 +126,8 @@ def get_job_dir(jobid: int, job_root_dir: Path = Depends(get_job_root_dir)) -> P
 
 
 def get_dir_of_completed_job(
-    job: Job = Depends(retrieve_job),
-    job_dir: Path = Depends(get_job_dir),
+    job: Annotated[Job, Depends(retrieve_job)],
+    job_dir: Annotated[Path, Depends(get_job_dir)],
 ) -> Path:
     """Get directory of a completed job.
 
@@ -147,10 +149,13 @@ def get_dir_of_completed_job(
     return job_dir
 
 
-@router.get("/{jobid}/files/{path:path}", response_class=FileResponse)
+CurrentCompletedJobDir = Annotated[Path, Depends(get_dir_of_completed_job)]
+
+
+@router.get("/{jobid}/files/{path:path}")
 def retrieve_job_files(
     path: str,
-    job_dir: Path = Depends(get_dir_of_completed_job),
+    job_dir: CurrentCompletedJobDir,
 ) -> FileResponse:
     """Retrieve files from a completed job.
 
@@ -184,9 +189,9 @@ def retrieve_job_files(
     )
 
 
-@router.get("/{jobid}/stdout", response_class=FileResponse)
+@router.get("/{jobid}/stdout")
 def retrieve_job_stdout(
-    job_dir: Path = Depends(get_dir_of_completed_job),
+    job_dir: CurrentCompletedJobDir,
 ) -> FileResponse:
     """Retrieve the jobs standard output.
 
@@ -199,9 +204,9 @@ def retrieve_job_stdout(
     return retrieve_job_files("stdout.txt", job_dir)
 
 
-@router.get("/{jobid}/stderr", response_class=FileResponse)
+@router.get("/{jobid}/stderr")
 def retrieve_job_stderr(
-    job_dir: Path = Depends(get_dir_of_completed_job),
+    job_dir: CurrentCompletedJobDir,
 ) -> FileResponse:
     """Retrieve the jobs standard error.
 
@@ -216,12 +221,11 @@ def retrieve_job_stderr(
 
 @router.get(
     "/{jobid}/directories",
-    response_model=DirectoryItem,
     response_model_exclude_none=True,
 )
 async def retrieve_job_directories(
+    job_dir: CurrentCompletedJobDir,
     max_depth: PositiveInt = 1,
-    job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
     """List directory contents of a job.
 
@@ -237,13 +241,12 @@ async def retrieve_job_directories(
 
 @router.get(
     "/{jobid}/directories/{path:path}",
-    response_model=DirectoryItem,
     response_model_exclude_none=True,
 )
 async def retrieve_job_directories_from_path(
     path: str,
+    job_dir: CurrentCompletedJobDir,
     max_depth: PositiveInt = 1,
-    job_dir: Path = Depends(get_dir_of_completed_job),
 ) -> DirectoryItem:
     """List directory contents of a job.
 

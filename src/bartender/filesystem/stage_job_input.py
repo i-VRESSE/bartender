@@ -1,5 +1,6 @@
 from asyncio import create_subprocess_exec
 from pathlib import Path
+from typing import Optional
 
 from aiofiles import open
 from aiofiles.os import remove
@@ -48,7 +49,7 @@ async def stage_job_input(
     await remove(job_archive)  # no longer needed?
 
 
-def _is_valid_content_type(content_type: str) -> bool:
+def _is_valid_content_type(content_type: Optional[str]) -> bool:
     supported_upload_content_types = {
         "application/zip",
         "application/x-zip-compressed",

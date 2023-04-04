@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import Depends, Request
 
@@ -50,8 +51,11 @@ def get_context(request: Request) -> Context:
     return request.app.state.context
 
 
+CurrentContext = Annotated[Context, Depends(get_context)]
+
+
 def get_job_root_dir(
-    context: Context = Depends(get_context),
+    context: CurrentContext,
 ) -> Path:
     """Get job root directory from context.
 

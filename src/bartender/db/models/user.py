@@ -1,13 +1,13 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi_users_db_sqlalchemy import (
     SQLAlchemyBaseOAuthAccountTableUUID,
     SQLAlchemyBaseUserTableUUID,
 )
-from sqlalchemy import BigInteger, Column
+from sqlalchemy import BigInteger
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.mutable import MutableList
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.sqltypes import String
 
 from bartender.db.base import Base
@@ -24,7 +24,7 @@ class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
         expires_at: Optional[int]
     else:
         # Orcid returns expire of 2293079986 which is greater then Integer|int32
-        expires_at: Optional[int] = Column(BigInteger, nullable=True)
+        expires_at: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
 
 if TYPE_CHECKING:
@@ -34,15 +34,14 @@ if TYPE_CHECKING:
 class User(SQLAlchemyBaseUserTableUUID, Base):
     """Model for the User."""
 
-    oauth_accounts: List[OAuthAccount] = relationship("OAuthAccount", lazy="joined")
-    jobs: List["Job"] = relationship(
-        "Job",
+    oauth_accounts: Mapped[list[OAuthAccount]] = relationship(lazy="joined")
+    jobs: Mapped[list["Job"]] = relationship(
         back_populates="submitter",
     )
-    roles: List[str] = Column(
+    roles: Mapped[list[str]] = mapped_column(
         MutableList.as_mutable(ARRAY(String(100), dimensions=1)),
         default=[],
     )
 
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, email={self.email})"
+        return f"<User(id={self.id}, email={self.email})>"

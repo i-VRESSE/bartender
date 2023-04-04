@@ -65,7 +65,7 @@ jobs:
     services:
 
       bartender-db:
-        image: postgres:13.6-bullseye
+        image: postgres:15.2-bullseye
         env:
           POSTGRES_PASSWORD: bartender
           POSTGRES_USER: bartender

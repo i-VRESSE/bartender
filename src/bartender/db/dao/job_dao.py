@@ -1,11 +1,10 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Annotated, Optional
 
 from fastapi import Depends
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from bartender.db.dependencies import get_db_session
+from bartender.db.dependencies import CurrentSession
 from bartender.db.models.job_model import Job, State
 from bartender.db.models.user import User
 
@@ -13,12 +12,12 @@ from bartender.db.models.user import User
 class JobDAO:
     """Class for accessing job table."""
 
-    def __init__(self, session: AsyncSession = Depends(get_db_session)):
+    def __init__(self, session: CurrentSession):
         self.session = session
 
     async def create_job(  # noqa: WPS211
         self,
-        name: str,
+        name: Optional[str],
         application: str,
         submitter: User,
         updated_on: Optional[datetime] = None,
@@ -36,6 +35,8 @@ class JobDAO:
         Returns:
             id of a job.
         """
+        if name is None:
+            name = ""
         job = Job(
             name=name,
             application=application,
@@ -47,7 +48,7 @@ class JobDAO:
         await self.session.commit()
         return job.id
 
-    async def get_all_jobs(self, limit: int, offset: int, user: User) -> List[Job]:
+    async def get_all_jobs(self, limit: int, offset: int, user: User) -> list[Job]:
         """Get all job models of user with limit/offset pagination.
 
         Args:
@@ -58,14 +59,12 @@ class JobDAO:
         Returns:
             stream of jobs.
         """
-        raw_jobs = await self.session.execute(
-            select(Job)
-            .filter(Job.submitter == user)
-            .limit(limit)
-            .offset(offset),  # TODO also return shared jobs
-        )
+        # TODO also return shared jobs
 
-        return raw_jobs.scalars().fetchall()
+        stmt = select(Job).where(Job.submitter == user)
+        stmt = stmt.limit(limit).offset(offset)
+        raw_jobs = await self.session.scalars(stmt)
+        return list(raw_jobs.all())
 
     async def get_job(self, jobid: int, user: User) -> Job:
         """Get specific job model.
@@ -81,8 +80,8 @@ class JobDAO:
         #  https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncSession.refresh
         result = await self.session.execute(
             select(Job)
-            .filter(Job.id == jobid)
-            .filter(Job.submitter == user),  # TODO also return shared jobs
+            .where(Job.id == jobid)
+            .where(Job.submitter == user),  # TODO also return shared jobs
         )
         return result.scalar_one()
 
@@ -118,3 +117,6 @@ class JobDAO:
         job.internal_id = internal_job_id
         job.destination = destination
         await self.session.commit()
+
+
+CurrentJobDAO = Annotated[JobDAO, Depends()]

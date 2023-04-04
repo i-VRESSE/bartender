@@ -1,4 +1,4 @@
-from typing import Any, AsyncGenerator, Optional
+from typing import Annotated, Any, AsyncGenerator, Optional
 from uuid import UUID
 
 from fastapi import Depends, Response
@@ -15,9 +15,11 @@ from fastapi_users.authentication.transport.base import (
 )
 from fastapi_users.authentication.transport.bearer import BearerResponse
 from fastapi_users.jwt import generate_jwt
+from fastapi_users.openapi import OpenAPIResponseType
 from httpx_oauth.clients.github import GitHubOAuth2
+from starlette import status
 
-from bartender.db.dao.user_dao import UserDatabase, get_user_db
+from bartender.db.dao.user_dao import CurrentUserDatabase
 from bartender.db.models.user import User
 from bartender.settings import settings
 from bartender.web.users.orcid import OrcidOAuth2
@@ -61,7 +63,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
 
 
 async def get_user_manager(
-    user_db: UserDatabase = Depends(get_user_db),
+    user_db: CurrentUserDatabase,
 ) -> AsyncGenerator[UserManager, None]:
     """Factory to get user manager.
 
@@ -145,6 +147,40 @@ class HTTPBearerTransport(Transport):
         """
         raise TransportLogoutNotSupportedError()
 
+    @staticmethod
+    def get_openapi_login_responses_success() -> OpenAPIResponseType:
+        """Openapi response when login is success.
+
+        Returns:
+            A reponse.
+        """
+        return {
+            status.HTTP_200_OK: {
+                "model": BearerResponse,
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1"
+                            "c2VyX2lkIjoiOTIyMWZmYzktNjQwZi00MzcyLTg2Z"
+                            "DMtY2U2NDJjYmE1NjAzIiwiYXVkIjoiZmFzdGFwaS"
+                            "11c2VyczphdXRoIiwiZXhwIjoxNTcxNTA0MTkzfQ."
+                            "M10bjOe45I5Ncu_uXvOmVV8QxnL-nZfcH96U90JaocI",
+                            "token_type": "bearer",
+                        },
+                    },
+                },
+            },
+        }
+
+    @staticmethod
+    def get_openapi_logout_responses_success() -> OpenAPIResponseType:
+        """Openapi response when logout is success.
+
+        Returns:
+            A reponse.
+        """
+        return {}
+
 
 remote_auth_backend = AuthenticationBackend(
     name="remote",
@@ -159,12 +195,14 @@ fastapi_users = FastAPIUsers[User, UUID](
 
 current_active_user = fastapi_users.current_user(active=True)
 
+CurrentUser = Annotated[User, Depends(current_active_user)]
+
 # TODO Token used by a job should be valid for as long as job can run.
 
 API_TOKEN_LIFETIME = 14400  # 4 hours
 
 
-async def current_api_token(user: User = Depends(current_active_user)) -> str:
+async def current_api_token(user: CurrentUser) -> str:
     """Generate token that job can use to talk to bartender service.
 
     Args:
@@ -183,3 +221,5 @@ async def current_api_token(user: User = Depends(current_active_user)) -> str:
 
 
 current_super_user = fastapi_users.current_user(active=True, superuser=True)
+
+CurrentSuperUser = Annotated[User, Depends(current_super_user)]

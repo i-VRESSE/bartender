@@ -1,8 +1,9 @@
 from asyncio import Queue, Task, create_task, gather
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, Request
-from sqlalchemy.ext.asyncio import async_scoped_session
+from fastapi import Depends, FastAPI, Request
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import State
@@ -57,7 +58,7 @@ async def _file_staging_worker(
     queue: FileStagingQueue,
     job_root_dir: Path,
     destinations: dict[str, Destination],
-    factory: async_scoped_session,
+    factory: async_sessionmaker[AsyncSession],
 ) -> None:
     while True:  # noqa: WPS457 can be escaped by task.cancel() throwing CancelledError
         (job_id, destination_name, state) = await queue.get()
@@ -90,7 +91,7 @@ def setup_file_staging_queue(app: FastAPI) -> None:
 def build_file_staging_queue(
     job_root_dir: Path,
     destinations: dict[str, Destination],
-    factory: async_scoped_session,
+    factory: async_sessionmaker[AsyncSession],
 ) -> tuple[FileStagingQueue, Task[None]]:
     """Create file staging queue and single worker task.
 
@@ -143,15 +144,28 @@ def get_file_staging_queue(request: Request) -> FileStagingQueue:
     Requires :func:`setup_file_staging_queue` and :func:`teardown_file_staging_queue`
     to be added to FastAPI startup and shutdown events.
 
-    For example
+    Example:
+        To make route which returns number of jobs that are
+        waiting for their files to be staged out.
 
-    .. code-block:: python
+        .. code-block:: python
 
-        @router.get("/staging-queue-size")
-        async def file_staging_queue_size(
-            file_staging_queue: FileStagingQueue = Depends(get_file_staging_queue),
-        ):
-            return file_staging_queue.qsize()
+            from fastapi import APIRouter
+            from bartender.filesystems.queue import CurrentFileOutStagingQueue
+
+            router = APIRouter()
+
+            @router.get("/staging-queue-size")
+            async def file_staging_queue_size(
+                file_staging_queue: CurrentFileOutStagingQueue
+            ):
+                return file_staging_queue.qsize()
 
     """
     return request.app.state.file_staging_queue
+
+
+CurrentFileOutStagingQueue = Annotated[
+    FileStagingQueue,
+    Depends(get_file_staging_queue),
+]

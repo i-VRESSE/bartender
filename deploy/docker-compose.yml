@@ -21,7 +21,7 @@ services:
       BARTENDER_DB_BASE: bartender
 
   db:
-    image: postgres:13.6-bullseye
+    image: postgres:15.2-bullseye
     hostname: bartender-db
     environment:
       POSTGRES_PASSWORD: "bartender"
