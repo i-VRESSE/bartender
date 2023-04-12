@@ -1,7 +1,7 @@
-from typing import Any, AsyncGenerator, Optional
+from typing import Annotated, Any, AsyncGenerator, Optional
 from uuid import UUID
 
-from fastapi import Depends, Response, status
+from fastapi import Depends, Response
 from fastapi.security import HTTPBearer
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
@@ -14,11 +14,12 @@ from fastapi_users.authentication.transport.base import (
     TransportLogoutNotSupportedError,
 )
 from fastapi_users.authentication.transport.bearer import BearerResponse
+from fastapi_users.jwt import generate_jwt
 from fastapi_users.openapi import OpenAPIResponseType
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from httpx_oauth.clients.github import GitHubOAuth2
+from starlette import status
 
-from bartender.db.dao.user_dao import get_user_db
+from bartender.db.dao.user_dao import CurrentUserDatabase
 from bartender.db.models.user import User
 from bartender.settings import settings
 from bartender.web.users.orcid import OrcidOAuth2
@@ -62,7 +63,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
 
 
 async def get_user_manager(
-    user_db: SQLAlchemyUserDatabase[User, UUID] = Depends(get_user_db),
+    user_db: CurrentUserDatabase,
 ) -> AsyncGenerator[UserManager, None]:
     """Factory to get user manager.
 
@@ -75,7 +76,28 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
-LIFETIME = 3600  # 1 hour
+LIFETIME = 86400  # 24 hours
+
+
+class JWTStrategyWithRoles(JWTStrategy[User, UUID]):
+    """JWT strategy with roles."""
+
+    async def write_token(self, user: User) -> str:
+        """Write token with user info.
+
+        Args:
+            user: User from db
+
+        Returns:
+            JWT token
+        """
+        data = {"sub": str(user.id), "aud": self.token_audience, "roles": user.roles}
+        return generate_jwt(
+            data,
+            self.encode_key,
+            self.lifetime_seconds,
+            algorithm=self.algorithm,
+        )
 
 
 def get_jwt_strategy() -> JWTStrategy[User, UUID]:
@@ -84,7 +106,7 @@ def get_jwt_strategy() -> JWTStrategy[User, UUID]:
     Returns:
         The strategy.
     """
-    return JWTStrategy(secret=settings.secret, lifetime_seconds=LIFETIME)
+    return JWTStrategyWithRoles(secret=settings.secret, lifetime_seconds=LIFETIME)
 
 
 local_auth_backend = AuthenticationBackend(
@@ -127,10 +149,10 @@ class HTTPBearerTransport(Transport):
 
     @staticmethod
     def get_openapi_login_responses_success() -> OpenAPIResponseType:
-        """Return a dictionary to use for the openapi responses route parameter.
+        """Openapi response when login is success.
 
         Returns:
-            An OpenAPI response
+            A reponse.
         """
         return {
             status.HTTP_200_OK: {
@@ -152,10 +174,10 @@ class HTTPBearerTransport(Transport):
 
     @staticmethod
     def get_openapi_logout_responses_success() -> OpenAPIResponseType:
-        """Return a dictionary to use for the openapi responses route parameter.
+        """Openapi response when logout is success.
 
         Returns:
-            An OpenAPI response
+            A reponse.
         """
         return {}
 
@@ -173,12 +195,14 @@ fastapi_users = FastAPIUsers[User, UUID](
 
 current_active_user = fastapi_users.current_user(active=True)
 
+CurrentUser = Annotated[User, Depends(current_active_user)]
+
 # TODO Token used by a job should be valid for as long as job can run.
 
 API_TOKEN_LIFETIME = 14400  # 4 hours
 
 
-async def current_api_token(user: User = Depends(current_active_user)) -> str:
+async def current_api_token(user: CurrentUser) -> str:
     """Generate token that job can use to talk to bartender service.
 
     Args:
@@ -194,3 +218,8 @@ async def current_api_token(user: User = Depends(current_active_user)) -> str:
         lifetime_seconds=API_TOKEN_LIFETIME,
     )
     return await strategy.write_token(user)
+
+
+current_super_user = fastapi_users.current_user(active=True, superuser=True)
+
+CurrentSuperUser = Annotated[User, Depends(current_super_user)]

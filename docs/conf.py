@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "bartender"
-release = "0.1.0"  # TODO have version only in one place pyproject.toml
+release = "0.2.0"  # TODO have version only in one place pyproject.toml
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -20,17 +20,18 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
+    "sphinxcontrib.mermaid",
 ]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 myst_heading_anchors = 3
+myst_fence_as_directive = ["mermaid"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "furo"
-html_static_path = ["_static"]
 
 autoapi_type = "python"
 autoapi_dirs = ["../src"]

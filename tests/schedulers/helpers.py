@@ -9,7 +9,7 @@ def prepare_input(job_dir: Path) -> JobDescription:
     (job_dir / "input").write_text("Lorem ipsum")
     return JobDescription(
         command="echo -n hello && wc input > output",
-        job_dir=str(job_dir),
+        job_dir=job_dir,
     )
 
 

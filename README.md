@@ -49,7 +49,7 @@ See <https://github.com/i-VRESSE/bartended-haddock3> for an example.
         -e "POSTGRES_PASSWORD=bartender" \
         -e "POSTGRES_USER=bartender" \
         -e "POSTGRES_DB=bartender" \
-        postgres:13.6-bullseye
+        postgres:15.2-bullseye
     ```
 
 1. Create tables in the database

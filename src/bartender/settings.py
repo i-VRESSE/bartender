@@ -1,7 +1,7 @@
-import enum
 import logging
 from pathlib import Path
 from tempfile import gettempdir
+from typing import Literal, Optional
 
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
@@ -11,16 +11,18 @@ logger = logging.getLogger(__name__)
 
 TEMP_DIR = Path(gettempdir())
 
+LogLevel = Literal[
+    "critical",
+    "error",
+    "warning",
+    "info",
+    "debug",
+    "trace",
+]  # noqa: WPS462
+"""Log level of web service.
 
-class LogLevel(str, enum.Enum):  # noqa: WPS600
-    """Possible log levels."""
-
-    NOTSET = "NOTSET"
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    FATAL = "FATAL"
+Choices: critical, error, warning, info, debug, trace.
+"""  # noqa: WPS428
 
 
 def default_config_filename() -> Path:
@@ -55,7 +57,7 @@ class Settings(BaseSettings):
     # Current environment
     environment: str = "dev"
 
-    log_level: LogLevel = LogLevel.INFO
+    log_level: LogLevel = "info"
 
     # Variables for the database
     db_host: str = "localhost"
@@ -72,10 +74,13 @@ class Settings(BaseSettings):
     # must set to non '' to have GitHub social login enabled
     github_client_id: str = ""
     github_client_secret: str = ""
+    github_redirect_url: Optional[str] = None
     orcidsandbox_client_id: str = ""
     orcidsandbox_client_secret: str = ""
+    orcidsandboxd_redirect_url: Optional[str] = None
     orcid_client_id: str = ""
     orcid_client_secret: str = ""
+    orcid_redirect_url: Optional[str] = None
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)

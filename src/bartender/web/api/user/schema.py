@@ -1,4 +1,7 @@
-from pydantic import BaseModel
+from typing import Any
+from uuid import UUID
+
+from pydantic import BaseModel, validator
 
 
 class OAuthAccountName(BaseModel):
@@ -17,6 +20,22 @@ class UserProfileInputDTO(BaseModel):
 
     email: str
     oauth_accounts: list[OAuthAccountName]
+    roles: list[str]
+
+    @validator("roles", pre=True)
+    def _handle_roles_none(cls, value: Any) -> Any:  # noqa: N805 is class method
+        if value is None:
+            return []
+        return value
 
     class Config:
         orm_mode = True
+
+
+class UserAsListItem(UserProfileInputDTO):
+    """DTO for user in a list."""
+
+    id: UUID
+    is_active: bool
+    is_superuser: bool
+    is_verified: bool

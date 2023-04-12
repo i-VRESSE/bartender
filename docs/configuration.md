@@ -53,6 +53,8 @@ applications:
   haddock3:
     command: haddock3 $config
     config: workflow.cfg
+    allowed_roles:
+      - easy
 ```
 
 * The key is the name of the application
@@ -61,6 +63,10 @@ applications:
 * The `command` key is the command executed in the directory of the unpacked
   archive that the consumer uploaded. The `$config` in command string will be
   replaced with value of the config key.
+* The `allowed_roles` key holds an array of role names, one of which a submitter
+  should have. When key is not set or list is empty then any authorized user
+  is allowed. See [User management docs](user_management.md#roles) how to
+  assign/unassign roles to/from users.
 
 ## Job destinations
 
@@ -108,7 +114,9 @@ destinations:
 
 ### Example of running jobs on a slurm Docker container
 
-To use this, start a container with `docker run --detach --publish 10022:22
+To use this, start a [container](
+https://github.com/xenon-middleware/xenon-docker-images/tree/master/slurm-20
+) with `docker run --detach --publish 10022:22
 xenonmiddleware/slurm:20`
 
 ```yaml

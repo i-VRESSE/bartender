@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import Request
+from fastapi import Depends, Request
 
 from bartender.config import ApplicatonConfiguration, Config
 from bartender.destinations import Destination
@@ -48,6 +49,23 @@ def get_context(request: Request) -> Context:
         The context.
     """
     return request.app.state.context
+
+
+CurrentContext = Annotated[Context, Depends(get_context)]
+
+
+def get_job_root_dir(
+    context: CurrentContext,
+) -> Path:
+    """Get job root directory from context.
+
+    Args:
+        context: The context.
+
+    Returns:
+        Directory in which all jobs are stored.
+    """
+    return context.job_root_dir
 
 
 async def close_context(context: Context) -> None:

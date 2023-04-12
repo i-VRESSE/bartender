@@ -80,7 +80,7 @@ ignore =
 
 per-file-ignores =
   ; all tests
-  /tests/**,./tests/**:
+  /tests/**,./tests/**,/tests/*/*:
   ; Use of assert detected
   S101,
   ; Found outer scope names shadowing
@@ -114,6 +114,7 @@ per-file-ignores =
   ; Found wrong metadata variable
   WPS410,
 
+
 exclude =
   ./.cache,
   ./.git,
@@ -129,3 +130,8 @@ exclude =
   ./var,
   ./.vscode,
   *migrations*,
+
+rst-roles =
+    class,
+    func,
+    ref,
