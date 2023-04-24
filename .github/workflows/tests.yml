@@ -93,7 +93,13 @@ jobs:
         # Workaround for random install failures
         POETRY_INSTALLER_PARALLEL: false
     - name: Run pytest check
-      run: poetry run pytest -vv --cov="src" .
+      run: poetry run pytest -vv --cov="src" tests
       env:
         BARTENDER_HOST: "0.0.0.0"
         BARTENDER_DB_HOST: localhost
+  dirac-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run dirac tests
+      run: docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -vv tests-dirac'

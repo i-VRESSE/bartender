@@ -1,10 +1,14 @@
+from pathlib import Path
 from textwrap import dedent
+from typing import Literal, Optional
 
-from DIRAC import initialize
+import aiofiles
+from DIRAC import gLogger, initialize
 from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
 )
 from DIRAC.WorkloadManagementSystem.Client.WMSClient import WMSClient
+from pydantic import BaseModel
 
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
@@ -13,11 +17,18 @@ dirac_status_map: dict[str, State] = {
     "Waiting": "queued",
     "Staging": "queued",
     "Done": "ok",
+    "Failed": "error",
     # TODO add all possible dirac job states
 }
 
 # TODO make proper async with loop.run_in_executor
 # TODO test against Dirac in testcontainer and/or against live?
+
+
+class DiracSchedulerConfig(BaseModel):
+    type: Literal["dirac"] = "dirac"
+    apptainer_image: Optional[Path] = None
+    """Path on cvmfs to apptainer image wrap each job command in."""
 
 
 class DiracScheduler(AbstractScheduler):
@@ -26,10 +37,16 @@ class DiracScheduler(AbstractScheduler):
     [More info](http://diracgrid.org/).
     """
 
-    def __init__(self) -> None:
-        """Constructor."""
+    def __init__(self, config: DiracSchedulerConfig) -> None:
+        """Constructor.
+
+        Args:
+            config: The config.
+        """
+        self.config: DiracSchedulerConfig = config
         # TODO make sure initialize is only called once per process
         initialize()
+        gLogger.setLevel("debug")  # TODO remove
         # TODO use single client Dirac client instead of multiple clients.
         # See https://dirac.readthedocs.io/en/latest/CodeDocumentation/Interfaces/API/Dirac.html  # noqa: E501
         self.wms_client = WMSClient()
@@ -47,7 +64,7 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             Identifier that can be used later to interact with job.
         """
-        jdl = self._submit_script(description)
+        jdl = await self._jdl_script(description)
         # TODO ship application to where it is run
         # TODO get output files of job in grid storage
         # TODO when input sandbox is to big then upload to grid storage
@@ -119,17 +136,55 @@ class DiracScheduler(AbstractScheduler):
         if not result["OK"]:
             raise RuntimeError(result["Message"])
 
-    def _submit_script(self, description: JobDescription) -> str:
+    async def close(self) -> None:
+        """Close scheduler."""
+
+    async def _job_script(self, description: JobDescription) -> Path:
+        file = Path(description.job_dir / "job.sh")
+        command = description.command
+        if self.config.apptainer_image:
+            command = (
+                f"apptainer run {self.config.apptainer_image} {description.command}"
+            )
+        async with aiofiles.open(file, "w") as f:
+            await f.write(
+                dedent(
+                    f"""\
+                    #!/bin/bash
+                    set -e
+                    # TODO download big input files
+                    {command}
+                    # TODO upload big output files
+                    """,
+                ),
+            )
+        return file
+
+    async def _jdl_script(self, description: JobDescription) -> Path:
+        jobsh = await self._job_script(description)
+
         files_in_job_dir = description.job_dir.rglob("*")
-        job_input_files = [f'"{file.absolute()}"' for file in files_in_job_dir]
+        exclude_from_sandbox = {description.job_dir / "job.jdl"}
+        job_input_files = [
+            f'"{file.absolute()}"'
+            for file in files_in_job_dir
+            if file not in exclude_from_sandbox
+        ]
+        # TODO exclude files to big for input sandbox
         input_sandbox = ",".join(job_input_files)
-        return dedent(
-            f"""\
-            Executable = "/bin/sh";
-            Arguments = "-c \"{description.command}\"";
-            InputSandBox = {{{input_sandbox}}};
-            StdOutput = “stdout.txt”;
-            StdError = “stderr.txt”;
-            OutputSandbox = {{“stdout.txt”,”stderr.txt”}};
-        """,
-        )
+
+        file = Path(description.job_dir / "job.jdl")
+        async with aiofiles.open(file, "w") as f:
+            await f.write(
+                dedent(
+                    f"""\
+                    JobName = "{description.job_dir.name}";
+                    Executable = "{jobsh.absolute()}";
+                    InputSandBox = {{{input_sandbox}}};
+                    StdOutput = "stdout.txt";
+                    StdError = "stderr.txt";
+                    OutputSandbox = {{"stdout.txt","stderr.txt"}};
+                    """,
+                ),
+            )
+        return file
