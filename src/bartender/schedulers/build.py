@@ -2,7 +2,7 @@ from typing import Union
 
 from bartender.schedulers.abstract import AbstractScheduler
 from bartender.schedulers.arq import ArqScheduler, ArqSchedulerConfig
-from bartender.schedulers.dirac import DiracScheduler
+from bartender.schedulers.dirac import DiracScheduler, DiracSchedulerConfig
 from bartender.schedulers.memory import MemoryScheduler, MemorySchedulerConfig
 from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
 
@@ -29,5 +29,5 @@ def build(config: SchedulerConfig) -> AbstractScheduler:
     if isinstance(config, ArqSchedulerConfig):
         return ArqScheduler(config)
     if isinstance(config, DiracSchedulerConfig):
-        return DiracScheduler(config
+        return DiracScheduler(config)
     raise ValueError(f"Unknown scheduler, recieved config is {config}")
