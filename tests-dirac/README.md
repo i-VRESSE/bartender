@@ -41,61 +41,23 @@ state = await scheduler.state(jid)
 print(state)
 ```
 
-Stuck at job failing with
+Stuck at job failing with uploading output
 
 ```
-dirac-wms-job-status 4
-JobID=4 ApplicationStatus=Unknown; MinorStatus=Exception During Execution; Status=Failed; Site=MyGrid.Site1.uk;
-
-dirac-wms-job-get-output 4
-No Output sandbox found for job 4. Possible causes are: the job does not exist, no sandbox was registered or you do not have permission to access it.
-ERROR 4: No Output sandbox found for job 4. Possible causes are: the job does not exist, no sandbox was registered or you do not have permission to access it.
-
-dirac-wms-job-get-jdl 4
-{'CPUTime': '86400',
- 'DIRACSetup': 'MyDIRAC-Production',
- 'Executable': '/tmp/j1/job.sh',
- 'InputSandBox': ['/tmp/j1/job.sh'],
- 'JobID': '4',
- 'JobName': 'j1',
- 'JobRequirements': '[    CPUTime = 86400;    OwnerDN = /C=ch/O=DIRAC/OU=DIRAC '
-                    'CI/CN=ciuser;    OwnerGroup = dirac_user;    Setup = '
-                    'MyDIRAC-Production;    UserPriority = 1;    '
-                    'VirtualOrganization = tutoVO;  ]',
- 'OutputSandbox': ['stdout.txt', 'stderr.txt'],
- 'Owner': 'ciuser',
- 'OwnerDN': '/C=ch/O=DIRAC/OU=DIRAC CI/CN=ciuser',
- 'OwnerGroup': 'dirac_user',
- 'OwnerName': 'ciuser',
- 'Priority': '1',
- 'StdError': 'stderr.txt',
- 'StdOutput': 'stdout.txt',
- 'VirtualOrganization': 'tutoVO'}
+2023-04-25 09:19:42 UTC None/[3]JobWrapper INFO: Output data files stdout.txt, stderr.txt to be uploaded to ['StorageElementOne'] SE
+2023-04-25 09:19:42 UTC None/[3]JobWrapper INFO: Found a pattern in the output data file list, files to upload are: stdout.txt
+GUIDs not found from POOL XML Catalogue (and were generated) for: stdout.txt
+Attempting dm.putAndRegister ('/tutoVO/user/c/ciuser/tutoVO/user/c/ciuser/bartenderjobs/j3/stdout.txt','/home/diracpilot/shared/work/340BFD60/DIRAC_1U7GXBpilot/3/stdout.txt','StorageElementOne',guid='5B466EAB-8FDF-D177-C8C0-6962CF89DE75',catalog='[]', checksum = '3c87e20e')
+Error sending accounting record URL for service Accounting/DataStore not found
+Error sending accounting record URL for service Accounting/DataStore not found
+dm.putAndRegister successfully uploaded and registered stdout.txt to StorageElementOne
+2023-04-25 09:19:42 UTC None/[3]JobWrapper INFO: "stdout.txt" successfully uploaded to "StorageElementOne" as "LFN:/tutoVO/user/c/ciuser/tutoVO/user/c/ciuser/bartenderjobs/j3/stdout.txt"
+JobWrapper raised exception while processing output files
+Traceback (most recent call last):
+  File "/home/diracpilot/shared/work/340BFD60/DIRAC_1U7GXBpilot/job/Wrapper/Wrapper_3", line 209, in execute
+    result = job.processJobOutputs()
+  File "/home/diracpilot/shared/work/340BFD60/DIRAC_1U7GXBpilot/diracos/lib/python3.9/site-packages/DIRAC/WorkloadManagementSystem/JobWrapper/JobWrapper.py", line 873, in processJobOutputs
+    if not result_sbUpload["OK"]:
+UnboundLocalError: local variable 'result_sbUpload' referenced before assignment
+2023-04-25 09:19:43 UTC None/[3]JobWrapper INFO: EXECUTION_RESULT[CPU] in sendJobAccounting 0.00 0.01 0.53 0.04 1.00
 ```
-
-jdl of <https://dirac.readthedocs.io/en/latest/UserGuide/Tutorials/JDLsAndJobManagementBasic/index.html#jobs-with-input-sandbox-and-output-sandbox> is
-
-```
-{'CPUTime': '86400',
- 'DIRACSetup': 'MyDIRAC-Production',
- 'Executable': 'testJob.sh',
- 'InputSandbox': ['testJob.sh',
-                  'SB:ProductionSandboxSE|/SandBox/c/ciuser.dirac_user/cff/794/cff794d91a819d5eda8396f4f2e5ebf3.tar.bz2'],
- 'JobID': '2',
- 'JobName': 'InputAndOuputSandbox',
- 'JobRequirements': '[    CPUTime = 86400;    OwnerDN = /C=ch/O=DIRAC/OU=DIRAC '
-                    'CI/CN=ciuser;    OwnerGroup = dirac_user;    Setup = '
-                    'MyDIRAC-Production;    UserPriority = 1;    '
-                    'VirtualOrganization = tutoVO;  ]',
- 'OutputSandbox': ['StdOut', 'StdErr'],
- 'Owner': 'ciuser',
- 'OwnerDN': '/C=ch/O=DIRAC/OU=DIRAC CI/CN=ciuser',
- 'OwnerGroup': 'dirac_user',
- 'OwnerName': 'ciuser',
- 'Priority': '1',
- 'StdError': 'StdErr',
- 'StdOutput': 'StdOut',
- 'VirtualOrganization': 'tutoVO'}
-```
-
-Which looks different from the one via DiracScheduler

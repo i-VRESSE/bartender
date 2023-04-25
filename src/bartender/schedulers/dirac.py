@@ -1,3 +1,5 @@
+import asyncio
+from functools import partial, wraps
 from pathlib import Path
 from textwrap import dedent
 from typing import Literal, Optional
@@ -14,6 +16,7 @@ from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
 dirac_status_map: dict[str, State] = {
+    "Received": "queued",
     "Waiting": "queued",
     "Staging": "queued",
     "Done": "ok",
@@ -21,14 +24,27 @@ dirac_status_map: dict[str, State] = {
     # TODO add all possible dirac job states
 }
 
-# TODO make proper async with loop.run_in_executor
-# TODO test against Dirac in testcontainer and/or against live?
+
+def async_wrap(func):
+    @wraps(func)
+    async def run(*args, loop=None, executor=None, **kwargs):
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        pfunc = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(executor, pfunc)
+
+    return run
 
 
 class DiracSchedulerConfig(BaseModel):
     type: Literal["dirac"] = "dirac"
     apptainer_image: Optional[Path] = None
     """Path on cvmfs to apptainer image wrap each job command in."""
+    # TODO get vo from proxy
+    # TODO remove defaults
+    lfn_root: str = "/tutoVO/user/c/ciuser/bartenderjobs"
+    output_se: str = "StorageElementOne"
+    output_dir: str = "output"
 
 
 class DiracScheduler(AbstractScheduler):
@@ -67,8 +83,9 @@ class DiracScheduler(AbstractScheduler):
         jdl = await self._jdl_script(description)
         # TODO ship application to where it is run
         # TODO get output files of job in grid storage
-        # TODO when input sandbox is to big then upload to grid storage
-        result = self.wms_client.submitJob(jdl)
+
+        async_submit = async_wrap(self.wms_client.submitJob)
+        result = await async_submit(jdl)
         if not result["OK"]:
             raise RuntimeError(result["Message"])
         return result["Value"]
@@ -89,7 +106,8 @@ class DiracScheduler(AbstractScheduler):
         """
         # Dirac has Status,MinorStatus,ApplicationStatus
         # TODO Should we also store MinorStatus,ApplicationStatus?
-        result = self.monitoring.getJobsStatus(job_id)
+        async_state = async_wrap(self.monitoring.getJobsStatus)
+        result = await async_state(job_id)
         if not result["OK"]:
             raise RuntimeError(result["Message"])
         dirac_status = result["Value"][job_id]["Status"]
@@ -109,7 +127,8 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             States of jobs.
         """
-        result = self.monitoring.getJobsStatus(job_ids)
+        async_state = async_wrap(self.monitoring.getJobsStatus)
+        result = await async_state(job_ids)
         if not result["OK"]:
             raise RuntimeError(result["Message"])
 
@@ -129,9 +148,11 @@ class DiracScheduler(AbstractScheduler):
         """
         state = await self.state(job_id)
         if state == "running":
-            result = self.wms_client.killJob(job_id)
+            async_kill = async_wrap(self.wms_client.killJob)
+            result = await async_kill(job_id)
         else:
-            result = self.wms_client.deleteJob(job_id)
+            async_delete = async_wrap(self.wms_client.deleteJob)
+            result = await async_delete(job_id)
             # TODO or removeJob()?
         if not result["OK"]:
             raise RuntimeError(result["Message"])
@@ -146,15 +167,25 @@ class DiracScheduler(AbstractScheduler):
             command = (
                 f"apptainer run {self.config.apptainer_image} {description.command}"
             )
+        # default OutputSandboxLimit is 10Mb which is too small sometimes,
+        # so always upload output dir to grid storage
+        job_name = external_id_from_job_dir(description.job_dir)
+        lfn_output_dir = external_id_to_lfn_output_dir(job_name, self.config)
+        # fc = FileCatalogClient()
+        # async_mkdir = async_wrap(fc.createDirectory)
+        # TODO also upload any output files outside self.config.output_dir to grid storage
+        # await async_mkdir(lfn_output_dir)
         async with aiofiles.open(file, "w") as f:
             await f.write(
                 dedent(
                     f"""\
                     #!/bin/bash
                     set -e
-                    # TODO download big input files
                     {command}
-                    # TODO upload big output files
+                    # upload output files
+                    # if [ -d "{self.config.output_dir}" ]; then
+                    #     dirac-dms-directory-sync {self.config.output_dir} {lfn_output_dir} {self.config.output_se}
+                    # fi
                     """,
                 ),
             )
@@ -170,21 +201,50 @@ class DiracScheduler(AbstractScheduler):
             for file in files_in_job_dir
             if file not in exclude_from_sandbox
         ]
-        # TODO exclude files to big for input sandbox
+        # Dirac code
+        # https://github.com/DIRACGrid/DIRAC/blob/7abf70debfefa8135aeff439a3296f392ab8342b/src/DIRAC/WorkloadManagementSystem/Client/WMSClient.py#L135
+        # does not have a size limit for the InputSandbox
+        # so upload all files found in job_dir to InputSandbox
         input_sandbox = ",".join(job_input_files)
 
         file = Path(description.job_dir / "job.jdl")
+        job_name = external_id_from_job_dir(description.job_dir)
+        lfn_output_path = external_id_to_lfn_output_path(job_name, self.config)
         async with aiofiles.open(file, "w") as f:
             await f.write(
                 dedent(
                     f"""\
-                    JobName = "{description.job_dir.name}";
-                    Executable = "{jobsh.absolute()}";
-                    InputSandBox = {{{input_sandbox}}};
+                    JobName = "{job_name}";
+                    Executable = "{jobsh.name}";
+                    InputSandbox = {{{input_sandbox}}};
                     StdOutput = "stdout.txt";
                     StdError = "stderr.txt";
                     OutputSandbox = {{"stdout.txt","stderr.txt"}};
+                    OutputPath = {{"{lfn_output_path}"}};
+                    OutputSE = {{"{self.config.output_se}"}};
+                    # ** flattens dirs, so ./output/output.txt is uploaded as ./output.txt
+                    # cannot use
+                    OutputData = {{"**"}};
                     """,
                 ),
             )
         return file
+
+
+def external_id_from_job_dir(job_dir: Path) -> str:
+    return job_dir.name
+
+
+def external_id_to_lfn_output_path(
+    external_job_id: str,
+    config: DiracSchedulerConfig,
+) -> str:
+    return f"{config.lfn_root}/{external_job_id}"
+
+
+def external_id_to_lfn_output_dir(
+    external_job_id: str,
+    config: DiracSchedulerConfig,
+) -> str:
+    path = external_id_to_lfn_output_path(external_job_id, config)
+    return f"{path}/{config.output_dir}"
