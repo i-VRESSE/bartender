@@ -6,3 +6,5 @@ COPY ../pyproject.toml ../poetry.lock ./
 RUN export CONDA_DEFAULT_ENV=diracos && \
     pip install poetry && \
     poetry install --no-root
+
+WORKDIR /workspace
