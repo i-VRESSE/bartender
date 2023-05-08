@@ -4,7 +4,7 @@
 	"name": "DiracEnv",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	// "image": "mcr.microsoft.com/devcontainers/base:jammy"
-	"dockerComposeFile": "tests-dirac/docker-compose.yml",
+	"dockerComposeFile": "../tests-dirac/docker-compose.yml",
 	"service": "test",
 	// "shutdownAction": "stopCompose",
 	"workspaceFolder": "/workspace",
