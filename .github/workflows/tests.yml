@@ -102,5 +102,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Pull images
+      run: docker compose -f tests-dirac/docker-compose.yml pull
+    - name: Build images
+      run: docker compose -f tests-dirac/docker-compose.yml build
     - name: Run dirac tests
       run: docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -p no:cacheprovider -vv tests-dirac'

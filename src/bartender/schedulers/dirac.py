@@ -222,9 +222,9 @@ class DiracScheduler(AbstractScheduler):
             """,
         )
 
-    async def _jdl_script(self, description: JobDescription, scriptdir: Path) -> Path:
+    async def _jdl_script(self, description: JobDescription, scriptdir: Path) -> str:
         jobsh = await self._job_script(description, scriptdir)
-        input_sandbox = [f'"{jobsh.absolute()}"']
+        abs_job_sh = jobsh.absolute()
 
         job_name = _external_id_from_job_dir(description.job_dir)
         # TODO add input.tar in inputsandbox instead of dirac-dms-get-file
@@ -233,17 +233,16 @@ class DiracScheduler(AbstractScheduler):
         # now impossible to see job script output.
         # The command output in stored in output.tar.
         # For now use `dirac-wms-job-get-output <job id>` command.
-        script = dedent(
+        return dedent(
             f"""\
             JobName = "{job_name}";
             Executable = "{jobsh.name}";
-            InputSandbox = {{{input_sandbox}}};
+            InputSandbox = {{"{abs_job_sh}"}};
             StdOutput = "jobstdout.txt";
             StdError = "jobstderr.txt";
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
             """,
         )
-        return await self._write_jdl_script(scriptdir, script)
 
     async def _write_jdl_script(self, scriptdir: Path, script: str) -> Path:
         file = scriptdir / "job.jdl"
