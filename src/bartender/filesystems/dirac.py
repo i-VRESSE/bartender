@@ -1,10 +1,13 @@
+import logging
 from pathlib import Path
 from typing import Literal
 
+from aiofiles.tempfile import TemporaryDirectory
 from DIRAC import initialize
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
 from pydantic import BaseModel
 
+from bartender.async_utils import async_make_archive, async_unpack_archive, async_wrap
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
 
@@ -18,12 +21,16 @@ class DiracFileSystemConfig(BaseModel):
         storage_element: Storage element for lfn_root.
     """
 
-    lfn_root: str
-    storage_element: str
     type: Literal["dirac"] = "dirac"
+    # TODO remove defaults, defaults work for
+    # ghcr.io/xenon-middleware/dirac:8.0.18 docker container
+    lfn_root: str = "/tutoVO/user/c/ciuser/bartenderjobs"
+    storage_element: str = "StorageElementOne"
 
 
 # TODO make proper async with loop.run_in_executor
+
+logger = logging.getLogger(__file__)
 
 
 class DiracFileSystem(AbstractFileSystem):
@@ -77,15 +84,21 @@ class DiracFileSystem(AbstractFileSystem):
         Raises:
             RuntimeError: When upload failed.
         """
-        # TODO dirac does not put recursive dir
-        # so create and put archive of src.job_dir
-        result = self.dm.putAndRegister(
-            lfn=target.job_dir,
-            fileName=src.job_dir,
-            diracSE=self.storage_element,
-        )
-        if not result["OK"]:
-            raise RuntimeError(result["Message"])
+        put = async_wrap(self.dm.putAndRegister)
+        async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:
+            archive_fn = await self._pack(src.job_dir, Path(tmpdirname))
+            input_tar_on_grid = target.job_dir / archive_fn.name
+            logger.warning(
+                f"Uploading {archive_fn} to {input_tar_on_grid}",
+            )
+            result = await put(
+                lfn=str(input_tar_on_grid),
+                fileName=str(archive_fn),
+                diracSE=self.storage_element,
+            )
+            if not result["OK"]:
+                logger.warning(result)
+                raise RuntimeError(result["Message"])
 
     async def download(self, src: JobDescription, target: JobDescription) -> None:
         """Download job directory of source description to job directory of target.
@@ -97,13 +110,30 @@ class DiracFileSystem(AbstractFileSystem):
         Raises:
             RuntimeError: When download failed.
         """
-        # TODO dirac does not get recursive dir
-        # so get archive of src.job_dir and unpack
-        # TODO or use DIRAC.Interfaces.API.Dirac.Dirac.
-        # getOutputSandbox(..., unpack=True)?
-        result = self.dm.getFile(src.job_dir, target.job_dir)
-        if not result["OK"]:
-            raise RuntimeError(result["Message"])
+        archive_base_fn = "output.tar"
+        archive_fn_on_grid = Path(src.job_dir) / archive_base_fn
+        async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:
+            logger.warning(f"Downloading {archive_fn_on_grid} to {tmpdirname}")
+            result = await async_wrap(self.dm.getFile)(
+                str(archive_fn_on_grid),
+                tmpdirname,
+            )
+            if not result["OK"]:
+                raise RuntimeError(result["Message"])
+            archive_fn_in_tmpdir = Path(tmpdirname) / archive_base_fn
+            # TODO what happens if file in job_dir already exists?
+            logger.warning(f"Unpacking {archive_fn_in_tmpdir} to {target.job_dir}")
+            await async_unpack_archive(archive_fn_in_tmpdir, target.job_dir)
 
     def close(self) -> None:
         """Close filesystem."""
+
+    async def _pack(self, root_dir: Path, container_dir: Path) -> Path:
+        archive_base_fn = container_dir / "input"
+        archive_format = "tar"
+        archive_fn = await async_make_archive(
+            archive_base_fn,
+            archive_format,
+            root_dir,
+        )
+        return Path(archive_fn)

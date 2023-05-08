@@ -149,3 +149,43 @@ make clean && make html
 ```
 
 Creates documentation site at `docs/_build/html`.
+
+## Dirac
+
+To develop bartender with dirac support you can use [devcontainers](https://containers.dev/)
+to spinup a DIRAC server container and a DIRAC client container.
+
+Use the [VS Code Devcontainer extension](
+https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
+) to open the workspace in a container.
+
+On start of the client container will
+
+1. Mount current working directory as `/workspace` in the container.
+1. login to DIRAC server with [dirac-proxy-init](https://dirac.readthedocs.io/en/latest/Commands/index.html#dirac-proxy-init).
+1. install bartender in editable mode
+
+In in VS code terminal you should be able to run the dirac tests with
+
+```shell
+pytest -vv tests-dirac
+```
+
+The DIRAC server stores logs in `/opt/dirac/startup/*/log/current`
+(where `*` are the DIRAC services) and pilot jobs are started under `/home/diracpilot`.
+It can take a while for the job to start due to
+the `WorkloadManagement_SiteDirector` service starting a pilot.
+To look around inside the DIRAC server use
+
+```shell
+docker-compose -f tests-dirac/docker-compose.yml exec dirac-tuto bash
+```
+
+Sometimes the DIRAC server needs clearing of its state,
+do this outside container with
+
+```shell
+docker compose -f tests-dirac/docker-compose.yml rm -fs dirac-tuto
+# Close dev container and reopen
+docker compose -f tests-dirac/docker-compose.yml up dirac-tuto
+```

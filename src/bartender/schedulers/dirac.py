@@ -1,10 +1,10 @@
-import asyncio
-from functools import partial, wraps
+import logging
 from pathlib import Path
 from textwrap import dedent
 from typing import Literal, Optional
 
 import aiofiles
+from aiofiles.tempfile import TemporaryDirectory
 from DIRAC import gLogger, initialize
 from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
@@ -12,39 +12,47 @@ from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
 from DIRAC.WorkloadManagementSystem.Client.WMSClient import WMSClient
 from pydantic import BaseModel
 
+from bartender.async_utils import async_wrap
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 
+# Keys from
+# https://github.com/DIRACGrid/DIRAC/blob/integration/src/DIRAC/WorkloadManagementSystem/Client/JobStatus.py
 dirac_status_map: dict[str, State] = {
+    "Submitting": "queued",
     "Received": "queued",
-    "Waiting": "queued",
+    "Checking": "queued",
     "Staging": "queued",
+    "Waiting": "queued",
+    "Matched": "queued",
+    "Rescheduled": "queued",
+    "Running": "running",
+    "Stalled": "running",
+    "Completing": "running",
     "Done": "ok",
+    "Completed": "ok",
     "Failed": "error",
-    # TODO add all possible dirac job states
+    "Deleted": "error",
+    "Killed": "error",
 }
 
 
-def async_wrap(func):
-    @wraps(func)
-    async def run(*args, loop=None, executor=None, **kwargs):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        pfunc = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(executor, pfunc)
-
-    return run
+logger = logging.getLogger(__file__)
 
 
 class DiracSchedulerConfig(BaseModel):
+    """Configuration for DIRAC scheduler.
+
+    Args:
+        apptainer_image: Path on cvmfs to apptainer image.
+             Will run application command inside apptainer image.
+        storage_element: Storage element to upload output files to.
+    """
+
     type: Literal["dirac"] = "dirac"
     apptainer_image: Optional[Path] = None
-    """Path on cvmfs to apptainer image wrap each job command in."""
-    # TODO get vo from proxy
-    # TODO remove defaults
-    lfn_root: str = "/tutoVO/user/c/ciuser/bartenderjobs"
-    output_se: str = "StorageElementOne"
-    output_dir: str = "output"
+    # TODO dedup storage element here and in filesystem config
+    storage_element: str
 
 
 class DiracScheduler(AbstractScheduler):
@@ -80,15 +88,19 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             Identifier that can be used later to interact with job.
         """
-        jdl = await self._jdl_script(description)
-        # TODO ship application to where it is run
-        # TODO get output files of job in grid storage
+        # to submit requires a jdl and shell script to be created locally
+        # the description.job_dir is on grid storage so cannot be used.
+        # so create a temporary directory to write the jdl and shell script
+        async with TemporaryDirectory(prefix="bartender-scriptdir") as scriptdir:
+            jdl = await self._jdl_script(description, Path(scriptdir))
 
-        async_submit = async_wrap(self.wms_client.submitJob)
-        result = await async_submit(jdl)
-        if not result["OK"]:
-            raise RuntimeError(result["Message"])
-        return result["Value"]
+            async_submit = async_wrap(self.wms_client.submitJob)
+            result = await async_submit(jdl)
+            if not result["OK"]:
+                raise RuntimeError(result["Message"])
+            job_id = result["Value"]
+            logger.warning(f"Job submitted with ID: {job_id}")
+            return job_id
 
     async def state(self, job_id: str) -> State:
         """Get state of a job.
@@ -160,91 +172,103 @@ class DiracScheduler(AbstractScheduler):
     async def close(self) -> None:
         """Close scheduler."""
 
-    async def _job_script(self, description: JobDescription) -> Path:
-        file = Path(description.job_dir / "job.sh")
+    async def _job_script(self, description: JobDescription, scriptdir: Path) -> Path:
+        file = Path(scriptdir / "job.sh")
+        # default OutputSandboxLimit is 10Mb which is too small sometimes,
+        # so always upload output dir to grid storage as archive
+        script = self._job_script_content(description)
+        logger.warning(f"Writing job script to {file}, containing {script}")
+        async with aiofiles.open(file, "w") as handle:
+            await handle.write(script)
+        return file
+
+    def _job_script_content(self, description: JobDescription) -> str:
+        stage_in = self._stage_in_script(description)
+        stage_out = self._stage_out_script(description)
+        command = self._command_script(description)
+        return dedent(
+            f"""\
+            #!/bin/bash
+            set -e
+            {stage_in}
+            {command}
+            {stage_out}
+            """,
+        )
+
+    def _stage_in_script(self, description: JobDescription) -> str:
+        # TODO dedup tar filenames here and in filesystem
+        fn = "input.tar"
+        fn_on_grid = description.job_dir / fn
+        return dedent(
+            f"""\
+            # Download & unpack input files
+            dirac-dms-get-file {fn_on_grid}
+            tar -xf {fn}
+            rm {fn}
+            find . -type f > .input_files.txt
+            """,
+        )
+
+    def _stage_out_script(self, description: JobDescription) -> str:
+        # TODO dedup tar filename here and in filesystem
+        fn = "output.tar"
+        fn_on_grid = description.job_dir / fn
+        se = self.config.storage_element
+        return dedent(
+            f"""\
+            # Pack & upload output files
+            echo {fn} >> .input_files.txt
+            tar -cf {fn} --exclude-from=.input_files.txt .
+            dirac-dms-add-file {fn_on_grid} {fn} {se}
+            rm {fn}
+            """,
+        )
+
+    def _command_script(self, description: JobDescription) -> str:
         command = description.command
         if self.config.apptainer_image:
-            command = (
-                f"apptainer run {self.config.apptainer_image} {description.command}"
-            )
-        # default OutputSandboxLimit is 10Mb which is too small sometimes,
-        # so always upload output dir to grid storage
-        job_name = external_id_from_job_dir(description.job_dir)
-        lfn_output_dir = external_id_to_lfn_output_dir(job_name, self.config)
-        # fc = FileCatalogClient()
-        # async_mkdir = async_wrap(fc.createDirectory)
-        # TODO also upload any output files outside self.config.output_dir to grid storage
-        # await async_mkdir(lfn_output_dir)
-        async with aiofiles.open(file, "w") as f:
-            await f.write(
-                dedent(
-                    f"""\
-                    #!/bin/bash
-                    set -e
-                    {command}
-                    # upload output files
-                    # if [ -d "{self.config.output_dir}" ]; then
-                    #     dirac-dms-directory-sync {self.config.output_dir} {lfn_output_dir} {self.config.output_se}
-                    # fi
-                    """,
-                ),
-            )
-        return file
+            image = self.config.apptainer_image
+            command = f"apptainer run {image} {description.command}"
+        return dedent(
+            f"""\
+            # Run command
+            ({command}) > stdout.txt 2> stderr.txt
+            echo -n $? > returncode
+            """,
+        )
 
-    async def _jdl_script(self, description: JobDescription) -> Path:
-        jobsh = await self._job_script(description)
+    async def _jdl_script(self, description: JobDescription, scriptdir: Path) -> Path:
+        jobsh = await self._job_script(description, scriptdir)
+        input_sandbox = [f'"{jobsh.absolute()}"']
 
-        files_in_job_dir = description.job_dir.rglob("*")
-        exclude_from_sandbox = {description.job_dir / "job.jdl"}
-        job_input_files = [
-            f'"{file.absolute()}"'
-            for file in files_in_job_dir
-            if file not in exclude_from_sandbox
-        ]
-        # Dirac code
-        # https://github.com/DIRACGrid/DIRAC/blob/7abf70debfefa8135aeff439a3296f392ab8342b/src/DIRAC/WorkloadManagementSystem/Client/WMSClient.py#L135
-        # does not have a size limit for the InputSandbox
-        # so upload all files found in job_dir to InputSandbox
-        input_sandbox = ",".join(job_input_files)
+        job_name = _external_id_from_job_dir(description.job_dir)
+        # TODO add input.tar in inputsandbox instead of dirac-dms-get-file
+        # TODO add output.tar in OutputData+OutputSE instead of dirac-dms-add-file
+        # TODO add method to fetch jobstdout.txt and jobstderr.txt,
+        # now impossible to see job script output.
+        # The command output in stored in output.tar.
+        # For now use `dirac-wms-job-get-output <job id>` command.
+        script = dedent(
+            f"""\
+            JobName = "{job_name}";
+            Executable = "{jobsh.name}";
+            InputSandbox = {{{input_sandbox}}};
+            StdOutput = "jobstdout.txt";
+            StdError = "jobstderr.txt";
+            OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
+            """,
+        )
+        return await self._write_jdl_script(scriptdir, script)
 
-        file = Path(description.job_dir / "job.jdl")
-        job_name = external_id_from_job_dir(description.job_dir)
-        lfn_output_path = external_id_to_lfn_output_path(job_name, self.config)
-        async with aiofiles.open(file, "w") as f:
-            await f.write(
-                dedent(
-                    f"""\
-                    JobName = "{job_name}";
-                    Executable = "{jobsh.name}";
-                    InputSandbox = {{{input_sandbox}}};
-                    StdOutput = "stdout.txt";
-                    StdError = "stderr.txt";
-                    OutputSandbox = {{"stdout.txt","stderr.txt"}};
-                    OutputPath = {{"{lfn_output_path}"}};
-                    OutputSE = {{"{self.config.output_se}"}};
-                    # ** flattens dirs, so ./output/output.txt is uploaded as ./output.txt
-                    # cannot use
-                    OutputData = {{"**"}};
-                    """,
-                ),
-            )
+    async def _write_jdl_script(self, scriptdir: Path, script: str) -> Path:
+        file = scriptdir / "job.jdl"
+        logger.warning(f"Writing job jdl to {file}, containing {script}")
+        async with aiofiles.open(file, "w") as handle:
+            await handle.write(script)
         return file
 
 
-def external_id_from_job_dir(job_dir: Path) -> str:
+# TODO move to JobDescription as property
+def _external_id_from_job_dir(job_dir: Path) -> str:
     return job_dir.name
-
-
-def external_id_to_lfn_output_path(
-    external_job_id: str,
-    config: DiracSchedulerConfig,
-) -> str:
-    return f"{config.lfn_root}/{external_job_id}"
-
-
-def external_id_to_lfn_output_dir(
-    external_job_id: str,
-    config: DiracSchedulerConfig,
-) -> str:
-    path = external_id_to_lfn_output_path(external_job_id, config)
-    return f"{path}/{config.output_dir}"

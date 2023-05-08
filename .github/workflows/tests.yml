@@ -102,4 +102,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Run dirac tests
-      run: docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest  -p no:cacheprovider -vv tests-dirac'
+      run: docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -p no:cacheprovider -vv tests-dirac'

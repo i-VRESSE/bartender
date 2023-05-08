@@ -262,6 +262,15 @@ pip install DIRAC==8.0
 (Cannot use `poetry install --with=dirac` as Poetry gets stuck resolving
 dependencies because it ignores the already installed DIRAC dependencies.)
 
+On the compute node it is expected that
+
+1. `dirac-dms-get-file` + `dirac-dms-add-file` are available
+1. `tar` executable is available
+1. If `apptainer_image` is set in scheduler configuration
+   then `apptainer` command is available.
+   If set to path on cvmfs then `/cvmfs` should be mounted.
+1. Application command works.
+
 ## Destination picker
 
 If you have multiple applications and job destinations you need some way to
