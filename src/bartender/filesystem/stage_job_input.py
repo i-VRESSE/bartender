@@ -39,6 +39,7 @@ async def stage_job_input(
             await out_file.write(content)
 
     if archive.content_type in {"application/zip", "application/x-zip-compressed"}:
+        # TODO use async_utils.unpack_archive instead of subprocess
         # Use async subprocess to unpack file outside main thread
         # requires unzip command to be available on machine
         proc = await create_subprocess_exec("unzip", "-nqq", dest_fn, cwd=job_dir)

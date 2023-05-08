@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 from textwrap import dedent
-from typing import Literal, Optional
 
 import aiofiles
 from aiofiles.tempfile import TemporaryDirectory
@@ -10,11 +9,11 @@ from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
 )
 from DIRAC.WorkloadManagementSystem.Client.WMSClient import WMSClient
-from pydantic import BaseModel
 
 from bartender.async_utils import async_wrap
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
+from bartender.schedulers.dirac_config import DiracSchedulerConfig
 
 # Keys from
 # https://github.com/DIRACGrid/DIRAC/blob/integration/src/DIRAC/WorkloadManagementSystem/Client/JobStatus.py
@@ -38,21 +37,6 @@ dirac_status_map: dict[str, State] = {
 
 
 logger = logging.getLogger(__file__)
-
-
-class DiracSchedulerConfig(BaseModel):
-    """Configuration for DIRAC scheduler.
-
-    Args:
-        apptainer_image: Path on cvmfs to apptainer image.
-             Will run application command inside apptainer image.
-        storage_element: Storage element to upload output files to.
-    """
-
-    type: Literal["dirac"] = "dirac"
-    apptainer_image: Optional[Path] = None
-    # TODO dedup storage element here and in filesystem config
-    storage_element: str
 
 
 class DiracScheduler(AbstractScheduler):

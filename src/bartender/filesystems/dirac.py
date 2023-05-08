@@ -1,32 +1,14 @@
 import logging
 from pathlib import Path
-from typing import Literal
 
 from aiofiles.tempfile import TemporaryDirectory
 from DIRAC import initialize
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
-from pydantic import BaseModel
 
 from bartender.async_utils import async_make_archive, async_unpack_archive, async_wrap
 from bartender.filesystems.abstract import AbstractFileSystem
+from bartender.filesystems.dirac_config import DiracFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
-
-
-class DiracFileSystemConfig(BaseModel):
-    """Configuration for DIRAC file system.
-
-    Args:
-        lfn_root: Location on grid storage where files of jobs can be stored. Used to
-            localize description.
-        storage_element: Storage element for lfn_root.
-    """
-
-    type: Literal["dirac"] = "dirac"
-    # TODO remove defaults, defaults work for
-    # ghcr.io/xenon-middleware/dirac:8.0.18 docker container
-    lfn_root: str = "/tutoVO/user/c/ciuser/bartenderjobs"
-    storage_element: str = "StorageElementOne"
-
 
 # TODO make proper async with loop.run_in_executor
 

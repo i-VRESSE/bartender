@@ -32,7 +32,7 @@ async def wait_for_job(
     job_id: str,
     expected: State = "ok",
     delay: float = 0.5,
-    attempts: int = 1200,
+    attempts: int = 1200,  # 10 minutes max runtime
 ) -> None:
     state = "new"
     for _ in range(attempts):

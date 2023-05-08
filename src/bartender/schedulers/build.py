@@ -2,11 +2,17 @@ from typing import Union
 
 from bartender.schedulers.abstract import AbstractScheduler
 from bartender.schedulers.arq import ArqScheduler, ArqSchedulerConfig
-from bartender.schedulers.dirac import DiracScheduler, DiracSchedulerConfig
+from bartender.schedulers.dirac_config import DiracSchedulerConfig
 from bartender.schedulers.memory import MemoryScheduler, MemorySchedulerConfig
 from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
+from bartender.shared.dirac import DIRAC_INSTALLED
 
-SchedulerConfig = Union[MemorySchedulerConfig, SlurmSchedulerConfig, ArqSchedulerConfig]
+SchedulerConfig = Union[
+    MemorySchedulerConfig,
+    SlurmSchedulerConfig,
+    ArqSchedulerConfig,
+    DiracSchedulerConfig,
+]
 
 
 def build(config: SchedulerConfig) -> AbstractScheduler:
@@ -29,5 +35,11 @@ def build(config: SchedulerConfig) -> AbstractScheduler:
     if isinstance(config, ArqSchedulerConfig):
         return ArqScheduler(config)
     if isinstance(config, DiracSchedulerConfig):
-        return DiracScheduler(config)
+        if DIRAC_INSTALLED:
+            from bartender.schedulers.dirac import (  # noqa: WPS433 is optional import
+                DiracScheduler,
+            )
+
+            return DiracScheduler(config)
+        raise ValueError("DIRAC package is not installed")
     raise ValueError(f"Unknown scheduler, recieved config is {config}")

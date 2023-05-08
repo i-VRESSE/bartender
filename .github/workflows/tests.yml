@@ -59,7 +59,8 @@ jobs:
         # Workaround for random install failures
         POETRY_INSTALLER_PARALLEL: false
     - name: Run mypy check
-      run: poetry run mypy .
+      # TODO include tests-dirac in mypy check, but needs renaming to proper package name.
+      run: poetry run mypy src tests
   pytest:
     runs-on: ubuntu-latest
     services:
