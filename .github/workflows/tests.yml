@@ -107,4 +107,5 @@ jobs:
     - name: Build images
       run: docker compose -f tests-dirac/docker-compose.yml build
     - name: Run dirac tests
+      timeout-minutes: 15
       run: docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -p no:cacheprovider -vv tests-dirac'
