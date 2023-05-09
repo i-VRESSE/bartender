@@ -3,6 +3,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel
 
+from bartender.shared.dirac_config import ProxyConfig
+
 
 class DiracSchedulerConfig(BaseModel):
     """Configuration for DIRAC scheduler.
@@ -17,3 +19,4 @@ class DiracSchedulerConfig(BaseModel):
     apptainer_image: Optional[Path] = None
     # TODO dedup storage element here and in filesystem config
     storage_element: str
+    proxy: ProxyConfig = ProxyConfig()

@@ -2,13 +2,14 @@ import logging
 from pathlib import Path
 
 from aiofiles.tempfile import TemporaryDirectory
-from DIRAC import initialize
+
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
 
 from bartender.async_utils import async_make_archive, async_unpack_archive, async_wrap
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.dirac_config import DiracFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
+from bartender.shared.dirac import ProxyChecker
 
 # TODO make proper async with loop.run_in_executor
 
@@ -29,8 +30,7 @@ class DiracFileSystem(AbstractFileSystem):
         """
         self.lfn_root = config.lfn_root
         self.storage_element = config.storage_element
-        # TODO make sure initialize is only called once per process
-        initialize()
+        self.proxychecker = ProxyChecker(config.proxy)
         self.dm = DataManager()
 
     def localize_description(
@@ -66,6 +66,7 @@ class DiracFileSystem(AbstractFileSystem):
         Raises:
             RuntimeError: When upload failed.
         """
+        await self.proxychecker.check()
         put = async_wrap(self.dm.putAndRegister)
         async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:
             archive_fn = await self._pack(src.job_dir, Path(tmpdirname))
@@ -92,6 +93,7 @@ class DiracFileSystem(AbstractFileSystem):
         Raises:
             RuntimeError: When download failed.
         """
+        await self.proxychecker.check()
         archive_base_fn = "output.tar"
         archive_fn_on_grid = Path(src.job_dir) / archive_base_fn
         async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:

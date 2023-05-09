@@ -4,7 +4,7 @@ from textwrap import dedent
 
 import aiofiles
 from aiofiles.tempfile import TemporaryDirectory
-from DIRAC import gLogger, initialize
+
 from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
 )
@@ -14,6 +14,7 @@ from bartender.async_utils import async_wrap
 from bartender.db.models.job_model import State
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 from bartender.schedulers.dirac_config import DiracSchedulerConfig
+from bartender.shared.dirac import ProxyChecker
 
 # Keys from
 # https://github.com/DIRACGrid/DIRAC/blob/integration/src/DIRAC/WorkloadManagementSystem/Client/JobStatus.py
@@ -52,11 +53,7 @@ class DiracScheduler(AbstractScheduler):
             config: The config.
         """
         self.config: DiracSchedulerConfig = config
-        # TODO make sure initialize is only called once per process
-        initialize()
-        gLogger.setLevel("debug")  # TODO remove
-        # TODO use single client Dirac client instead of multiple clients.
-        # See https://dirac.readthedocs.io/en/latest/CodeDocumentation/Interfaces/API/Dirac.html  # noqa: E501
+        self.proxychecker = ProxyChecker(config.proxy)
         self.wms_client = WMSClient()
         self.monitoring = JobMonitoringClient()
 
@@ -72,6 +69,7 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             Identifier that can be used later to interact with job.
         """
+        await self.proxychecker.check()
         # to submit requires a jdl and shell script to be created locally
         # the description.job_dir is on grid storage so cannot be used.
         # so create a temporary directory to write the jdl and shell script
@@ -100,6 +98,7 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             State of job.
         """
+        await self.proxychecker.check()
         # Dirac has Status,MinorStatus,ApplicationStatus
         # TODO Should we also store MinorStatus,ApplicationStatus?
         async_state = async_wrap(self.monitoring.getJobsStatus)
@@ -123,6 +122,7 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             States of jobs.
         """
+        await self.proxychecker.check()
         async_state = async_wrap(self.monitoring.getJobsStatus)
         result = await async_state(job_ids)
         if not result["OK"]:
@@ -142,6 +142,7 @@ class DiracScheduler(AbstractScheduler):
         Raises:
             RuntimeError: When cancelling of job fails.
         """
+        await self.proxychecker.check()
         state = await self.state(job_id)
         if state == "running":
             async_kill = async_wrap(self.wms_client.killJob)

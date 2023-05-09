@@ -4,7 +4,7 @@ from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.dirac_config import DiracFileSystemConfig
 from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
 from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
-from bartender.shared.dirac import DIRAC_INSTALLED
+from bartender.shared.dirac_config import DIRAC_INSTALLED
 
 FileSystemConfig = Union[
     LocalFileSystemConfig,
