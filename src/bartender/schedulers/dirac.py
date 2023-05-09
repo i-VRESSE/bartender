@@ -4,7 +4,6 @@ from textwrap import dedent
 
 import aiofiles
 from aiofiles.tempfile import TemporaryDirectory
-
 from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
 )

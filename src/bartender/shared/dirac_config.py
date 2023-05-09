@@ -17,8 +17,11 @@ class ProxyConfig(BaseModel):
         key: The path to the user's private key file.
         group: The name of the DIRAC group to use.
         valid: Valid HH:MM for the proxy. By default is 24 hours.
+        password: The password for the private key file.
     """
+
     cert: Optional[str] = None
     key: Optional[str] = None
     group: Optional[str] = None
-    valid: str = '24:00'
+    valid: Optional[str] = None
+    password: Optional[str] = None

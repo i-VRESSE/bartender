@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 from aiofiles.tempfile import TemporaryDirectory
-
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
 
 from bartender.async_utils import async_make_archive, async_unpack_archive, async_wrap
