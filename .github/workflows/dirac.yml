@@ -6,7 +6,6 @@ on:
     paths:
     - '**dirac**'
   workflow_dispatch:
-    inputs: []
 
 jobs:
   dirac_tests:
