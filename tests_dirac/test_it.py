@@ -80,5 +80,7 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
 
     assert_output(local_job_dir)
 
+    # Cleanup
+    # TODO clean up dir so tests can be run multiple times
     await fs.close()
     await scheduler.close()
