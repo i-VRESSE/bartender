@@ -53,8 +53,14 @@ async def test_make_valid_dirac_proxy_given_no_proxy():
 async def test_make_valid_dirac_proxy_given_bad_cert(tmp_path):
     bad_cert = str(tmp_path / "usercert.pem")
 
-    with pytest.raises(ValueError, match="Cannot open file"):
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
         await make_valid_dirac_proxy(ProxyConfig(cert=bad_cert))
+
+    assert excinfo.value.returncode == 1  # noqa: WPS441 according to pytest docs
+    assert (
+        "Cannot load certificate"
+        in excinfo.value.stdout.decode()  # noqa: WPS441 according to pytest docs
+    )
 
 
 @pytest.mark.anyio
