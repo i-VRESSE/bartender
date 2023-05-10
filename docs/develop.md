@@ -168,7 +168,7 @@ On start of the client container will
 In in VS code terminal you should be able to run the dirac tests with
 
 ```shell
-pytest -vv tests-dirac
+pytest -vv tests_dirac
 ```
 
 The DIRAC server stores logs in `/opt/dirac/startup/*/log/current`
@@ -178,14 +178,14 @@ the `WorkloadManagement_SiteDirector` service starting a pilot.
 To look around inside the DIRAC server use
 
 ```shell
-docker-compose -f tests-dirac/docker-compose.yml exec dirac-tuto bash
+docker-compose -f tests_dirac/docker-compose.yml exec dirac-tuto bash
 ```
 
 Sometimes the DIRAC server needs clearing of its state,
 do this outside container with
 
 ```shell
-docker compose -f tests-dirac/docker-compose.yml rm -fs dirac-tuto
+docker compose -f tests_dirac/docker-compose.yml rm -fs dirac-tuto
 # Close dev container and reopen
-docker compose -f tests-dirac/docker-compose.yml up dirac-tuto
+docker compose -f tests_dirac/docker-compose.yml up dirac-tuto
 ```

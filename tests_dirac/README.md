@@ -12,7 +12,7 @@ https://github.com/orgs/xenon-middleware/packages/container/package/dirac
 ## Run
 
 ```shell
-docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -vv tests-dirac'
+docker compose -f tests_dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -vv tests_dirac'
 # TODO move dirac-proxy-init to scheduler/filesytem code
 # TODO move command inside docker-compose.yml
 ```
@@ -22,7 +22,7 @@ docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev]
 To get a interactive python shell with dirac installed, run
 
 ```bash
-docker compose -f tests-dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && ipython'
+docker compose -f tests_dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && ipython'
 ```
 
 See [test_it.py](test_it.py) for example usage of the DIRAC scheduler and filesystem.

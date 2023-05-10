@@ -1,0 +1,22 @@
+name: Dirac tests
+
+on:
+  push:
+    # Run tests only if dirac code is changed or workflow is triggerd manually
+    paths:
+    - '**dirac**'
+  workflow_dispatch:
+    inputs: []
+
+jobs:
+  dirac_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Pull images
+      run: docker compose -f tests_dirac/docker-compose.yml pull
+    - name: Build images
+      run: docker compose -f tests_dirac/docker-compose.yml build
+    - name: Run dirac tests
+      timeout-minutes: 15
+      run: docker compose -f tests_dirac/docker-compose.yml run test 'pip install -e .[dev] && dirac-proxy-init -g dirac_user && pytest -p no:cacheprovider -vv tests_dirac'

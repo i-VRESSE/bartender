@@ -45,14 +45,16 @@ async def wait_for_job(
 
 
 @pytest.mark.anyio
-async def test_it(tmp_path: Path):  # noqa: WPS217 single piece of code for readablilty
+async def test_it(  # noqa: WPS217 single piece of code for readablilty
+    tmp_path: Path,
+) -> None:
     """Happy path test of the DIRAC scheduler and filesystem.
 
-    # Setup
+    # Manual setup
     tmp_path = Path("/tmp/test_it")
     tmp_path.mkdir()
 
-    # Cleanup
+    # Manual cleanup
     rm -rf /tmp/test_it/
     dirac-dms-filecatalog-cli
     rm /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar

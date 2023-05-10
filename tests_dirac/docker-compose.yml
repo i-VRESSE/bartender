@@ -8,7 +8,7 @@ services:
   test:
     build:
       context: ..
-      dockerfile: ./tests-dirac/Dockerfile
+      dockerfile: ./tests_dirac/Dockerfile
     volumes:
     - ..:/workspace:cached
     depends_on:

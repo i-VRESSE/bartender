@@ -75,3 +75,4 @@ repos:
     args:
     - "src"
     - "tests"
+    - "tests_dirac"
