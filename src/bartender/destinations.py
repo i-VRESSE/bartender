@@ -54,7 +54,7 @@ class Destination:
         method to clean those up.
         """
         await self.scheduler.close()
-        self.filesystem.close()
+        await self.filesystem.close()
 
 
 def build(config: dict[str, DestinationConfig]) -> dict[str, Destination]:

@@ -93,7 +93,7 @@ class SftpFileSystem(AbstractFileSystem):
             remotepath = str(target.job_dir.parent)
             await sftp.get(localpaths, remotepath, recurse=True)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close SSH connection."""
         if self.conn:
             self.conn.close()

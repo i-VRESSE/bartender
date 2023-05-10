@@ -377,7 +377,7 @@ class FakeFileSystem(AbstractFileSystem):
     async def upload(self, src: JobDescription, target: JobDescription) -> None:
         raise NotImplementedError()
 
-    def close(self) -> None:
+    async def close(self) -> None:
         raise NotImplementedError()
 
 

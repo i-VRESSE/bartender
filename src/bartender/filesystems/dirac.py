@@ -8,7 +8,7 @@ from bartender.async_utils import async_make_archive, async_unpack_archive, asyn
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.dirac_config import DiracFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
-from bartender.shared.dirac import ProxyChecker
+from bartender.shared.dirac import setup_proxy_renewer, teardown_proxy_renewer
 
 # TODO make proper async with loop.run_in_executor
 
@@ -29,7 +29,7 @@ class DiracFileSystem(AbstractFileSystem):
         """
         self.lfn_root = config.lfn_root
         self.storage_element = config.storage_element
-        self.proxychecker = ProxyChecker(config.proxy)
+        setup_proxy_renewer(config.proxy)
         self.dm = DataManager()
 
     def localize_description(
@@ -65,7 +65,6 @@ class DiracFileSystem(AbstractFileSystem):
         Raises:
             RuntimeError: When upload failed.
         """
-        await self.proxychecker.check()
         put = async_wrap(self.dm.putAndRegister)
         async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:
             archive_fn = await self._pack(src.job_dir, Path(tmpdirname))
@@ -92,7 +91,6 @@ class DiracFileSystem(AbstractFileSystem):
         Raises:
             RuntimeError: When download failed.
         """
-        await self.proxychecker.check()
         archive_base_fn = "output.tar"
         archive_fn_on_grid = Path(src.job_dir) / archive_base_fn
         async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:
@@ -108,8 +106,9 @@ class DiracFileSystem(AbstractFileSystem):
             logger.warning(f"Unpacking {archive_fn_in_tmpdir} to {target.job_dir}")
             await async_unpack_archive(archive_fn_in_tmpdir, target.job_dir)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close filesystem."""
+        await teardown_proxy_renewer()
 
     async def _pack(self, root_dir: Path, container_dir: Path) -> Path:
         archive_base_fn = container_dir / "input"

@@ -45,7 +45,7 @@ async def wait_for_job(
 
 
 @pytest.mark.anyio
-async def test_it(tmp_path: Path):
+async def test_it(tmp_path: Path):  # noqa: WPS217 single piece of code for readablilty
     """Happy path test of the DIRAC scheduler and filesystem.
 
     # Setup
@@ -77,3 +77,6 @@ async def test_it(tmp_path: Path):
     await fs.download(gdescription, description)
 
     assert_output(local_job_dir)
+
+    await fs.close()
+    await scheduler.close()

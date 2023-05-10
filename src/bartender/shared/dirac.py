@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from subprocess import CalledProcessError  # noqa: S404 security implications OK
+from typing import Optional, Tuple
 
 from DIRAC import gLogger, initialize
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
@@ -10,72 +11,123 @@ from bartender.shared.dirac_config import ProxyConfig
 logger = logging.getLogger(__file__)
 
 
-def throttle(seconds: float):
-    """Throttle decorator to limit the frequency of function calls."""
-    last_call = datetime.min
+def get_time_left_on_proxy() -> int:
+    """
+    Get the time left on the current proxy.
 
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            nonlocal last_call
-            now = datetime.now()
-            if now - last_call < timedelta(seconds=seconds):
-                logger.warning(f"Not calling {func.__name__}, last call was too recent")
-                return
-            last_call = now
-            return await func(*args, **kwargs)
+    Returns:
+        The time left on the current proxy in seconds.
 
-        return wrapper
-
-    return decorator
+    Raises:
+        ValueError: If failed to get proxy info.
+    """
+    result = getProxyInfo()
+    if not result["OK"]:
+        raise ValueError(f'Failed to get proxy info {result["Message"]}')
+    return result["Value"]["secondsLeft"]
 
 
-class ProxyChecker:
-    def __init__(self, config: ProxyConfig) -> None:
-        self.config = config
-        self.last_check = None
-        # TODO make sure initialize is only called once per processeng instead of each time checker is created
-        # TODO make sure proxy is initialized before calling `initialize()`
-        initialize()
-        gLogger.setLevel("debug")  # TODO remove
+async def proxy_init(config: ProxyConfig) -> None:
+    """Create or renew DIRAC proxy.
 
-    def _info(self):
-        result = getProxyInfo()
-        if not result["OK"]:
-            raise ValueError(f'Failed to get proxy info {result["Message"]}')
-        logger.warning(f"Proxy info: {result['Value']}")
-        return result["Value"]
+    Args:
+        config: How to create a new proxy.
 
-    def _secondsLeft(self):
-        return self._info()["secondsLeft"]
+    Raises:
+        CalledProcessError: If failed to create proxy.
+    """
+    # TODO use Python to create and renew proxy instead of subprocess call
+    cmd = _proxy_init_command(config)
+    logger.warning(f"Running command: {cmd}")
+    process = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdin = None
+    if config.password:
+        stdin = config.password.encode()
+    stdout, stderr = await process.communicate(stdin)
+    if process.returncode:
+        raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
 
-    @throttle(seconds=1800)
-    async def check(self):
-        """Make sure that the DIRAC proxy is valid."""
-        # TODO check that there is a proxy, if not then create one
-        # TODO Check that current proxy is expired or close to expiring
-        logger.warning("Checking how many seconds the proxy has left")
-        min_life = 1800
-        seconds_left = self._secondsLeft()
-        if seconds_left < min_life:
-            logger.warning(
-                f"Proxy almost expired, just {seconds_left}s left, renewing...",
-            )
-            # TODO use Python to create and renew proxy instead of subprocess call
-            parts = []
-            if self.config.valid:
-                parts.append(f"-v {self.config.valid}")
-            if self.config.cert:
-                parts.append(f"-C {self.config.cert}")
-            if self.config.key:
-                parts.append(f"-K {self.config.key}")
-            if self.config.group:
-                parts.append(f"-g {self.config.group}")
-            if self.config.password:
-                parts.append(f"-p")
-            cmd = f'dirac-proxy-init {" ".join(parts)}'
-            logger.warning(f"Running command: {cmd}")
-            process = await asyncio.create_subprocess_shell(cmd)
-            if self.config.password:
-                await process.communicate(self.config.password.encode())
-            else:
-                await process.communicate()
+
+def _proxy_init_command(config: ProxyConfig) -> str:
+    parts = ["dirac-proxy-init"]
+    if config.valid:
+        parts.append(f"-v {config.valid}")
+    if config.cert:
+        parts.append(f"-C {config.cert}")
+    if config.key:
+        parts.append(f"-K {config.key}")
+    if config.group:
+        parts.append(f"-g {config.group}")
+    if config.password:
+        parts.append("-p")
+    return " ".join(parts)
+
+
+async def renew_proxy_task(config: ProxyConfig) -> None:
+    """Task that makes sure the proxy is renewed when it is close to expiring.
+
+    Args:
+        config: How to create a new proxy.
+
+    """
+    while True:  # noqa: WPS457 should run lifetime of app
+        time_left = await make_valid_dirac_proxy(config)
+        await asyncio.sleep(time_left - config.min_life)
+
+
+async def make_valid_dirac_proxy(config: ProxyConfig) -> int:
+    """Make valid dirac proxy.
+
+    Args:
+        config: How to create a new proxy.
+
+    Returns:
+        The time left on the current proxy in seconds.
+    """
+    try:
+        time_left = get_time_left_on_proxy()
+    except ValueError:
+        # if time left failed then create proxy
+        await proxy_init(config)
+        time_left = get_time_left_on_proxy()
+    if time_left <= config.min_life:
+        await proxy_init(config)
+    return time_left
+
+
+Renewer = Tuple[asyncio.Task[None], ProxyConfig]
+renewer: Optional[Renewer] = None
+
+
+def setup_proxy_renewer(config: ProxyConfig) -> None:
+    """Set up a renewer for the DIRAC proxy.
+
+    Args:
+        config: How to create a new proxy.
+
+    Raises:
+        ValueError: If there is already a renewer with a different config.
+    """
+    global renewer  # noqa: WPS420 simpler then singleton
+    if renewer is None:
+        initialize(require_auth=False)
+        gLogger.setLevel(config.log_level)
+        task = asyncio.create_task(renew_proxy_task(config))
+        renewer = (task, config)  # noqa: WPS442 simpler then singleton
+        return
+    if renewer[1] != config:
+        raise ValueError("Can only have one unique proxy config")
+
+
+async def teardown_proxy_renewer() -> None:
+    """Tear down the renewer for the DIRAC proxy."""
+    global renewer  # noqa: WPS420 simpler then singleton
+    if renewer:
+        task = renewer[0]
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        renewer = None  # noqa: WPS442 simpler then singleton
