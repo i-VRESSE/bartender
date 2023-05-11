@@ -244,8 +244,8 @@ def picker(
 
 ### DIRAC support
 
-If you need DIRAC support create a Conda environment instead of
-creating a virtual environment.
+If you need [DIRAC](http://diracgrid.org/) support create a conda environment
+instead of creating a virtual environment.
 
 ```bash
 mamba create --name bartender dirac-grid python=3.10
@@ -264,12 +264,46 @@ dependencies because it ignores the already installed DIRAC dependencies.)
 
 On the compute node it is expected that
 
-1. `dirac-dms-get-file` + `dirac-dms-add-file` are available
-1. `tar` executable is available
+1. `dirac-dms-get-file` + `dirac-dms-add-file` commands are available
+1. `tar` command is available
 1. If `apptainer_image` is set in scheduler configuration
    then `apptainer` command is available.
    If set to path on cvmfs then `/cvmfs` should be mounted.
 1. Application command works.
+
+### Example of running jobs on a DIRAC grid running inside a Docker container
+
+<details>
+<summary>
+Requires a DIRAC grid to be running inside a Docker container
+<summary>
+
+This repostory contains a Docker Compose file to run bartender
+with database and a DIRAC server.
+
+```bash
+docker compose -f deploy/docker-compose.dirac.yml up
+```
+
+The config.yaml in current working directory is used.
+
+</details>
+
+```yaml
+destinations:
+  grid:
+    scheduler:
+      type: dirac
+      storage_element: StorageElementOne
+      proxy:
+        log_level: DEBUG
+    filesystem:
+      type: dirac
+      lfn_root: /tutoVO/user/c/ciuser/bartenderjobs
+      storage_element: StorageElementOne
+      proxy:
+        log_level: DEBUG
+```
 
 ## Destination picker
 

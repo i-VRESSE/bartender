@@ -34,7 +34,7 @@ class ProxyConfig(BaseModel):
         password: The password for the private key file.
         min_life: If proxy has less than this many seconds left, renew it.
             Default 30 minutes.
-        log_level: The log level for the DIRAC logger. Default debug.
+        log_level: The log level for the DIRAC logger. Default INFO.
     """
 
     cert: Optional[str] = None
@@ -43,4 +43,4 @@ class ProxyConfig(BaseModel):
     valid: Optional[str] = None
     password: Optional[str] = None
     min_life: int = 1800
-    log_level: LogLevel = "DEBUG"  # TODO relax to INFO
+    log_level: LogLevel = "INFO"

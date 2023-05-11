@@ -69,18 +69,20 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
     local_job_dir.mkdir()
     description = prepare_input(local_job_dir)
     gdescription = fs.localize_description(description, tmp_path)
+    try:
+        await fs.upload(description, gdescription)
 
-    await fs.upload(description, gdescription)
+        job_id = await scheduler.submit(gdescription)
 
-    job_id = await scheduler.submit(gdescription)
+        assert job_id
 
-    await wait_for_job(scheduler, job_id)
+        await wait_for_job(scheduler, job_id)
 
-    await fs.download(gdescription, description)
+        await fs.download(gdescription, description)
 
-    assert_output(local_job_dir)
-
-    # Cleanup
-    # TODO clean up dir so tests can be run multiple times
-    await fs.close()
-    await scheduler.close()
+        assert_output(local_job_dir)
+    finally:
+        # So next time the test does not complain about existing files
+        await fs.delete(gdescription)
+        await fs.close()
+        await scheduler.close()

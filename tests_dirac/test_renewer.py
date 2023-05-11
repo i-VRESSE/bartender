@@ -76,7 +76,6 @@ async def test_renewer_setup_teardown() -> None:
 
     await teardown_proxy_renewer()
 
-
 @pytest.mark.anyio
 async def test_renewer_setup_teardown_given_different_config() -> None:
     setup_proxy_renewer(ProxyConfig(valid="00:03", min_life=30))

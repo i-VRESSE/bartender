@@ -120,8 +120,7 @@ def setup_proxy_renewer(config: ProxyConfig) -> None:
         renewer = (task, config)  # noqa: WPS442 simpler then singleton
         return
     if renewer[1] != config:
-        raise ValueError("Can only have one unique proxy config")
-
+        raise ValueError(f"Can only have one unique proxy config. Old:{renewer[1]}, new: {config}")
 
 async def teardown_proxy_renewer() -> None:
     """Tear down the renewer for the DIRAC proxy."""

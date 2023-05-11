@@ -150,9 +150,9 @@ make clean && make html
 
 Creates documentation site at `docs/_build/html`.
 
-## Dirac
+## DIRAC Grid
 
-To develop bartender with dirac support you can use [devcontainers](https://containers.dev/)
+To develop bartender with [DIRAC](http://diracgrid.org/) support you can use [devcontainers](https://containers.dev/)
 to spinup a DIRAC server container and a DIRAC client container.
 
 Use the [VS Code Devcontainer extension](

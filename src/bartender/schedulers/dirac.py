@@ -80,7 +80,7 @@ class DiracScheduler(AbstractScheduler):
                 raise RuntimeError(result["Message"])
             job_id = result["Value"]
             logger.warning(f"Job submitted with ID: {job_id}")
-            return job_id
+            return str(job_id)
 
     async def state(self, job_id: str) -> State:
         """Get state of a job.
@@ -99,10 +99,10 @@ class DiracScheduler(AbstractScheduler):
         # Dirac has Status,MinorStatus,ApplicationStatus
         # TODO Should we also store MinorStatus,ApplicationStatus?
         async_state = async_wrap(self.monitoring.getJobsStatus)
-        result = await async_state(job_id)
+        result = await async_state(int(job_id))
         if not result["OK"]:
             raise RuntimeError(result["Message"])
-        dirac_status = result["Value"][job_id]["Status"]
+        dirac_status = result["Value"][int(job_id)]["Status"]
         return dirac_status_map[dirac_status]
 
     async def states(self, job_ids: list[str]) -> list[State]:
@@ -120,7 +120,7 @@ class DiracScheduler(AbstractScheduler):
             States of jobs.
         """
         async_state = async_wrap(self.monitoring.getJobsStatus)
-        result = await async_state(job_ids)
+        result = await async_state(map(str, job_ids))
         if not result["OK"]:
             raise RuntimeError(result["Message"])
 
