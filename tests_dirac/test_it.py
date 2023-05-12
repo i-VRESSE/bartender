@@ -8,8 +8,6 @@ from bartender.filesystems.dirac import DiracFileSystem, DiracFileSystemConfig
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 from bartender.schedulers.dirac import DiracScheduler, DiracSchedulerConfig
 
-# TODO do not have copy of testers.helpers methods
-
 
 def prepare_input(job_dir: Path) -> JobDescription:
     (job_dir / "input").write_text("Lorem ipsum")
