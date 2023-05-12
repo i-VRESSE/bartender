@@ -1,10 +1,15 @@
 import asyncio
 import logging
-from subprocess import CalledProcessError  # noqa: S404 security implications OK
+from subprocess import (  # noqa: S404 security implications OK
+    PIPE,
+    CalledProcessError,
+    run,
+)
 from typing import Optional, Tuple
 
 from DIRAC import gLogger, initialize
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
+from DIRAC.Core.Utilities.exceptions import DIRACInitError
 
 from bartender.shared.dirac_config import ProxyConfig
 
@@ -39,8 +44,9 @@ async def proxy_init(config: ProxyConfig) -> None:
     # TODO use Python to create and renew proxy instead of subprocess call
     cmd = _proxy_init_command(config)
     logger.warning(f"Running command: {cmd}")
-    process = await asyncio.create_subprocess_shell(
-        cmd,
+    process = await asyncio.create_subprocess_exec(
+        cmd.pop(0),
+        *cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -52,7 +58,24 @@ async def proxy_init(config: ProxyConfig) -> None:
         raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
 
 
-def _proxy_init_command(config: ProxyConfig) -> str:
+def sync_proxy_init(config: ProxyConfig) -> None:
+    """Create or renew DIRAC proxy.
+
+    Args:
+        config: How to create a new proxy.
+    """
+    # TODO use Python to create and renew proxy instead of subprocess call
+    cmd = _proxy_init_command(config)
+    logger.warning(f"Running command: {cmd}")
+    run(  # noqa: S603 subprocess call OK
+        cmd,
+        stdout=PIPE,
+        stderr=PIPE,
+        check=True,
+    )
+
+
+def _proxy_init_command(config: ProxyConfig) -> list[str]:
     parts = ["dirac-proxy-init"]
     if config.valid:
         parts.append(f"-v {config.valid}")
@@ -64,7 +87,7 @@ def _proxy_init_command(config: ProxyConfig) -> str:
         parts.append(f"-g {config.group}")
     if config.password:
         parts.append("-p")
-    return " ".join(parts)
+    return parts
 
 
 async def renew_proxy_task(config: ProxyConfig) -> None:
@@ -114,13 +137,21 @@ def setup_proxy_renewer(config: ProxyConfig) -> None:
     """
     global renewer  # noqa: WPS420 simpler then singleton
     if renewer is None:
-        initialize(require_auth=False)
+        try:
+            initialize()
+        except DIRACInitError:
+            logger.warning("DIRAC proxy not initialized, initializing")
+            sync_proxy_init(config)
+            initialize()
         gLogger.setLevel(config.log_level)
         task = asyncio.create_task(renew_proxy_task(config))
         renewer = (task, config)  # noqa: WPS442 simpler then singleton
         return
     if renewer[1] != config:
-        raise ValueError(f"Can only have one unique proxy config. Old:{renewer[1]}, new: {config}")
+        raise ValueError(
+            f"Can only have one unique proxy config. Old:{renewer[1]}, new: {config}",
+        )
+
 
 async def teardown_proxy_renewer() -> None:
     """Tear down the renewer for the DIRAC proxy."""

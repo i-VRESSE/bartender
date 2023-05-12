@@ -5,6 +5,7 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	// "image": "mcr.microsoft.com/devcontainers/base:jammy"
 	"dockerComposeFile": "../tests_dirac/docker-compose.yml",
+	"overrideCommand": true,
 	"service": "test",
 	// "shutdownAction": "stopCompose",
 	"workspaceFolder": "/workspace",
@@ -17,7 +18,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "uname -a",
-	"postCreateCommand": "source ~/diracos/diracosrc;dirac-proxy-init -g dirac_user;pip install -e .[dev]"
+	"postCreateCommand": "pip install -e ."
 
 	// Configure tool-specific properties.
 	// "customizations": {},

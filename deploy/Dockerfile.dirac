@@ -6,8 +6,6 @@ RUN apt install -y unzip
 
 USER diracuser
 
-RUN pip install DIRAC==8.0
-
 RUN pip install poetry==1.4.2
 
 # Configuring poetry
@@ -29,5 +27,7 @@ ENV BARTENDER_HOST=0.0.0.0
 ENV BARTENDER_PORT=8000
 
 RUN mkdir /tmp/jobs
+
+CMD ["/home/diracuser/diracos/bin/bartender serve"]
 
 HEALTHCHECK --interval=5m --timeout=3s CMD curl -f http://${BARTENDER_HOST}:${BARTENDER_PORT}/api/health || exit 1

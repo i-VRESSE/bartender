@@ -13,5 +13,5 @@ services:
     - ..:/workspace:cached
     depends_on:
     - dirac-tuto
-      # Need to use double quotes as entrypoint is bash -c, which requires single string
-    command: "'while sleep 1000; do :; done'"
+    # Need to use double quotes as entrypoint is bash -c, which requires single string
+    command: "'pip install -e . && pytest -p no:cacheprovider -vv tests_dirac'"

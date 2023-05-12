@@ -12,7 +12,6 @@ services:
     image: bartender-with-dirac:${BARTENDER_VERSION:-latest}
     ports:
     - "8000:8000"
-    command: '"dirac-proxy-init && /home/diracuser/diracos/bin/bartender serve"'
     # restart: always
     env_file:
     - ../.env

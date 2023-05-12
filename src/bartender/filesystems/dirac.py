@@ -70,7 +70,8 @@ class DiracFileSystem(AbstractFileSystem):
             archive_fn = await self._pack(src.job_dir, Path(tmpdirname))
             input_tar_on_grid = target.job_dir / archive_fn.name
             logger.warning(
-                f"Uploading {archive_fn} to {input_tar_on_grid} on {self.storage_element}",
+                f"Uploading {archive_fn} to {input_tar_on_grid}"
+                f"on {self.storage_element}",
             )
             result = await put(
                 lfn=str(input_tar_on_grid),
@@ -110,11 +111,14 @@ class DiracFileSystem(AbstractFileSystem):
         """Close filesystem."""
         await teardown_proxy_renewer()
 
-    async def delete(self, description: JobDescription):
+    async def delete(self, description: JobDescription) -> None:
         """Delete job directory of description.
 
         Args:
             description: The job description.
+
+        Raises:
+            RuntimeError: When deletion failed.
         """
         result = await async_wrap(self.dm.cleanLogicalDirectory)(
             str(description.job_dir),

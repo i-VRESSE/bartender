@@ -1,27 +1,14 @@
 FROM ghcr.io/xenon-middleware/diracclient:8.0.18
 
-RUN pip install DIRAC==8.0
-
 RUN pip install poetry==1.4.2
 
 # Configuring poetry
 RUN poetry config virtualenvs.create false
 
-WORKDIR /app/src
+WORKDIR /workspace
 
 # Copying requirements of a project
 COPY pyproject.toml poetry.lock ./
 
 # Installing requirements
-RUN poetry install --without=dev --no-root --no-interaction --no-ansi
-
-# Copying actual application
-COPY . .
-RUN poetry install --without=dev --no-interaction --no-ansi
-
-ENV BARTENDER_HOST=0.0.0.0
-ENV BARTENDER_PORT=8000
-
-CMD ["/usr/local/bin/bartender", "serve"]
-
-HEALTHCHECK --interval=5m --timeout=3s CMD curl -f http://${BARTENDER_HOST}:${BARTENDER_PORT}/api/health || exit 1
+RUN poetry install --no-root --no-interaction --no-ansi

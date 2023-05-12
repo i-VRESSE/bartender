@@ -150,7 +150,7 @@ make clean && make html
 
 Creates documentation site at `docs/_build/html`.
 
-## DIRAC Grid
+## DIRAC grid
 
 To develop bartender with [DIRAC](http://diracgrid.org/) support you can use [devcontainers](https://containers.dev/)
 to spinup a DIRAC server container and a DIRAC client container.
@@ -159,16 +159,16 @@ Use the [VS Code Devcontainer extension](
 https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
 ) to open the workspace in a container.
 
-On start of the client container will
-
-1. Mount current working directory as `/workspace` in the container.
-1. login to DIRAC server with [dirac-proxy-init](https://dirac.readthedocs.io/en/latest/Commands/index.html#dirac-proxy-init).
-1. install bartender in editable mode
-
-In in VS code terminal you should be able to run the dirac tests with
+In a VS code terminal you can run the DIRAC tests with
 
 ```shell
 pytest -vv tests_dirac
+```
+
+To run DIRAC commands make sure the proxy is initialized with
+
+```shell
+dirac-proxy-init
 ```
 
 The DIRAC server stores logs in `/opt/dirac/startup/*/log/current`
