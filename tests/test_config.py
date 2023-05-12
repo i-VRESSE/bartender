@@ -13,7 +13,7 @@ from bartender.filesystems.sftp import SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.memory import MemorySchedulerConfig
 from bartender.schedulers.slurm import SlurmSchedulerConfig
-from bartender.ssh_utils import SshConnectConfig
+from bartender.shared.ssh import SshConnectConfig
 
 
 class TestApplicatonConfiguration:

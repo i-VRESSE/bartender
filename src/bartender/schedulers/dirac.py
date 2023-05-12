@@ -59,6 +59,17 @@ class DiracScheduler(AbstractScheduler):
     async def submit(self, description: JobDescription) -> str:
         """Submit a job description for running.
 
+        The job submitted to DIRAC will do the following:
+
+        1. Download `description.job_dir / input.tar` from grid storage.
+        2. Unpack `input.tar`.
+        3. Run `description.command`
+            * Capturing stdout and stderr as stdout.txt and stderr.txt files.
+            * Capturing return code in return_code file.
+        4. Pack `output.tar`.
+            * Excluding files from input.tar.
+        5. Upload `output.tar` to grid storage as `description.job_dir / output.tar`.
+
         Args:
             description: Description for a job.
 
@@ -145,7 +156,6 @@ class DiracScheduler(AbstractScheduler):
         else:
             async_delete = async_wrap(self.wms_client.deleteJob)
             result = await async_delete(job_id)
-            # TODO or removeJob()?
         if not result["OK"]:
             raise RuntimeError(result["Message"])
 
@@ -178,7 +188,6 @@ class DiracScheduler(AbstractScheduler):
         )
 
     def _stage_in_script(self, description: JobDescription) -> str:
-        # TODO dedup tar filenames here and in filesystem
         fn = "input.tar"
         fn_on_grid = description.job_dir / fn
         return dedent(
@@ -192,7 +201,6 @@ class DiracScheduler(AbstractScheduler):
         )
 
     def _stage_out_script(self, description: JobDescription) -> str:
-        # TODO dedup tar filename here and in filesystem
         fn = "output.tar"
         fn_on_grid = description.job_dir / fn
         se = self.config.storage_element
@@ -223,13 +231,14 @@ class DiracScheduler(AbstractScheduler):
         jobsh = await self._job_script(description, scriptdir)
         abs_job_sh = jobsh.absolute()
 
-        job_name = _external_id_from_job_dir(description.job_dir)
+        job_name = description.job_dir.name
+        # The jobstdout.txt and jobstderr.txt can be fetched
+        # with `dirac-wms-job-get-output <job id>`.
         # TODO add input.tar in inputsandbox instead of dirac-dms-get-file
+        # tried but got `Failed Input Data Resolution` error
         # TODO add output.tar in OutputData+OutputSE instead of dirac-dms-add-file
-        # TODO add method to fetch jobstdout.txt and jobstderr.txt,
-        # now impossible to see job script output.
-        # The command output in stored in output.tar.
-        # For now use `dirac-wms-job-get-output <job id>` command.
+        # tried but got
+        # `JobWrapperError: No output SEs defined in VO configuration` error
         return dedent(
             f"""\
             JobName = "{job_name}";
@@ -247,8 +256,3 @@ class DiracScheduler(AbstractScheduler):
         async with aiofiles.open(file, "w") as handle:
             await handle.write(script)
         return file
-
-
-# TODO move to JobDescription as property
-def _external_id_from_job_dir(job_dir: Path) -> str:
-    return job_dir.name

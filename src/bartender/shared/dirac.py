@@ -41,7 +41,6 @@ async def proxy_init(config: ProxyConfig) -> None:
     Raises:
         CalledProcessError: If failed to create proxy.
     """
-    # TODO use Python to create and renew proxy instead of subprocess call
     cmd = _proxy_init_command(config)
     logger.warning(f"Running command: {cmd}")
     process = await asyncio.create_subprocess_exec(
@@ -50,10 +49,9 @@ async def proxy_init(config: ProxyConfig) -> None:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    stdin = None
-    if config.password:
-        stdin = config.password.encode()
-    stdout, stderr = await process.communicate(stdin)
+    stdout, stderr = await process.communicate(
+        config.password.encode() if config.password else None,
+    )
     if process.returncode:
         raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
 
@@ -64,11 +62,14 @@ def sync_proxy_init(config: ProxyConfig) -> None:
     Args:
         config: How to create a new proxy.
     """
-    # TODO use Python to create and renew proxy instead of subprocess call
+    # Would be nice to use Python to init proxy instead of a subprocess call
+    # but dirac-proxy-init script is too long to copy here
+    # and password would be unpassable so decided to keep calling subprocess.
     cmd = _proxy_init_command(config)
     logger.warning(f"Running command: {cmd}")
     run(  # noqa: S603 subprocess call OK
         cmd,
+        input=config.password.encode() if config.password else None,
         stdout=PIPE,
         stderr=PIPE,
         check=True,
@@ -78,13 +79,13 @@ def sync_proxy_init(config: ProxyConfig) -> None:
 def _proxy_init_command(config: ProxyConfig) -> list[str]:
     parts = ["dirac-proxy-init"]
     if config.valid:
-        parts.append(f"-v {config.valid}")
+        parts.extend(["-v", config.valid])
     if config.cert:
-        parts.append(f"-C {config.cert}")
+        parts.extend(["-C", config.cert])
     if config.key:
-        parts.append(f"-K {config.key}")
+        parts.extend(["-K", config.key])
     if config.group:
-        parts.append(f"-g {config.group}")
+        parts.extend(["-g", config.group])
     if config.password:
         parts.append("-p")
     return parts

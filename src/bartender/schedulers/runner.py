@@ -5,7 +5,7 @@ from typing import Any, Optional, Protocol
 
 from asyncssh import SSHClientConnection
 
-from bartender.ssh_utils import SshConnectConfig, ssh_connect
+from bartender.shared.ssh import SshConnectConfig, ssh_connect
 
 
 class CommandRunner(Protocol):

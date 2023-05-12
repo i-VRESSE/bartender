@@ -1,5 +1,9 @@
 version: '3.9'
 
+# TODO this file is a combination of ./docker-compose.yml
+# and ../dirac_tests/docker-compose.yml
+# would be nice to not duplicate the code
+
 services:
   dirac-tuto:
     image: ghcr.io/xenon-middleware/dirac:8.0.18

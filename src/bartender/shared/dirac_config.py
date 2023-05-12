@@ -30,7 +30,8 @@ class ProxyConfig(BaseModel):
         cert: The path to the user's DIRAC proxy certificate.
         key: The path to the user's private key file.
         group: The name of the DIRAC group to use.
-        valid: Valid HH:MM for the proxy. By default is 24 hours.
+        valid: How long proxy should be valid. Format HH:MM.
+            By default is 24 hours.
         password: The password for the private key file.
         min_life: If proxy has less than this many seconds left, renew it.
             Default 30 minutes.

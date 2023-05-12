@@ -1,3 +1,5 @@
+# TODO this file is a combination of ./Dockerfile
+# and ../dirac_tests/Dockerfile would be nice to not duplicate the code
 FROM ghcr.io/xenon-middleware/diracclient:8.0.18
 
 USER root

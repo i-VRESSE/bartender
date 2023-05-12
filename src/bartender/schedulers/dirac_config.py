@@ -13,10 +13,10 @@ class DiracSchedulerConfig(BaseModel):
         apptainer_image: Path on cvmfs to apptainer image.
              Will run application command inside apptainer image.
         storage_element: Storage element to upload output files to.
+        proxy: Proxy configuration.
     """
 
     type: Literal["dirac"] = "dirac"
     apptainer_image: Optional[Path] = None
-    # TODO dedup storage element here and in filesystem config
     storage_element: str
     proxy: ProxyConfig = ProxyConfig()

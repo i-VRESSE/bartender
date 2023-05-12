@@ -11,7 +11,7 @@ from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.runner import SshCommandRunner
 from bartender.schedulers.slurm import SlurmScheduler, SlurmSchedulerConfig
-from bartender.ssh_utils import SshConnectConfig
+from bartender.shared.ssh import SshConnectConfig
 from tests.schedulers.helpers import assert_output, prepare_input, wait_for_job
 
 

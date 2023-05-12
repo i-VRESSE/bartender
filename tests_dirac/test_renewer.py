@@ -16,11 +16,9 @@ from bartender.shared.dirac_config import ProxyConfig
 
 
 def destroy_proxy() -> None:
-    subprocess.run(  # noqa: S607 security implications OK
+    subprocess.run(  # noqa: S603, S607 is trusted
         "dirac-proxy-destroy",
-        check=True,
         timeout=60,
-        shell=True,  # noqa: S602 security implications OK
     )
 
 

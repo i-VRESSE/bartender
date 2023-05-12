@@ -61,7 +61,10 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
     rm /tutoVO/user/c/ciuser/bartenderjobs/job1/output.tar
     rmdir /tutoVO/user/c/ciuser/bartenderjobs/job1
     """
-    fs_config = DiracFileSystemConfig()
+    fs_config = DiracFileSystemConfig(
+        lfn_root="/tutoVO/user/c/ciuser/bartenderjobs",
+        storage_element="StorageElementOne",
+    )
     fs = DiracFileSystem(fs_config)
     sched_config = DiracSchedulerConfig(storage_element=fs_config.storage_element)
     scheduler = DiracScheduler(sched_config)
@@ -86,3 +89,6 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
         await fs.delete(gdescription)
         await fs.close()
         await scheduler.close()
+
+
+# TODO add tests for states and cancel methods of DiracScheduler

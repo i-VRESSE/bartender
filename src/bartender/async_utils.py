@@ -1,6 +1,5 @@
 import asyncio
 from functools import partial, wraps
-from shutil import make_archive, unpack_archive
 from typing import Any, Awaitable, Callable, Optional
 
 # TODO add typing so returned function has typed args, kwargs and return
@@ -38,7 +37,3 @@ def async_wrap(func: Callable[..., Any]) -> Callable[..., Awaitable[Any]]:
         return await loop.run_in_executor(executor, pfunc)
 
     return run
-
-
-async_make_archive = async_wrap(make_archive)
-async_unpack_archive = async_wrap(unpack_archive)

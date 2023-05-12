@@ -276,7 +276,7 @@ On the compute node it is expected that
 <details>
 <summary>
 Requires a DIRAC grid to be running inside a Docker container
-<summary>
+</summary>
 
 This repostory contains a Docker Compose file to run bartender
 with database and a DIRAC server.

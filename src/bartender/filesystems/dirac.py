@@ -1,16 +1,15 @@
 import logging
 from pathlib import Path
+from shutil import make_archive, unpack_archive
 
 from aiofiles.tempfile import TemporaryDirectory
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
 
-from bartender.async_utils import async_make_archive, async_unpack_archive, async_wrap
+from bartender.async_utils import async_wrap
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.dirac_config import DiracFileSystemConfig
 from bartender.schedulers.abstract import JobDescription
 from bartender.shared.dirac import setup_proxy_renewer, teardown_proxy_renewer
-
-# TODO make proper async with loop.run_in_executor
 
 logger = logging.getLogger(__file__)
 
@@ -58,6 +57,9 @@ class DiracFileSystem(AbstractFileSystem):
     async def upload(self, src: JobDescription, target: JobDescription) -> None:
         """Uploads job directory of source description to job directory of target.
 
+        A tar archive of the `src.job_dir` will be uploaded.
+        The tar archive will be named `target.job_dir / input.tar`.
+
         Args:
             src: Local directory to copy from.
             target: Remote directory to copy to.
@@ -85,6 +87,9 @@ class DiracFileSystem(AbstractFileSystem):
     async def download(self, src: JobDescription, target: JobDescription) -> None:
         """Download job directory of source description to job directory of target.
 
+        A tar archive with name `src.job_dir / output.tar` will be downloaded.
+        The tar archive will be unpacked to `target.job_dir`.
+
         Args:
             src: Remote directory to copy from.
             target: Local directory to copy to.
@@ -105,7 +110,7 @@ class DiracFileSystem(AbstractFileSystem):
             archive_fn_in_tmpdir = Path(tmpdirname) / archive_base_fn
             # TODO what happens if file in job_dir already exists?
             logger.warning(f"Unpacking {archive_fn_in_tmpdir} to {target.job_dir}")
-            await async_unpack_archive(archive_fn_in_tmpdir, target.job_dir)
+            await async_wrap(unpack_archive)(archive_fn_in_tmpdir, target.job_dir)
 
     async def close(self) -> None:
         """Close filesystem."""
@@ -129,7 +134,7 @@ class DiracFileSystem(AbstractFileSystem):
     async def _pack(self, root_dir: Path, container_dir: Path) -> Path:
         archive_base_fn = container_dir / "input"
         archive_format = "tar"
-        archive_fn = await async_make_archive(
+        archive_fn = await async_wrap(make_archive)(
             archive_base_fn,
             archive_format,
             root_dir,
