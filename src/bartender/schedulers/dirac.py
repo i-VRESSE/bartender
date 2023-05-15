@@ -131,12 +131,14 @@ class DiracScheduler(AbstractScheduler):
             States of jobs.
         """
         async_state = async_wrap(self.monitoring.getJobsStatus)
-        result = await async_state(map(str, job_ids))
+        result = await async_state(job_ids)
         if not result["OK"]:
             raise RuntimeError(result["Message"])
-
-        # TODO result can be in different order then job_ids
-        return [dirac_status_map[value["Status"]] for value in result["Value"]]
+        # DIRAC returns integer for job id, so convert string to integer
+        return [
+            dirac_status_map[result["Value"][int(job_id)]["Status"]]
+            for job_id in job_ids
+        ]
 
     async def cancel(self, job_id: str) -> None:
         """Cancel a queued or running job.
@@ -249,10 +251,3 @@ class DiracScheduler(AbstractScheduler):
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
             """,
         )
-
-    async def _write_jdl_script(self, scriptdir: Path, script: str) -> Path:
-        file = scriptdir / "job.jdl"
-        logger.warning(f"Writing job jdl to {file}, containing {script}")
-        async with aiofiles.open(file, "w") as handle:
-            await handle.write(script)
-        return file

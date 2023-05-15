@@ -7,6 +7,8 @@ from bartender.db.models.job_model import CompletedStates, State
 from bartender.filesystems.dirac import DiracFileSystem, DiracFileSystemConfig
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 from bartender.schedulers.dirac import DiracScheduler, DiracSchedulerConfig
+from bartender.schedulers.runner import SshCommandRunner
+from bartender.shared.ssh import SshConnectConfig
 
 
 def prepare_input(job_dir: Path) -> JobDescription:
@@ -66,9 +68,11 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
     fs = DiracFileSystem(fs_config)
     sched_config = DiracSchedulerConfig(storage_element=fs_config.storage_element)
     scheduler = DiracScheduler(sched_config)
-    local_job_dir = tmp_path / "job1"
-    local_job_dir.mkdir()
-    description = prepare_input(local_job_dir)
+    # emulate external job id with job1 subdir
+    # job_dir.name is used as directory to upload inputfiles to lfn_root
+    job_dir = tmp_path / "job1"
+    job_dir.mkdir()
+    description = prepare_input(job_dir)
     gdescription = fs.localize_description(description, tmp_path)
     try:
         await fs.upload(description, gdescription)
@@ -81,7 +85,7 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
 
         await fs.download(gdescription, description)
 
-        assert_output(local_job_dir)
+        assert_output(job_dir)
     finally:
         # So next time the test does not complain about existing files
         await fs.delete(gdescription)
@@ -89,4 +93,116 @@ async def test_it(  # noqa: WPS217 single piece of code for readablilty
         await scheduler.close()
 
 
-# TODO add tests for states and cancel methods of DiracScheduler
+@pytest.fixture(scope="session")
+async def apptainer_image() -> Path:
+    """Adds alpine.sif to DIRAC server.
+
+    Raises:
+        RuntimeError: If the image could not be built.
+    """
+    runner = SshCommandRunner(
+        SshConnectConfig(  # noqa: S106 container has password hardcoded
+            hostname="dirac-tuto",
+            username="diracuser",
+            password="password",
+        ),
+    )
+    docker_image = "docker://alpine"
+    image = Path("/cvmfs/my.repo.name/applications/alpine.sif")
+    mkdir_returncode, _, _ = await runner.run(
+        command="mkdir",
+        args=["-p", str(image.parent)],
+    )
+    if mkdir_returncode:
+        raise RuntimeError(f"Failed to mkdir {image.parent}")
+    cmd = f". /opt/dirac/bashrc && apptainer build --force {image.name} {docker_image}"
+    build_returncode, _, _ = await runner.run(
+        command="bash",
+        args=[],
+        stdin=cmd,
+        cwd=image.parent,
+    )
+    if build_returncode:
+        raise RuntimeError(f"Failed to build {image}")
+    return image
+
+
+@pytest.mark.anyio
+async def test_it_with_apptainer(  # noqa: WPS217 single piece of code for readablilty
+    apptainer_image: Path,
+    tmp_path: Path,
+) -> None:
+    fs_config = DiracFileSystemConfig(
+        lfn_root="/tutoVO/user/c/ciuser/bartenderjobs",
+        storage_element="StorageElementOne",
+    )
+    fs = DiracFileSystem(fs_config)
+    sched_config = DiracSchedulerConfig(
+        storage_element=fs_config.storage_element,
+        apptainer_image=apptainer_image,
+    )
+    scheduler = DiracScheduler(sched_config)
+    job_dir = tmp_path / "job2"
+    job_dir.mkdir()
+    # The tests are running on Ubuntu
+    # The DIRAC server is running CERN CentOS 7
+    # So to check job is running in apptainer check for OS
+    description = JobDescription(
+        command="cat /etc/os-release",
+        job_dir=job_dir,
+    )
+    gdescription = fs.localize_description(description, tmp_path)
+    try:
+        await fs.upload(description, gdescription)
+
+        job_id = await scheduler.submit(gdescription)
+
+        assert job_id
+
+        await wait_for_job(scheduler, job_id)
+
+        await fs.download(gdescription, description)
+
+        assert "Alpine Linux" in (job_dir / "stdout.txt").read_text()
+    finally:
+        # So next time the test does not complain about existing files
+        await fs.delete(gdescription)
+        await fs.close()
+        await scheduler.close()
+
+
+@pytest.mark.anyio
+async def test_states_and_cancel(tmp_path: Path) -> None:  # noqa: WPS217 readablilty
+    fs_config = DiracFileSystemConfig(
+        lfn_root="/tutoVO/user/c/ciuser/bartenderjobs",
+        storage_element="StorageElementOne",
+    )
+    fs = DiracFileSystem(fs_config)
+    sched_config = DiracSchedulerConfig(storage_element=fs_config.storage_element)
+    scheduler = DiracScheduler(sched_config)
+    job_dir = tmp_path / "job3"
+    job_dir.mkdir()
+    description = JobDescription(
+        command="sleep 900",
+        job_dir=job_dir,
+    )
+    gdescription = fs.localize_description(description, tmp_path)
+    try:
+        await fs.upload(description, gdescription)
+
+        job_id = await scheduler.submit(gdescription)
+
+        await sleep(1)
+        states = await scheduler.states([job_id])
+        assert states == ["queued"]
+
+        await scheduler.cancel(job_id)
+
+        await sleep(1)
+        states = await scheduler.states([job_id])
+        assert states == ["error"]
+    finally:
+        # So next time the test does not complain about existing files
+        await fs.delete(gdescription)
+        await fs.close()
+        await scheduler.close()
