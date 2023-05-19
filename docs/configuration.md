@@ -67,6 +67,8 @@ applications:
   should have. When key is not set or list is empty then any authorized user
   is allowed. See [User management docs](user_management.md#roles) how to
   assign/unassign roles to/from users.
+* The application command should not overwrite files uploaded during submission
+  as these might not be downloaded from location where application is run.
 
 ## Job destinations
 
@@ -99,6 +101,9 @@ different user, then
 Destinations can be configured in the `config.yaml` file under `destinations`
 key. By default a single slot in-memory scheduler with a local filesystem is
 used.
+
+A destination has its own authentication mechanism.
+Jobs submitted by any web service user will be run with the same user on the destination.
 
 ### Example of running jobs on the local system
 
@@ -284,6 +289,10 @@ with database and a DIRAC server.
 ```bash
 docker compose -f deploy/docker-compose.dirac.yml up
 ```
+
+(To start fresh, remove existing volumes with
+`docker compose -f deploy/docker-compose.dirac.yml down --volumes`
+)
 
 The config.yaml in current working directory is used.
 
