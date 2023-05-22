@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
-from bartender.ssh_utils import SshConnectConfig, ssh_connect
+from bartender.shared.ssh import SshConnectConfig, ssh_connect
 
 
 class SftpFileSystemConfig(BaseModel):
@@ -93,7 +93,7 @@ class SftpFileSystem(AbstractFileSystem):
             remotepath = str(target.job_dir.parent)
             await sftp.get(localpaths, remotepath, recurse=True)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close SSH connection."""
         if self.conn:
             self.conn.close()

@@ -61,7 +61,7 @@ class LocalFileSystem(AbstractFileSystem):
             target: Local directory to copy to.
         """
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close filesystem."""
 
     def __eq__(self, other: object) -> bool:

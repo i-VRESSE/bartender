@@ -67,6 +67,8 @@ applications:
   should have. When key is not set or list is empty then any authorized user
   is allowed. See [User management docs](user_management.md#roles) how to
   assign/unassign roles to/from users.
+* The application command should not overwrite files uploaded during submission
+  as these might not be downloaded from location where application is run.
 
 ## Job destinations
 
@@ -82,11 +84,13 @@ schedulers
   machine via SSH.
 * **arq**, Scheduler which uses a Redis server as a job queue and
   1 or more workers (`bartender perform` command) to run the jobs.
+* **dirac**, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/).
 
 Supported file systems
 
 * **local**: Uploading or downloading of files does nothing
 * **sftp**: Uploading or downloading of files is done using SFTP.
+* **dirac**, Uploading or downloading of files using [DIRAC](http://diracgrid.org/).
 
 When the filesystem is on a remote system with non-shared file system or a
 different user, then
@@ -97,6 +101,10 @@ different user, then
 Destinations can be configured in the `config.yaml` file under `destinations`
 key. By default a single slot in-memory scheduler with a local filesystem is
 used.
+
+A destination has its own authentication mechanism.
+When a job is submitted by any user of the web service,
+it will be executed by the username/proxy that is configured in the destination.
 
 ### Example of running jobs on the local system
 
@@ -112,7 +120,9 @@ destinations:
 
 ### Example of running jobs on a slurm Docker container
 
-To use this, start a [container](https://github.com/xenon-middleware/xenon-docker-images/tree/master/slurm-20) with `docker run --detach --publish 10022:22
+To use this, start a [container](
+https://github.com/xenon-middleware/xenon-docker-images/tree/master/slurm-20
+) with `docker run --detach --publish 10022:22
 xenonmiddleware/slurm:20`
 
 ```yaml
@@ -236,6 +246,73 @@ def picker(
   elif size > 10_000_000:
     return 'large'
   return 'medium'
+```
+
+### DIRAC support
+
+If you need [DIRAC](http://diracgrid.org/) support create a conda environment
+instead of creating a virtual environment.
+
+```bash
+mamba create --name bartender dirac-grid python=3.10
+conda activate bartender
+```
+
+The conda environment contains all DIRAC dependencies.
+Install DIRAC itself with
+
+```bash
+pip install DIRAC==8.0
+```
+
+(Cannot use `poetry install --with=dirac` as Poetry gets stuck resolving
+dependencies because it ignores the already installed DIRAC dependencies.)
+
+On the compute node it is expected that
+
+1. `dirac-dms-get-file` + `dirac-dms-add-file` commands are available
+1. `tar` command is available
+1. If `apptainer_image` is set in scheduler configuration
+   then `apptainer` command is available.
+   If set to path on cvmfs then `/cvmfs` should be mounted.
+1. Application command works.
+
+### Example of running jobs on a DIRAC grid running inside a Docker container
+
+<details>
+<summary>
+Requires a DIRAC grid to be running inside a Docker container
+</summary>
+
+This repostory contains a Docker Compose file to run bartender
+with database and a DIRAC server.
+
+```bash
+docker compose -f deploy/docker-compose.dirac.yml up
+```
+
+(To start fresh, remove existing volumes with
+`docker compose -f deploy/docker-compose.dirac.yml down --volumes`
+)
+
+The config.yaml in current working directory is used.
+
+</details>
+
+```yaml
+destinations:
+  grid:
+    scheduler:
+      type: dirac
+      storage_element: StorageElementOne
+      proxy:
+        log_level: DEBUG
+    filesystem:
+      type: dirac
+      lfn_root: /tutoVO/user/c/ciuser/bartenderjobs
+      storage_element: StorageElementOne
+      proxy:
+        log_level: DEBUG
 ```
 
 ## Destination picker

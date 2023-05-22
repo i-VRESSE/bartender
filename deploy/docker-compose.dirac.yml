@@ -1,17 +1,29 @@
 version: '3.9'
 
+# TODO this file is a combination of ./docker-compose.yml
+# and ../dirac_tests/docker-compose.yml
+# would be nice to not duplicate the code
+
 services:
+  dirac-tuto:
+    image: ghcr.io/xenon-middleware/dirac:8.0.18
+    privileged: true
+    hostname: dirac-tuto
   api:
     build:
-      context: .
-      dockerfile: ./deploy/Dockerfile
-    image: bartender:${BARTENDER_VERSION:-latest}
-    restart: always
+      context: ..
+      dockerfile: ./deploy/Dockerfile.dirac
+    image: bartender-with-dirac:${BARTENDER_VERSION:-latest}
+    ports:
+    - "8000:8000"
+    # restart: always
     env_file:
-    - .env
+    - ../.env
     depends_on:
       db:
         condition: service_healthy
+      dirac-tuto:
+        condition: service_started
     environment:
       BARTENDER_HOST: 0.0.0.0
       BARTENDER_DB_HOST: bartender-db
@@ -19,6 +31,10 @@ services:
       BARTENDER_DB_USER: bartender
       BARTENDER_DB_PASS: bartender
       BARTENDER_DB_BASE: bartender
+    volumes:
+    - type: bind
+      source: ../config.yaml
+      target: /app/src/config.yaml
 
   db:
     image: postgres:15.2-bullseye
@@ -37,9 +53,9 @@ services:
       retries: 40
 
   migrator:
-    image: bartender:${BARTENDER_VERSION:-latest}
+    image: bartender-with-dirac:${BARTENDER_VERSION:-latest}
     restart: "no"
-    command: alembic upgrade head
+    command: '"alembic upgrade head"'
     environment:
       BARTENDER_DB_HOST: bartender-db
       BARTENDER_DB_PORT: 5432
@@ -49,6 +65,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+    - type: bind
+      source: ../config.yaml
+      target: /app/src/config.yaml
 
 volumes:
   bartender-db-data:

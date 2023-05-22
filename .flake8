@@ -80,7 +80,7 @@ ignore =
 
 per-file-ignores =
   ; all tests
-  /tests/**,./tests/**,/tests/*/*:
+  /tests/**,./tests/**,/tests/*/*,/tests_dirac/**,./tests_dirac/**,/tests_dirac/*/*:
   ; Use of assert detected
   S101,
   ; Found outer scope names shadowing

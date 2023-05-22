@@ -1,10 +1,12 @@
-from asyncio import create_subprocess_exec
 from pathlib import Path
+from shutil import unpack_archive
 from typing import Optional
 
 from aiofiles import open
 from aiofiles.os import remove
 from fastapi import UploadFile
+
+from bartender.async_utils import async_wrap
 
 CHUNK_SIZE = 1024 * 1024  # 1Mb
 
@@ -24,9 +26,6 @@ async def stage_job_input(
         job_dir: Where to put archive file.
         archive: The archive file with async read method.
         dest_fn: Filename of destination.
-
-    Raises:
-        ValueError: When unpacking archive failed.
     """
     _is_valid_content_type(archive.content_type)
 
@@ -39,12 +38,7 @@ async def stage_job_input(
             await out_file.write(content)
 
     if archive.content_type in {"application/zip", "application/x-zip-compressed"}:
-        # Use async subprocess to unpack file outside main thread
-        # requires unzip command to be available on machine
-        proc = await create_subprocess_exec("unzip", "-nqq", dest_fn, cwd=job_dir)
-        returncode = await proc.wait()
-        if returncode != 0:
-            raise ValueError("Unpacking archive failed")
+        await async_wrap(unpack_archive)(job_archive, extract_dir=job_dir, format="zip")
 
     await remove(job_archive)  # no longer needed?
 

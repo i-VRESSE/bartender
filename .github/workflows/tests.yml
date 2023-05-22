@@ -59,7 +59,7 @@ jobs:
         # Workaround for random install failures
         POETRY_INSTALLER_PARALLEL: false
     - name: Run mypy check
-      run: poetry run mypy .
+      run: poetry run mypy src tests tests_dirac
   pytest:
     runs-on: ubuntu-latest
     services:
@@ -93,7 +93,7 @@ jobs:
         # Workaround for random install failures
         POETRY_INSTALLER_PARALLEL: false
     - name: Run pytest check
-      run: poetry run pytest -vv --cov="src" .
+      run: poetry run pytest -vv --cov="src" tests
       env:
         BARTENDER_HOST: "0.0.0.0"
         BARTENDER_DB_HOST: localhost

@@ -10,7 +10,7 @@ from bartender.schedulers.runner import (
     LocalCommandRunner,
     SshCommandRunner,
 )
-from bartender.ssh_utils import SshConnectConfig
+from bartender.shared.ssh import SshConnectConfig
 
 
 def _map_slurm_state(slurm_state: str) -> State:

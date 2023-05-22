@@ -1,7 +1,7 @@
 from bartender.filesystems.build import build
 from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
 from bartender.filesystems.sftp import SftpFileSystem, SftpFileSystemConfig
-from bartender.ssh_utils import SshConnectConfig
+from bartender.shared.ssh import SshConnectConfig
 
 
 def test_local() -> None:

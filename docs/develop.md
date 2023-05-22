@@ -25,7 +25,9 @@ $ tree .
         │   ├── dao             # Data Access Objects. Contains different classes to interact with database.
         │   └── models          # Package contains different models for ORMs.
         ├── __main__.py         # Startup script. Starts uvicorn.
-        ├── services            # Package for different external services such as rabbit or redis etc.
+        ├── filesystems/        # Package for different filesystems.
+        ├── schdulers/          # Package for different schedulers.
+        ├── shared/             # Package for shared logic between filesystems and schedulers.
         ├── settings.py         # Main configuration settings for project.
         ├── static              # Static content.
         └── web                 # Package contains web server. Handlers, startup config.
@@ -149,3 +151,65 @@ make clean && make html
 ```
 
 Creates documentation site at `docs/_build/html`.
+
+## DIRAC grid
+
+To develop bartender with [DIRAC](http://diracgrid.org/) support you can use
+[Dev Containers](https://containers.dev/)
+to spinup a [DIRAC server container](
+https://github.com/orgs/xenon-middleware/packages/container/package/diracc
+) and a [DIRAC client container](
+https://github.com/orgs/xenon-middleware/packages/container/package/diracclient
+).
+
+### Dev Container
+
+Use the [Visual Studio Code Dev Containers extension](
+https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
+) to open the workspace in a container.
+
+In a VS code terminal you can run the DIRAC tests with
+
+```shell
+pytest -vv tests_dirac
+```
+
+To run DIRAC commands make sure the proxy is initialized with
+
+```shell
+dirac-proxy-init
+```
+
+### Run tests
+
+To run all tests use
+
+```shell
+docker compose -f tests_dirac/docker-compose.yml run test
+```
+
+To run single test use
+
+```shell
+docker compose -f tests_dirac/docker-compose.yml run test 'pip install -e . && pytest -vv tests_dirac/test_it.py'
+```
+
+### DIRAC server debugging
+
+The DIRAC server stores logs in `/opt/dirac/startup/*/log/current`
+(where `*` are the DIRAC services) and pilot jobs are started under `/home/diracpilot`.
+It can take a while for the job to start due to
+the `WorkloadManagement_SiteDirector` service starting a pilot.
+To look around inside the DIRAC server use
+
+```shell
+docker-compose -f tests_dirac/docker-compose.yml exec dirac-tuto bash
+```
+
+Sometimes the DIRAC server needs clearing of its state,
+do this outside container with
+
+```shell
+docker compose -f tests_dirac/docker-compose.yml rm -fs dirac-tuto
+docker compose -f tests_dirac/docker-compose.yml up dirac-tuto
+```

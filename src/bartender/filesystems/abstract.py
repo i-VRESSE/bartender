@@ -42,5 +42,5 @@ class AbstractFileSystem(Protocol):
             target: Local directory to copy to.
         """
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close filesystem."""
