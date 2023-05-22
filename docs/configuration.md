@@ -103,7 +103,8 @@ key. By default a single slot in-memory scheduler with a local filesystem is
 used.
 
 A destination has its own authentication mechanism.
-Jobs submitted by any web service user will be run with the same user on the destination.
+When a job is submitted by any user of the web service,
+it will be executed by the username/proxy that is configured in the destination.
 
 ### Example of running jobs on the local system
 
