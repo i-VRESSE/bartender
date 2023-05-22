@@ -2,6 +2,7 @@ from importlib import metadata
 
 from fastapi import FastAPI
 from fastapi.responses import UJSONResponse
+from fastapi.routing import APIRoute
 
 from bartender.web.api.router import api_router
 from bartender.web.lifespan import lifespan
@@ -32,4 +33,22 @@ def get_app() -> FastAPI:
 
     include_users_routes(app)
 
+    use_route_names_as_operation_ids(app)
+
     return app
+
+
+def use_route_names_as_operation_ids(app: FastAPI) -> None:
+    """Simplify operation IDs.
+
+    So that generated API clients have simpler function
+    names.
+
+    Should be called only after all routes have been added.
+
+    Args:
+        app: FastAPI app
+    """
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            route.operation_id = route.name
