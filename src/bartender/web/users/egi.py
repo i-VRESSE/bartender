@@ -4,6 +4,7 @@ from httpx_oauth.clients.openid import OpenID
 
 # Scopes taken from https://aai.egi.eu/federation/egi/form/new
 BASE_SCOPES = ["openid", "email", "profile", "voperson_id", "eduperson_entitlement"]
+# From https://docs.egi.eu/providers/check-in/sp/#endpoints
 CONFIGURATION_ENDPOINTS = {
     "production": "https://aai.egi.eu/auth/realms/egi/.well-known/openid-configuration",
     "development": "https://aai-dev.egi.eu/auth/realms/egi/.well-known/openid-configuration",  # noqa: E501
