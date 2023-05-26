@@ -6,7 +6,7 @@ The web service can be configured to login with your social account for
 
 * GitHub
 * Orcid
-* EGI Checkin
+* EGI Check-in
 
 After you have setup a social login described in sub chapter below then you can
 authenticate with
@@ -133,14 +133,14 @@ Steps are similar to [Orcid sandbox login](#orcid-sandbox-login), but
   * In redirect URL replace `orcidsandbox` with `orcid`.
   * In `.env` replace `_ORCIDSANDBOX_` with `_ORCID_`
 
-## EGI Checkin login
+## EGI Check-in login
 
-The web service can be configured to login with your [EGI Checkin](https://aai.egi.eu/)
+The web service can be configured to login with your [EGI Check-in](https://aai.egi.eu/)
 account.
 
 To enable perform following steps:
 
-1. This web service needs to be [registered as a service provider in EGI Checkin](https://docs.egi.eu/providers/check-in/sp/).
+1. This web service needs to be [registered as a service provider in EGI Check-in](https://docs.egi.eu/providers/check-in/sp/).
 2. Append EGI SP credentials to `.env` file
 
     1. Add `BARTENDER_EGI_CLIENT_ID=<Client id of EGI SP>`
