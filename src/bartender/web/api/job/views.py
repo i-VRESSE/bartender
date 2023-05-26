@@ -299,7 +299,7 @@ async def retrieve_job_directory_as_archive(
         background_tasks: FastAPI mechanism for post-processing tasks
 
     Returns:
-        FileResponse: Zipfile containing the output of job_dir
+        FileResponse: Zipfile containing the content of job_dir
 
     """
     archive_fn = Path(job_dir).parent / Path(job_dir).name
@@ -313,3 +313,22 @@ async def retrieve_job_directory_as_archive(
     background_tasks.add_task(_remove_archive, filename)
 
     return FileResponse(filename, filename=Path(filename).name)
+
+
+@router.get("/{jobid}/archive/output")
+async def retrieve_job_output_as_archive(
+    job_dir: CurrentCompletedJobDir,
+    background_tasks: BackgroundTasks,
+) -> FileResponse:
+    """Download job output as archive.
+
+    Args:
+        job_dir: The job directory.
+        background_tasks: FastAPI mechanism for post-processing tasks
+
+    Returns:
+        FileResponse: Zipfile containing the output of job_dir
+
+    """
+    job_output_dir = str(Path(job_dir) / "output")
+    return await retrieve_job_directory_as_archive(job_output_dir, background_tasks)
