@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     orcid_client_id: str = ""
     orcid_client_secret: str = ""
     orcid_redirect_url: Optional[str] = None
+    egi_client_id: str = ""
+    egi_client_secret: str = ""
+    egi_redirect_url: Optional[str] = None
+    egi_environment: Literal["production", "development", "demo"] = "production"
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)
