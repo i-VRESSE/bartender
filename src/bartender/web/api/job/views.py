@@ -2,7 +2,7 @@ from pathlib import Path
 from shutil import make_archive
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
@@ -291,19 +291,38 @@ def _remove_archive(filename: str) -> None:
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
+    accept: str | None = Header("application/zip"),
 ) -> FileResponse:
     """Download contents of job directory as archive.
 
     Args:
         job_dir: The job directory.
         background_tasks: FastAPI mechanism for post-processing tasks
+        accept: valid MIME-type requesting a specific archive format
 
     Returns:
         FileResponse: Zipfile containing the content of job_dir
 
+    Raises:
+        HTTPException: When invalid accept header is given
+
     """
+    valid_formats = [
+        "zip",
+        "tar",
+        "gztar",
+        "bztar",
+        "xztar",
+    ]  # TODO ensure required libs in env
+    requested_format = accept.split("/")[-1]
+    if requested_format not in valid_formats:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Request header contains invalid format for archive",
+        )
+    archive_fmt = requested_format
+
     archive_fn = Path(job_dir).parent / Path(job_dir).name
-    archive_fmt = "zip"
     filename = await async_wrap(make_archive)(
         base_name=archive_fn,
         format=archive_fmt,
