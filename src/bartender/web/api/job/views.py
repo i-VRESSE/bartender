@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import make_archive
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,6 +8,7 @@ from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
+from bartender.async_utils import async_wrap
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import CompletedStates, Job
@@ -274,3 +276,28 @@ async def retrieve_job_directories_from_path(
         ) from exc
     current_depth = len(start_dir.relative_to(job_dir).parts)
     return await walk_dir(start_dir, job_dir, current_depth + max_depth)
+
+
+@router.get("/{jobid}/archive")
+async def retrieve_job_directory_as_archive(
+    job_dir: CurrentCompletedJobDir,
+) -> FileResponse:
+    """Download contents of job directory as archive.
+
+    Args:
+        job_dir: The job directory.
+
+    Returns:
+        FileResponse: Zipfile containing the output of job_dir
+
+    """
+    archive_fn = Path(job_dir).parent / Path(job_dir).name
+    archive_fmt = "zip"
+    filename = await async_wrap(make_archive)(
+        base_name=archive_fn,
+        format=archive_fmt,
+        root_dir=job_dir,
+    )
+
+    # TODO: delete archive after download completed
+    return FileResponse(filename, filename=Path(filename).name)
