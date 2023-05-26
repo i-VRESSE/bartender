@@ -6,13 +6,17 @@ from httpx_oauth.clients.openid import OpenID
 BASE_SCOPES = ["openid", "email", "profile", "voperson_id", "eduperson_entitlement"]
 CONFIGURATION_ENDPOINTS = {
     "production": "https://aai.egi.eu/auth/realms/egi/.well-known/openid-configuration",
-    "development": "https://aai-dev.egi.eu/auth/realms/egi/.well-known/openid-configuration",
+    "development": "https://aai-dev.egi.eu/auth/realms/egi/.well-known/openid-configuration",  # noqa: E501
     "demo": "https://aai-demo.egi.eu/auth/realms/egi/.well-known/openid-configuration",
 }
 
 
 class EgiCheckinOAuth2(OpenID):
-    """OAuth for EGI Checkin."""
+    """OAuth for EGI Check-in.
+
+    See https://aai.egi.eu
+
+    """
 
     def __init__(
         self,
@@ -21,9 +25,9 @@ class EgiCheckinOAuth2(OpenID):
         base_scopes: Optional[List[str]] = BASE_SCOPES,
         environment: Literal["production", "development", "demo"] = "production",
     ):
-        name = "EGI Checkin"
+        name = "EGI Check-in"
         if environment != "production":
-            name += f" {environment}"
+            name = f"{name} {environment}"
         super().__init__(
             client_id,
             client_secret,
