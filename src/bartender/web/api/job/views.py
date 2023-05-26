@@ -2,7 +2,7 @@ from pathlib import Path
 from shutil import make_archive
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
@@ -278,14 +278,25 @@ async def retrieve_job_directories_from_path(
     return await walk_dir(start_dir, job_dir, current_depth + max_depth)
 
 
+def _remove_archive(filename: str) -> None:
+    """Remove archive after file response.
+
+    Args:
+        filename: path to the file that should be removed.
+    """
+    Path(filename).unlink()
+
+
 @router.get("/{jobid}/archive")
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
+    background_tasks: BackgroundTasks,
 ) -> FileResponse:
     """Download contents of job directory as archive.
 
     Args:
         job_dir: The job directory.
+        background_tasks: FastAPI mechanism for post-processing tasks
 
     Returns:
         FileResponse: Zipfile containing the output of job_dir
@@ -299,5 +310,6 @@ async def retrieve_job_directory_as_archive(
         root_dir=job_dir,
     )
 
-    # TODO: delete archive after download completed
+    background_tasks.add_task(_remove_archive, filename)
+
     return FileResponse(filename, filename=Path(filename).name)
