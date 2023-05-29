@@ -14,7 +14,8 @@ from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
-from bartender.web.users.manager import CurrentUser
+from bartender.web.users import CurrentUser
+
 
 router = APIRouter()
 

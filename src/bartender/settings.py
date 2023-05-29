@@ -1,8 +1,9 @@
 import logging
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Literal, Optional
+from typing import Literal
 
+from cryptography.hazmat.primitives import serialization
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
 from yarl import URL
@@ -70,17 +71,7 @@ class Settings(BaseSettings):
     # User auth
     secret: str = "SECRET"  # TODO should not have default when running in production
 
-    # Social OAuth logins
-    # must set to non '' to have GitHub social login enabled
-    github_client_id: str = ""
-    github_client_secret: str = ""
-    github_redirect_url: Optional[str] = None
-    orcidsandbox_client_id: str = ""
-    orcidsandbox_client_secret: str = ""
-    orcidsandboxd_redirect_url: Optional[str] = None
-    orcid_client_id: str = ""
-    orcid_client_secret: str = ""
-    orcid_redirect_url: Optional[str] = None
+    jwt_public_key_path: Path = Path("public_key.pem")
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)
@@ -100,6 +91,17 @@ class Settings(BaseSettings):
             password=self.db_pass,
             path=f"/{self.db_base}",
         )
+
+    @property
+    def jwt_public_key(self):
+        # TODO read public key from JWKS endpoint
+        # TODO public key content as env variable
+        if not self.jwt_public_key_path.exists():
+            with open(self.jwt_public_key_path, "rb") as key_file:
+                return serialization.load_pem_public_key(
+                    key_file.read(),
+                )
+        raise FileNotFoundError(self.jwt_public_key_path)
 
     class Config:
         env_file = ".env"

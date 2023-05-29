@@ -6,7 +6,6 @@ from sqlalchemy import select
 
 from bartender.db.dependencies import CurrentSession
 from bartender.db.models.job_model import Job, State
-from bartender.db.models.user import User
 
 
 class JobDAO:
@@ -19,7 +18,7 @@ class JobDAO:
         self,
         name: Optional[str],
         application: str,
-        submitter: User,
+        submitter: str,
         updated_on: Optional[datetime] = None,
         created_on: Optional[datetime] = None,
     ) -> Optional[int]:
@@ -48,7 +47,7 @@ class JobDAO:
         await self.session.commit()
         return job.id
 
-    async def get_all_jobs(self, limit: int, offset: int, user: User) -> list[Job]:
+    async def get_all_jobs(self, limit: int, offset: int, user: str) -> list[Job]:
         """Get all job models of user with limit/offset pagination.
 
         Args:
@@ -66,7 +65,7 @@ class JobDAO:
         raw_jobs = await self.session.scalars(stmt)
         return list(raw_jobs.all())
 
-    async def get_job(self, jobid: int, user: User) -> Job:
+    async def get_job(self, jobid: int, user: str) -> Job:
         """Get specific job model.
 
         Args:

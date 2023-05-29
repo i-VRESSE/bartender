@@ -6,12 +6,11 @@ from starlette.background import BackgroundTask
 from bartender.config import ApplicatonConfiguration, CurrentConfig
 from bartender.context import Context, CurrentContext
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.db.models.user import User
 from bartender.filesystem import has_config_file
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.web.api.applications.submit import submit
-from bartender.web.users.manager import CurrentUser, current_api_token
+from bartender.web.users import CurrentUser, User
 
 router = APIRouter()
 
@@ -98,7 +97,7 @@ async def upload_job(  # noqa: WPS211
 
     job_dir = assemble_job(
         job_id,
-        await current_api_token(submitter),
+        submitter.apikey,
         context.job_root_dir,
     )
     # TODO uploaded file can be big, and thus take long time to unpack,

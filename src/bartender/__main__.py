@@ -9,7 +9,6 @@ from typing import Optional
 import uvicorn
 
 from bartender.config import build_config
-from bartender.db.dao.user_dao import get_user_db
 from bartender.db.session import make_engine, make_session_factory
 from bartender.schedulers.arq import ArqSchedulerConfig, run_workers
 from bartender.settings import settings
@@ -26,37 +25,6 @@ def serve() -> None:
         log_level=settings.log_level,
         factory=True,
     )
-
-
-async def make_super_async(email: str) -> None:
-    """Async method to grant a user super rights.
-
-    Args:
-        email: Email of user
-
-    Raises:
-        ValueError: When user can not be found
-    """
-    session_factory = make_session_factory(make_engine())
-    get_user_db_context = contextlib.asynccontextmanager(get_user_db)
-    async with session_factory() as session:
-        async with get_user_db_context(session) as user_db:
-            user = await user_db.get_by_email(email)
-            if user is None:
-                raise ValueError(f"User with {email} not found")
-            await user_db.give_super_powers(user)
-            print(  # noqa: WPS421 -- user feedback on command line
-                f"User with {email} is now super user",
-            )
-
-
-def make_super(email: str) -> None:
-    """Grant a user super rights.
-
-    Args:
-        email: Email of user
-    """
-    asyncio.run(make_super_async(email))
 
 
 def perform(config: Path, destination_names: Optional[list[str]] = None) -> None:
@@ -101,10 +69,6 @@ def build_parser() -> ArgumentParser:
 
     serve_sp = subparsers.add_parser("serve", help="Serve web service")
     serve_sp.set_defaults(func=serve)
-
-    super_sp = subparsers.add_parser("super", help="Grant super rights to user")
-    super_sp.add_argument("email", help="Email address of logged in user")
-    super_sp.set_defaults(func=make_super)
 
     perform_sp = subparsers.add_parser("perform", help="Async Redis queue job worker")
     perform_sp.add_argument(

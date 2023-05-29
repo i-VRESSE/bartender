@@ -1,13 +1,10 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from fastapi_users_db_sqlalchemy.generics import GUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.sqltypes import DateTime, String
 
 from bartender.db.base import Base
-from bartender.db.models.user import User
 from bartender.db.utils import now
 
 State = Literal[
@@ -50,11 +47,7 @@ class Job(Base):
         String(length=20),  # noqa: WPS432
         default="new",
     )
-    submitter_id: Mapped[GUID] = mapped_column(
-        GUID(),
-        ForeignKey("user.id"),
-    )
-    submitter: Mapped[User] = relationship(back_populates="jobs")
+    submitter: Mapped[str] = mapped_column(String(length=200))
     # Identifier for job used by the scheduler
     internal_id: Mapped[Optional[str]] = mapped_column(
         String(length=200),  # noqa: WPS432
