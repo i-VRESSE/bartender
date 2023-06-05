@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from fs.copy import copy_fs
 from fs.osfs import OSFS
 from fs.tarfs import TarFS
+from fs.walk import Walker
 from fs.zipfs import ZipFS
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
@@ -294,6 +295,13 @@ async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
     format: str = ".zip",
+    exclude: list[str] | None = Query(default=None),
+    exclude_dirs: list[str] | None = Query(default=None),
+    # Note: also tried to with include (filter & filter_dirs) but that can be
+    # unintuitive. e.g. include_dirs=['output'] doesn't return subdirs of
+    # /output that are not also called output. Might improve when globs will be
+    # supported in next release (already documented):
+    # https://github.com/PyFilesystem/pyfilesystem2/pull/464
 ) -> FileResponse:
     """Download contents of job directory as archive.
 
@@ -302,6 +310,8 @@ async def retrieve_job_directory_as_archive(
         background_tasks: FastAPI mechanism for post-processing tasks
         format: Format to use for archive. Supported formats are '.zip', '.tar',
             '.tar.xz', '.tar.gz', '.tar.bz2'
+        exclude: list of filename patterns that should be excluded from archive.
+        exclude_dirs: list of filename patterns that should be excluded from archive.
 
     Returns:
         FileResponse: Archive containing the content of job_dir
@@ -322,7 +332,7 @@ async def retrieve_job_directory_as_archive(
 
     archive_fn = job_dir.with_suffix(format)
     with OSFS(job_dir) as src, DstFS(archive_fn, write=True) as dst:
-        copy_fs(src, dst)
+        copy_fs(src, dst, walker=Walker(exclude=exclude, exclude_dirs=exclude_dirs))
 
     background_tasks.add_task(_remove_archive, archive_fn)
 
@@ -333,21 +343,22 @@ async def retrieve_job_directory_as_archive(
 async def retrieve_job_output_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_format: str = "zip",
+    format: str = "zip",
 ) -> FileResponse:
     """Download job output as archive.
 
     Args:
         job_dir: The job directory.
         background_tasks: FastAPI mechanism for post-processing tasks
-
+        format: Format to use for archive. Supported formats are '.zip', '.tar',
+            '.tar.xz', '.tar.gz', '.tar.bz2'
     Returns:
-        FileResponse: Zipfile containing the output of job_dir
+        FileResponse: Archive containing the output of job_dir
 
     """
     job_output_dir = str(Path(job_dir) / "output")
     return await retrieve_job_directory_as_archive(
         job_output_dir,
         background_tasks,
-        archive_format=archive_format,
+        format=format,
     )
