@@ -2,7 +2,7 @@ from pathlib import Path
 from shutil import make_archive
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
@@ -291,7 +291,7 @@ def _remove_archive(filename: str) -> None:
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    accept: str | None = Header("application/zip"),
+    archive_format: str = "zip",
 ) -> FileResponse:
     """Download contents of job directory as archive.
 
@@ -314,18 +314,16 @@ async def retrieve_job_directory_as_archive(
         "bztar",
         "xztar",
     ]  # TODO ensure required libs in env
-    requested_format = accept.split("/")[-1]
-    if requested_format not in valid_formats:
+    if archive_format not in valid_formats:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Request header contains invalid format for archive",
         )
-    archive_fmt = requested_format
 
     archive_fn = Path(job_dir).parent / Path(job_dir).name
     filename = await async_wrap(make_archive)(
         base_name=archive_fn,
-        format=archive_fmt,
+        format=archive_format,
         root_dir=job_dir,
     )
 
@@ -338,6 +336,7 @@ async def retrieve_job_directory_as_archive(
 async def retrieve_job_output_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
+    archive_format: str = "zip",
 ) -> FileResponse:
     """Download job output as archive.
 
@@ -350,4 +349,8 @@ async def retrieve_job_output_as_archive(
 
     """
     job_output_dir = str(Path(job_dir) / "output")
-    return await retrieve_job_directory_as_archive(job_output_dir, background_tasks)
+    return await retrieve_job_directory_as_archive(
+        job_output_dir,
+        background_tasks,
+        archive_format=archive_format,
+    )
