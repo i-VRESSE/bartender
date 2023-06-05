@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated, Type
+from typing import Annotated, Optional, Type, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -295,8 +295,8 @@ async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
     archive_fmt: str = ".zip",
-    exclude: list[str] | None = Query(default=None),
-    exclude_dirs: list[str] | None = Query(default=None),
+    exclude: Optional[list[str]] = Query(default=None),
+    exclude_dirs: Optional[list[str]] = Query(default=None),
     # Note: also tried to with include (filter & filter_dirs) but that can be
     # unintuitive. e.g. include_dirs=['output'] doesn't return subdirs of
     # /output that are not also called output. Might improve when globs will be
@@ -316,21 +316,8 @@ async def retrieve_job_directory_as_archive(
     Returns:
         FileResponse: Archive containing the content of job_dir
 
-    Raises:
-        HTTPException: When invalid archive format is given
-
     """
-    dst_fs: Type[ZipFS] | Type[TarFS]
-    if archive_fmt == ".zip":
-        dst_fs = ZipFS
-    elif archive_fmt in {".tar", ".tar.xz", ".tar.gz", ".tar.bz2"}:
-        dst_fs = TarFS
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid format for archive: {archive_fmt}",
-        )
-
+    dst_fs = _parse_archive_fmt(archive_fmt)
     archive_fn = str(job_dir.with_suffix(archive_fmt))
     with (  # noqa: WPS316
         OSFS(str(job_dir)) as src,
@@ -340,7 +327,19 @@ async def retrieve_job_directory_as_archive(
 
     background_tasks.add_task(_remove_archive, archive_fn)
 
-    return FileResponse(archive_fn, filename=archive_fn)
+    return_fn = str(Path(archive_fn).name)
+    return FileResponse(archive_fn, filename=return_fn)
+
+
+def _parse_archive_fmt(archive_fmt: str) -> Union[Type[ZipFS], Type[TarFS]]:
+    if archive_fmt == ".zip":
+        return ZipFS
+    if archive_fmt in {".tar", ".tar.xz", ".tar.gz", ".tar.bz2"}:
+        return TarFS
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Invalid format for archive: {archive_fmt}",
+    )
 
 
 @router.get("/{jobid}/archive/output")
