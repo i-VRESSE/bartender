@@ -290,7 +290,10 @@ def _remove_archive(filename: str) -> None:
     Path(filename).unlink()
 
 
-@router.get("/{jobid}/archive")
+@router.get(
+    "/{jobid}/archive",
+    responses={200: {"content": {"application/octet-stream": {}}}},
+)
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
