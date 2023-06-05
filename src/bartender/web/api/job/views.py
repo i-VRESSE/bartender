@@ -1,14 +1,16 @@
 from pathlib import Path
-from shutil import make_archive
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
+from fs.copy import copy_fs
+from fs.osfs import OSFS
+from fs.tarfs import TarFS
+from fs.zipfs import ZipFS
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
-from bartender.async_utils import async_wrap
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import CompletedStates, Job
@@ -291,45 +293,40 @@ def _remove_archive(filename: str) -> None:
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_format: str = "zip",
+    format: str = ".zip",
 ) -> FileResponse:
     """Download contents of job directory as archive.
 
     Args:
         job_dir: The job directory.
         background_tasks: FastAPI mechanism for post-processing tasks
-        accept: valid MIME-type requesting a specific archive format
+        format: Format to use for archive. Supported formats are '.zip', '.tar',
+            '.tar.xz', '.tar.gz', '.tar.bz2'
 
     Returns:
-        FileResponse: Zipfile containing the content of job_dir
+        FileResponse: Archive containing the content of job_dir
 
     Raises:
-        HTTPException: When invalid accept header is given
+        HTTPException: When invalid archive format is given
 
     """
-    valid_formats = [
-        "zip",
-        "tar",
-        "gztar",
-        "bztar",
-        "xztar",
-    ]  # TODO ensure required libs in env
-    if archive_format not in valid_formats:
+    if format == ".zip":
+        DstFS = ZipFS
+    elif format in [".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]:
+        DstFS = TarFS
+    else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Request header contains invalid format for archive",
+            detail=f"Invalid format for archive: {format}",
         )
 
-    archive_fn = Path(job_dir).parent / Path(job_dir).name
-    filename = await async_wrap(make_archive)(
-        base_name=archive_fn,
-        format=archive_format,
-        root_dir=job_dir,
-    )
+    archive_fn = job_dir.with_suffix(format)
+    with OSFS(job_dir) as src, DstFS(archive_fn, write=True) as dst:
+        copy_fs(src, dst)
 
-    background_tasks.add_task(_remove_archive, filename)
+    background_tasks.add_task(_remove_archive, archive_fn)
 
-    return FileResponse(filename, filename=Path(filename).name)
+    return FileResponse(archive_fn, filename=Path(archive_fn).name)
 
 
 @router.get("/{jobid}/archive/output")
