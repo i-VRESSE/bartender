@@ -603,3 +603,34 @@ async def test_directories_from_path(
         ],
     }
     assert response.json() == expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "archive_fmt",
+    [".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"],
+)
+async def test_job_directory_as_archive(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    archive_fmt: str,
+) -> None:
+    url = (
+        fastapi_app.url_path_for(
+            "retrieve_job_directory_as_archive",
+            jobid=mock_ok_job,
+        )
+        + f"?archive_fmt={archive_fmt}"
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    expected_content_type = (
+        "application/zip" if archive_fmt == ".zip" else "application/x-tar"
+    )
+    expected_content_disposition = f'attachment; filename="{mock_ok_job}{archive_fmt}"'
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == expected_content_type
+    assert response.headers["content-disposition"] == expected_content_disposition
