@@ -195,7 +195,9 @@ class DiracScheduler(AbstractScheduler):
         return dedent(
             f"""\
             # Download & unpack input files
-            dirac-dms-get-file {fn_on_grid}
+            # dirac-proxy-info
+            # dirac-dms-get-file {fn_on_grid}
+            ls -l
             tar -xf {fn}
             rm {fn}
             find . -type f > .input_files.txt
@@ -211,8 +213,8 @@ class DiracScheduler(AbstractScheduler):
             # Pack & upload output files
             echo {fn} >> .input_files.txt
             tar -cf {fn} --exclude-from=.input_files.txt .
-            dirac-dms-add-file {fn_on_grid} {fn} {se}
-            rm {fn}
+            # dirac-dms-add-file {fn_on_grid} {fn} {se}
+            # rm {fn}
             """,
         )
 
@@ -241,11 +243,24 @@ class DiracScheduler(AbstractScheduler):
         # TODO add output.tar in OutputData+OutputSE instead of dirac-dms-add-file
         # tried but got
         # `JobWrapperError: No output SEs defined in VO configuration` error
+
+        # outputPath is relative to user's home directory
+        # eg
+        # /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
+        # /tutoVO/user/c/ciuser/tutoVO/user/c/ciuser/bartenderjobs/job1/output.tar
+        # TODO remove home dir from job_dir for outputPath
+        output_path = description.job_dir
         return dedent(
             f"""\
             JobName = "{job_name}";
             Executable = "{jobsh.name}";
             InputSandbox = {{"{abs_job_sh}"}};
+            InputData = {{ "{description.job_dir}/input.tar" }};
+            InputDataModule = "DIRAC.WorkloadManagementSystem.Client.InputDataResolution";
+            InputDataPolicy = "DIRAC.WorkloadManagementSystem.Client.DownloadInputData";
+            OutputData = {{ "output.tar" }};
+            OutputSE = "{output_path}";
+            OutputPath = "{description.job_dir}";
             StdOutput = "jobstdout.txt";
             StdError = "jobstderr.txt";
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
