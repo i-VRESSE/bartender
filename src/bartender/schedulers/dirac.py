@@ -176,8 +176,8 @@ class DiracScheduler(AbstractScheduler):
         return file
 
     def _job_script_content(self, description: JobDescription) -> str:
-        stage_in = self._stage_in_script(description)
-        stage_out = self._stage_out_script(description)
+        stage_in = self._stage_in_script()
+        stage_out = self._stage_out_script()
         command = self._command_script(description)
         return dedent(
             f"""\
@@ -189,32 +189,22 @@ class DiracScheduler(AbstractScheduler):
             """,
         )
 
-    def _stage_in_script(self, description: JobDescription) -> str:
-        fn = "input.tar"
-        fn_on_grid = description.job_dir / fn
+    def _stage_in_script(self) -> str:
         return dedent(
-            f"""\
-            # Download & unpack input files
-            # dirac-proxy-info
-            # dirac-dms-get-file {fn_on_grid}
-            ls -l
-            tar -xf {fn}
-            rm {fn}
+            """\
+            # Unpack input files
+            tar -xf input.tar
+            rm input.tar
             find . -type f > .input_files.txt
             """,
         )
 
-    def _stage_out_script(self, description: JobDescription) -> str:
-        fn = "output.tar"
-        fn_on_grid = description.job_dir / fn
-        se = self.config.storage_element
+    def _stage_out_script(self) -> str:
         return dedent(
             f"""\
-            # Pack & upload output files
-            echo {fn} >> .input_files.txt
-            tar -cf {fn} --exclude-from=.input_files.txt .
-            # dirac-dms-add-file {fn_on_grid} {fn} {se}
-            # rm {fn}
+            # Pack output files
+            echo output.tar >> .input_files.txt
+            tar -cf output.tar --exclude-from=.input_files.txt .
             """,
         )
 
@@ -244,12 +234,10 @@ class DiracScheduler(AbstractScheduler):
         # tried but got
         # `JobWrapperError: No output SEs defined in VO configuration` error
 
-        # outputPath is relative to user's home directory
-        # eg
-        # /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
-        # /tutoVO/user/c/ciuser/tutoVO/user/c/ciuser/bartenderjobs/job1/output.tar
-        # TODO remove home dir from job_dir for outputPath
-        output_path = description.job_dir
+
+        # OutputPath must be relative to user's home directory 
+        # to prevent files being uploaded outside user's home directory.
+        output_path = self._relative_output_dir(description)
         return dedent(
             f"""\
             JobName = "{job_name}";
@@ -259,10 +247,22 @@ class DiracScheduler(AbstractScheduler):
             InputDataModule = "DIRAC.WorkloadManagementSystem.Client.InputDataResolution";
             InputDataPolicy = "DIRAC.WorkloadManagementSystem.Client.DownloadInputData";
             OutputData = {{ "output.tar" }};
-            OutputSE = "{output_path}";
-            OutputPath = "{description.job_dir}";
+            OutputSE = {{ "{self.config.storage_element}" }};
+            OutputPath = "{output_path}";
             StdOutput = "jobstdout.txt";
             StdError = "jobstderr.txt";
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
             """,
         )
+
+    def _relative_output_dir(self, description: JobDescription) -> Path:
+        """Return description.output_dir relative to user's home directory.
+        
+        user home directory is /<vo>/user/<initial>/<user>
+        to write /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
+        OutputPath must be bartenderjobs/job1
+        """
+        root, vo, space, initial, user, *_ = description.job_dir.parts
+        home_dir = Path(root, vo, space, initial, user)
+        output_path = description.job_dir.relative_to(home_dir)
+        return output_path
