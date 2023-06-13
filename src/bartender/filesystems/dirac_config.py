@@ -11,7 +11,7 @@ class DiracFileSystemConfig(BaseModel):
 
     Args:
         lfn_root: Location on grid storage where files of jobs can be stored. Used to
-            localize description. 
+            localize description.
             To stage output files the root should be located within the user's home directory.
             Home directory is formatted like `/<VO>/user/<initial>/<username>`.
         storage_element: Storage element for lfn_root.
@@ -23,9 +23,11 @@ class DiracFileSystemConfig(BaseModel):
     storage_element: str
     proxy: ProxyConfig = ProxyConfig()
 
-    @validator('lfn_root')
-    def _validate_lfn_root(cls, v):
-        pattern = r'^\/\w+\/user\/([a-zA-Z])\/\1\w+\/.*$'
+    @validator("lfn_root")
+    def _validate_lfn_root(cls, v: str) -> str:
+        pattern = r"^\/\w+\/user\/([a-zA-Z])\/\1\w+\/.*$"
         if not re.match(pattern, v):
-            raise ValueError(f"{v} should match the format `/<VO>/user/<initial>/<username>/<whatever>`")
+            raise ValueError(
+                f"{v} should match the format `/<VO>/user/<initial>/<username>/<whatever>`",
+            )
         return v

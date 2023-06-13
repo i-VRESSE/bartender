@@ -182,10 +182,10 @@ class DiracScheduler(AbstractScheduler):
         return dedent(
             f"""\
             #!/bin/bash
-            set -e
             {stage_in}
             {command}
             {stage_out}
+            exit $(cat returncode)
             """,
         )
 
@@ -234,8 +234,7 @@ class DiracScheduler(AbstractScheduler):
         # tried but got
         # `JobWrapperError: No output SEs defined in VO configuration` error
 
-
-        # OutputPath must be relative to user's home directory 
+        # OutputPath must be relative to user's home directory
         # to prevent files being uploaded outside user's home directory.
         output_path = self._relative_output_dir(description)
         return dedent(
@@ -257,7 +256,7 @@ class DiracScheduler(AbstractScheduler):
 
     def _relative_output_dir(self, description: JobDescription) -> Path:
         """Return description.output_dir relative to user's home directory.
-        
+
         user home directory is /<vo>/user/<initial>/<user>
         to write /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
         OutputPath must be bartenderjobs/job1

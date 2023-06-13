@@ -213,3 +213,11 @@ do this outside container with
 docker compose -f tests_dirac/docker-compose.yml rm -fs dirac-tuto
 docker compose -f tests_dirac/docker-compose.yml up dirac-tuto
 ```
+
+When the DIRAC server container is running you can login to it with
+
+```shell
+docker exec -ti <constainer id or name> bash
+. bashrc
+dirac-proxy-init -K ~diracuser/.globus/userkey.pem -C ~diracuser/.globus/usercert.pem
+```
