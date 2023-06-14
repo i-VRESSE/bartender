@@ -79,9 +79,13 @@ class AbstractScheduler(ABC):
     async def logs(self, job_id: str, job_dir: Path) -> Tuple[str, str]:
         """Get stdout and stderr of a job.
 
+        If job has not completed, then will raise an exception.
+        If job completed, then stdout,txt and stderr.txt are read from job_dir.
+
         Args:
             job_id: Identifier of job.
-            job_dir: Directory where job input and output are stored.
+            job_dir: Directory where stdout.txt and stderr.txt files
+                of job are stored.
 
         Returns:
             Tuple of stdout and stderr.

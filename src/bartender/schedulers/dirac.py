@@ -171,17 +171,23 @@ class DiracScheduler(AbstractScheduler):
         await teardown_proxy_renewer()
 
     async def logs(self, job_id: str, job_dir: Path) -> Tuple[str, str]:
-        """Return logs of raw job.
+        """Get stdout and stderr of a job.
 
-        Includes logs of unpacking/packing the input and output.
-        While logs in job_dir only include logs of execution of command.
+        If job has not completed, then will raise an exception.
+        If job completed succesfully, then stdout,txt and stderr.txt are read
+        from job_dir.
+        If job failed, then stdout and stderr are read from grid storage.
 
-        The jobstdout.txt and jobstderr.txt can be fetched on command line
+        Logs of a failed job includes logs of unpacking/packing the
+        input and output files.
+
+        The logs can be fetched on command line
         with `dirac-wms-job-get-output <job id>`.
 
         Args:
             job_id: Identifier of job.
-            job_dir: Directory where ok job has its logs.
+            job_dir: Directory where stdout.txt and stderr.txt files
+                of job are stored.
 
         Raises:
             RuntimeError: When fetching of logs fails.
