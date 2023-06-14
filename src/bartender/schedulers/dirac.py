@@ -193,7 +193,7 @@ class DiracScheduler(AbstractScheduler):
             RuntimeError: When fetching of logs fails.
 
         Returns:
-            stdout and stderr of raw job.
+            Tuple of stdout and stderr.
         """
         try:
             return await super().logs(job_id, job_dir)
