@@ -221,10 +221,10 @@ async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
     scheduler = DiracScheduler(sched_config)
     # emulate external job id with job1 subdir
     # job_dir.name is used as directory to upload inputfiles to lfn_root
-    job_dir = tmp_path / "job3"
+    job_dir = tmp_path / "job4"
     job_dir.mkdir()
     description = JobDescription(
-        command="echo icannotwork && exit 42",
+        command="echo icannotwork && ls /idonotexist",
         job_dir=job_dir,
     )
     gdescription = fs.localize_description(description, tmp_path)
@@ -237,12 +237,12 @@ async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
 
         await wait_for_job(scheduler, job_id, expected="error")
 
-        await fs.download(gdescription, description)
+        stdout, stderr = scheduler.raw_logs(job_id)
 
-        assert "icannotwork" in (job_dir / "stdout.txt").read_text()
-        assert (job_dir / "returncode").read_text() == "42"
+        assert "icannotwork" in stdout
+        assert "idonotexist" in stderr
     finally:
         # So next time the test does not complain about existing files
-        # await fs.delete(gdescription)
+        await fs.delete(gdescription)
         await fs.close()
         await scheduler.close()
