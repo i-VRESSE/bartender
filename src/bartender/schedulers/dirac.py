@@ -230,7 +230,9 @@ class DiracScheduler(AbstractScheduler):
         # TODO when command has non-zero return code then
         # output.tar is not uploaded,
         # you can get logs with scheduduler.raw_logs()
-        # but output.tar is gone
+        # but output.tar is gone, wouild be nice to have it
+        # see possible options at
+        # https://github.com/i-VRESSE/bartender/pull/72
         return dedent(
             f"""\
             #!/bin/bash
@@ -259,6 +261,8 @@ class DiracScheduler(AbstractScheduler):
         # is not uploaded and uploading output.tar fails due to
         # UnboundLocalError: local variable 'result_sbUpload'
 
+        # added cat of stdout.txt and stderr.txt
+        # so if job fails then logs are available in output sandbox.
         return dedent(
             f"""\
             # Run command
@@ -280,7 +284,7 @@ class DiracScheduler(AbstractScheduler):
 
         # OutputPath must be relative to user's home directory
         # to prevent files being uploaded outside user's home directory.
-        output_path = self._relative_output_dir(description)
+        output_path = _relative_output_dir(description)
         return dedent(
             f"""\
             JobName = "{job_name}";
@@ -298,21 +302,22 @@ class DiracScheduler(AbstractScheduler):
             """,  # noqa: E501, WPS237
         )
 
-    def _relative_output_dir(self, description: JobDescription) -> Path:
-        """Return description.output_dir relative to user's home directory.
 
-        user home directory is /<vo>/user/<initial>/<user>
-        to write /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
-        OutputPath must be bartenderjobs/job1
+def _relative_output_dir(description: JobDescription) -> Path:
+    """Return description.output_dir relative to user's home directory.
 
-        Args:
-            description: Description of job.
+    user home directory is /<vo>/user/<initial>/<user>
+    to write /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
+    OutputPath must be bartenderjobs/job1
 
-        Returns:
-            .description.output_dir relative to user's home directory.
-        """
-        home_dir = Path(*description.job_dir.parts[:5])
-        return description.job_dir.relative_to(home_dir)
+    Args:
+        description: Description of job.
+
+    Returns:
+        .description.output_dir relative to user's home directory.
+    """
+    nr_home_dir_parts = 5
+    return Path(*description.job_dir.parts[nr_home_dir_parts:])
 
 
 async def _extract_text_file(tar: tarfile.TarFile, name: str) -> str:
