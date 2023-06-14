@@ -237,7 +237,7 @@ async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
 
         await wait_for_job(scheduler, job_id, expected="error")
 
-        stdout, stderr = scheduler.raw_logs(job_id)
+        stdout, stderr = await scheduler.raw_logs(job_id)
 
         assert "icannotwork" in stdout
         assert "idonotexist" in stderr

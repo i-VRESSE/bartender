@@ -170,7 +170,7 @@ class DiracScheduler(AbstractScheduler):
         """Close scheduler."""
         await teardown_proxy_renewer()
 
-    def raw_logs(self, job_id: str) -> Tuple[str, str]:
+    async def raw_logs(self, job_id: str) -> Tuple[str, str]:
         """Return logs of raw job.
 
         Includes logs of unpacking/packing the input and output.
@@ -188,17 +188,16 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             stdout and stderr of raw job.
         """
-        # TODO make async
-        client = SandboxStoreClient()
-        sandbox = client.downloadSandboxForJob(job_id, "Output", inMemory=True)
+        download_sandbox = async_wrap(SandboxStoreClient().downloadSandboxForJob)
+        sandbox = await download_sandbox(job_id, "Output", inMemory=True)
         if not sandbox["OK"]:
             message = cast(DErrorReturnType, sandbox)["Message"]
             raise RuntimeError(f"Failed to fetch logs for {job_id}: {message}")
         sandbox_bytes = cast(DOKReturnType[bytes], sandbox)["Value"]
         with tarfile.open(fileobj=BytesIO(sandbox_bytes)) as tar:
             return (
-                _extract_text_file(tar, "jobstdout.txt"),
-                _extract_text_file(tar, "jobstderr.txt"),
+                await _extract_text_file(tar, "jobstdout.txt"),
+                await _extract_text_file(tar, "jobstderr.txt"),
             )
 
     async def _job_script(self, description: JobDescription, scriptdir: Path) -> Path:
@@ -301,7 +300,7 @@ class DiracScheduler(AbstractScheduler):
         return description.job_dir.relative_to(home_dir)
 
 
-def _extract_text_file(tar: tarfile.TarFile, name: str) -> str:
+async def _extract_text_file(tar: tarfile.TarFile, name: str) -> str:
     """Extract text file from tarfile and return contents.
 
     Args:
@@ -314,7 +313,10 @@ def _extract_text_file(tar: tarfile.TarFile, name: str) -> str:
     Returns:
         Contents of file.
     """
-    buffer = tar.extractfile(name)
+    aextractfile = async_wrap(tar.extractfile)
+    buffer = await aextractfile(name)
     if buffer is None:
         raise RuntimeError(f"{name} not found in sandbox")
-    return buffer.read().decode()
+    aread = async_wrap(buffer.read)
+    bstr = await aread()
+    return bstr.decode()
