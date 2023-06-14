@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
@@ -189,34 +189,64 @@ def retrieve_job_files(
     )
 
 
-@router.get("/{jobid}/stdout")
-def retrieve_job_stdout(
+CurrentJob = Annotated[Job, Depends(retrieve_job)]
+
+
+async def get_completed_logs(
     job_dir: CurrentCompletedJobDir,
-) -> FileResponse:
-    """Retrieve the jobs standard output.
+    job: CurrentJob,
+    context: CurrentContext,
+) -> Tuple[str, str]:
+    """Get the standard output and error of a completed job.
 
     Args:
         job_dir: Directory with job output files.
+        job: The job.
+        context: Context with destinations.
+
+    Raises:
+        ValueError: When job has no destination.
+
+    Returns:
+        The standard output and error.
+    """
+    if not job.destination or not job.internal_id:
+        raise ValueError("Job has no destination")
+    destination = context.destinations[job.destination]
+    return await destination.scheduler.logs(job.internal_id, job_dir)
+
+
+CurrentLogs = Annotated[Tuple[str, str], Depends(get_completed_logs)]
+
+
+@router.get("/{jobid}/stdout", response_class=PlainTextResponse)
+async def retrieve_job_stdout(
+    logs: CurrentLogs,
+) -> str:
+    """Retrieve the jobs standard output.
+
+    Args:
+        logs: The standard output and error of a completed job.
 
     Returns:
         Content of standard output.
     """
-    return retrieve_job_files("stdout.txt", job_dir)
+    return logs[0]
 
 
-@router.get("/{jobid}/stderr")
+@router.get("/{jobid}/stderr", response_class=PlainTextResponse)
 def retrieve_job_stderr(
-    job_dir: CurrentCompletedJobDir,
-) -> FileResponse:
+    logs: CurrentLogs,
+) -> str:
     """Retrieve the jobs standard error.
 
     Args:
-        job_dir: Directory with job output files.
+        logs: The standard output and error of a completed job.
 
     Returns:
         Content of standard error.
     """
-    return retrieve_job_files("stderr.txt", job_dir)
+    return logs[1]
 
 
 @router.get(

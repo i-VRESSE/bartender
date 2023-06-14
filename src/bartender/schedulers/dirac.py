@@ -170,7 +170,7 @@ class DiracScheduler(AbstractScheduler):
         """Close scheduler."""
         await teardown_proxy_renewer()
 
-    async def raw_logs(self, job_id: str) -> Tuple[str, str]:
+    async def logs(self, job_id: str, job_dir: Path) -> Tuple[str, str]:
         """Return logs of raw job.
 
         Includes logs of unpacking/packing the input and output.
@@ -181,6 +181,7 @@ class DiracScheduler(AbstractScheduler):
 
         Args:
             job_id: Identifier of job.
+            job_dir: Directory where ok job has its logs.
 
         Raises:
             RuntimeError: When fetching of logs fails.
@@ -188,6 +189,10 @@ class DiracScheduler(AbstractScheduler):
         Returns:
             stdout and stderr of raw job.
         """
+        try:
+            return await super().logs(job_id, job_dir)
+        except FileNotFoundError:
+            logger.info("Failed to fetch logs from job_dir, trying grid storage")
         download_sandbox = async_wrap(SandboxStoreClient().downloadSandboxForJob)
         sandbox = await download_sandbox(job_id, "Output", inMemory=True)
         if not sandbox["OK"]:
