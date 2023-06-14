@@ -3,11 +3,11 @@ import tarfile
 from io import BytesIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Tuple, cast
+from typing import Tuple
 
 import aiofiles
 from aiofiles.tempfile import TemporaryDirectory
-from DIRAC.Core.Utilities.ReturnValues import DErrorReturnType, DOKReturnType
+from DIRAC.Core.Utilities.ReturnValues import DReturnType
 from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
 )
@@ -200,11 +200,15 @@ class DiracScheduler(AbstractScheduler):
         except FileNotFoundError:
             logger.info("Failed to fetch logs from job_dir, trying grid storage")
         download_sandbox = async_wrap(SandboxStoreClient().downloadSandboxForJob)
-        sandbox = await download_sandbox(job_id, "Output", inMemory=True)
-        if not sandbox["OK"]:
-            message = cast(DErrorReturnType, sandbox)["Message"]
+        sandbox: DReturnType[bytes] = await download_sandbox(
+            job_id,
+            "Output",
+            inMemory=True,
+        )
+        if "Message" in sandbox:
+            message = sandbox.get("Message")
             raise RuntimeError(f"Failed to fetch logs for {job_id}: {message}")
-        sandbox_bytes = cast(DOKReturnType[bytes], sandbox)["Value"]
+        sandbox_bytes = sandbox["Value"]
         with tarfile.open(fileobj=BytesIO(sandbox_bytes)) as tar:
             return (
                 await _extract_text_file(tar, "jobstdout.txt"),
