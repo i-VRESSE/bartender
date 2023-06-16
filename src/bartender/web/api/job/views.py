@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated, Optional, Type, Union
+from typing import Annotated, Literal, Optional, Type, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -290,6 +290,9 @@ def _remove_archive(filename: str) -> None:
     Path(filename).unlink()
 
 
+ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
+
+
 @router.get(
     "/{jobid}/archive",
     responses={200: {"content": {"application/octet-stream": {}}}},
@@ -297,7 +300,7 @@ def _remove_archive(filename: str) -> None:
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_fmt: str = ".zip",
+    archive_format: ArchiveFormats = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
     # Note: also tried to with include (filter & filter_dirs) but that can be
@@ -311,7 +314,7 @@ async def retrieve_job_directory_as_archive(
     Args:
         job_dir: The job directory.
         background_tasks: FastAPI mechanism for post-processing tasks
-        archive_fmt: Format to use for archive. Supported formats are '.zip', '.tar',
+        archive_format: Format to use for archive. Supported formats are '.zip', '.tar',
             '.tar.xz', '.tar.gz', '.tar.bz2'
         exclude: list of filename patterns that should be excluded from archive.
         exclude_dirs: list of directory patterns that should be excluded from archive.
@@ -320,8 +323,8 @@ async def retrieve_job_directory_as_archive(
         FileResponse: Archive containing the content of job_dir
 
     """
-    dst_fs = _parse_archive_fmt(archive_fmt)
-    archive_fn = str(job_dir.with_suffix(archive_fmt))
+    dst_fs = _parse_archive_fmt(archive_format)
+    archive_fn = str(job_dir.with_suffix(archive_format))
     with (  # noqa: WPS316
         OSFS(str(job_dir)) as src,
         dst_fs(archive_fn, write=True) as dst,
@@ -337,12 +340,7 @@ async def retrieve_job_directory_as_archive(
 def _parse_archive_fmt(archive_fmt: str) -> Union[Type[ZipFS], Type[TarFS]]:
     if archive_fmt == ".zip":
         return ZipFS
-    if archive_fmt in {".tar", ".tar.xz", ".tar.gz", ".tar.bz2"}:
-        return TarFS
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=f"Invalid format for archive: {archive_fmt}",
-    )
+    return TarFS
 
 
 @router.get("/{jobid}/archive/output")
@@ -367,7 +365,7 @@ async def retrieve_job_output_as_archive(
     return await retrieve_job_directory_as_archive(
         job_output_dir,
         background_tasks,
-        archive_fmt=archive_fmt,
+        archive_format=archive_fmt,
         exclude=None,
         exclude_dirs=None,
     )
