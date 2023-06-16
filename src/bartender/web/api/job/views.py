@@ -324,7 +324,7 @@ async def retrieve_job_directory_as_archive(
         FileResponse: Archive containing the content of job_dir
 
     """
-    dst_fs = _parse_archive_fmt(archive_format)
+    dst_fs = _parse_archive_format(archive_format)
     archive_fn = str(job_dir.with_suffix(archive_format))
     with (  # noqa: WPS316
         OSFS(str(job_dir)) as src,
@@ -342,8 +342,8 @@ async def retrieve_job_directory_as_archive(
     return FileResponse(archive_fn, filename=return_fn)
 
 
-def _parse_archive_fmt(archive_fmt: str) -> Union[Type[ZipFS], Type[TarFS]]:
-    if archive_fmt == ".zip":
+def _parse_archive_format(archive_format: str) -> Union[Type[ZipFS], Type[TarFS]]:
+    if archive_format == ".zip":
         return ZipFS
     return TarFS
 

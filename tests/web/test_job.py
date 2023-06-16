@@ -607,7 +607,7 @@ async def test_directories_from_path(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "archive_fmt",
+    "archive_format",
     [".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"],
 )
 async def test_job_directory_as_archive(
@@ -615,21 +615,23 @@ async def test_job_directory_as_archive(
     client: AsyncClient,
     auth_headers: Dict[str, str],
     mock_ok_job: int,
-    archive_fmt: str,
+    archive_format: str,
 ) -> None:
     url = (
         fastapi_app.url_path_for(
             "retrieve_job_directory_as_archive",
             jobid=mock_ok_job,
         )
-        + f"?archive_fmt={archive_fmt}"
+        + f"?archive_format={archive_format}"
     )
     response = await client.get(url, headers=auth_headers)
 
     expected_content_type = (
-        "application/zip" if archive_fmt == ".zip" else "application/x-tar"
+        "application/zip" if archive_format == ".zip" else "application/x-tar"
     )
-    expected_content_disposition = f'attachment; filename="{mock_ok_job}{archive_fmt}"'
+    expected_content_disposition = (
+        f'attachment; filename="{mock_ok_job}{archive_format}"'
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["content-type"] == expected_content_type
