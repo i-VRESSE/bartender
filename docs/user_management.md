@@ -141,8 +141,13 @@ account.
 To enable perform following steps:
 
 1. This web service needs to be [registered as a service provider in EGI Check-in](https://docs.egi.eu/providers/check-in/sp/).
+   * Select protocol: OIDC Service
+   * Callback should end with `/auth/egi/callback`
+   * Callback should for non-developement environments use https
+   * Disable PKCE, as the
+     [Python library](https://github.com/fastapi-users/fastapi-users)
+     used for authentication does support PKCE
 2. Append EGI SP credentials to `.env` file
-
     1. Add `BARTENDER_EGI_CLIENT_ID=<Client id of EGI SP>`
     2. Add `BARTENDER_EGI_CLIENT_SECRET=<Client secret of EGI SP>`
     3. (Optionally) Add which integration environment the SP is using,
