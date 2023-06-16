@@ -12,6 +12,7 @@ from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
+from bartender.async_utils import async_wrap
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import CompletedStates, Job
@@ -329,7 +330,11 @@ async def retrieve_job_directory_as_archive(
         OSFS(str(job_dir)) as src,
         dst_fs(archive_fn, write=True) as dst,
     ):
-        copy_fs(src, dst, walker=Walker(exclude=exclude, exclude_dirs=exclude_dirs))
+        await async_wrap(copy_fs)(
+            src,
+            dst,
+            walker=Walker(exclude=exclude, exclude_dirs=exclude_dirs),
+        )
 
     background_tasks.add_task(_remove_archive, archive_fn)
 
