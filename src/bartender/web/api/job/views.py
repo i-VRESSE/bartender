@@ -338,7 +338,7 @@ async def retrieve_job_directory_as_archive(
 
     background_tasks.add_task(_remove_archive, archive_fn)
 
-    return_fn = str(Path(archive_fn).name)
+    return_fn = Path(archive_fn).name
     return FileResponse(archive_fn, filename=return_fn)
 
 
