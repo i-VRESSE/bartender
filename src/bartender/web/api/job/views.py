@@ -342,7 +342,7 @@ async def retrieve_job_directory_as_archive(
     return FileResponse(archive_fn, filename=return_fn)
 
 
-def _parse_archive_format(archive_format: str) -> Union[Type[ZipFS], Type[TarFS]]:
+def _parse_archive_format(archive_format: ArchiveFormats) -> Union[Type[ZipFS], Type[TarFS]]:
     if archive_format == ".zip":
         return ZipFS
     return TarFS
