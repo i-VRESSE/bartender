@@ -348,29 +348,50 @@ def _parse_archive_fmt(archive_fmt: str) -> Union[Type[ZipFS], Type[TarFS]]:
     return TarFS
 
 
-@router.get("/{jobid}/archive/output")
-async def retrieve_job_output_as_archive(
+@router.get("/{jobid}/archive/{path:path}")
+async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
+    path: str,
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_fmt: str = ".zip",
+    archive_format: ArchiveFormats = ".zip",
+    exclude: Optional[list[str]] = Query(default=None),
+    exclude_dirs: Optional[list[str]] = Query(default=None),
 ) -> FileResponse:
     """Download job output as archive.
 
     Args:
+        path: Sub directory inside job directory to start from.
         job_dir: The job directory.
         background_tasks: FastAPI mechanism for post-processing tasks
-        archive_fmt: Format to use for archive. Supported formats are '.zip', '.tar',
-            '.tar.xz', '.tar.gz', '.tar.bz2'
+        archive_format: Format to use for archive. Supported formats are '.zip',
+            '.tar', '.tar.xz', '.tar.gz', '.tar.bz2'
+        exclude: list of filename patterns that should be excluded from archive.
+        exclude_dirs: list of directory patterns that should be excluded from archive.
+
+    Raises:
+        HTTPException: When path is not found or is outside job directory.
 
     Returns:
         FileResponse: Archive containing the output of job_dir
 
     """
-    job_output_dir = Path(job_dir) / "output"
+    # TODO refactor subdir validation function?
+    try:
+        job_output_dir = (job_dir / path).expanduser().resolve(strict=True)
+        if not job_output_dir.is_relative_to(job_dir):
+            raise FileNotFoundError()
+        if not job_output_dir.is_dir():
+            raise FileNotFoundError()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        ) from exc
+
     return await retrieve_job_directory_as_archive(
         job_output_dir,
         background_tasks,
-        archive_format=archive_fmt,
-        exclude=None,
-        exclude_dirs=None,
+        archive_format=archive_format,
+        exclude=exclude,
+        exclude_dirs=exclude_dirs,
     )
