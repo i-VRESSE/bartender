@@ -1,3 +1,4 @@
+import io
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
@@ -5,6 +6,8 @@ from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI
+from fs.tarfs import TarFS
+from fs.zipfs import ZipFS
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -636,3 +639,11 @@ async def test_job_directory_as_archive(
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["content-type"] == expected_content_type
     assert response.headers["content-disposition"] == expected_content_disposition
+
+    fs = ZipFS if archive_format == ".zip" else TarFS
+
+    with io.BytesIO(response.content) as responsefile:
+        with fs(responsefile) as archive:
+            stdout = archive.readtext("stdout.txt")
+
+    assert stdout == "this is stdout"
