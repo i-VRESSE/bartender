@@ -551,6 +551,12 @@ async def test_directories(
         "is_file": False,
         "children": [
             {
+                "is_dir": True,
+                "is_file": False,
+                "name": "output",
+                "path": "output",
+            },
+            {
                 "is_dir": False,
                 "is_file": True,
                 "name": "somefile.txt",
