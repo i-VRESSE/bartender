@@ -57,6 +57,10 @@ async def mock_ok_job(
     (job_dir / "somefile.txt").write_text("hello")
     (job_dir / "stderr.txt").write_text("this is stderr")
     (job_dir / "stdout.txt").write_text("this is stdout")
+
+    job_subdir = job_dir / "output"
+    job_subdir.mkdir()
+    (job_subdir / "readme.txt").write_text("hi from output dir")
     return job_id
 
 
@@ -647,3 +651,30 @@ async def test_job_directory_as_archive(
             stdout = archive.readtext("stdout.txt")
 
     assert stdout == "this is stdout"
+
+
+@pytest.mark.anyio
+async def test_job_subdirectory_as_archive(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    url = fastapi_app.url_path_for(
+        "retrieve_job_subdirectory_as_archive",
+        jobid=mock_ok_job,
+        path="output",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == "application/zip"
+    assert (
+        response.headers["content-disposition"] == 'attachment; filename="output.zip"'
+    )
+
+    with io.BytesIO(response.content) as responsefile:
+        with ZipFS(responsefile) as archive:
+            stdout = archive.readtext("readme.txt")
+
+    assert stdout == "hi from output dir"
