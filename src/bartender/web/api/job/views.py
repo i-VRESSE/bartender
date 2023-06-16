@@ -261,25 +261,12 @@ async def retrieve_job_directories_from_path(
         max_depth: Number of directories to traverse into.
         job_dir: The job directory.
 
-    Raises:
-        HTTPException: When path is not found or is outside job directory.
-
     Returns:
         DirectoryItem: Listing of files and directories.
     """
-    try:
-        start_dir = (job_dir / path).expanduser().resolve(strict=True)
-        if not start_dir.is_relative_to(job_dir):
-            raise FileNotFoundError()
-        if not start_dir.is_dir():
-            raise FileNotFoundError()
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found",
-        ) from exc
-    current_depth = len(start_dir.relative_to(job_dir).parts)
-    return await walk_dir(start_dir, job_dir, current_depth + max_depth)
+    subdirectory = _parse_subdirectory(path, job_dir)
+    current_depth = len(subdirectory.relative_to(job_dir).parts)
+    return await walk_dir(subdirectory, job_dir, current_depth + max_depth)
 
 
 def _remove_archive(filename: str) -> None:
@@ -342,7 +329,9 @@ async def retrieve_job_directory_as_archive(
     return FileResponse(archive_fn, filename=return_fn)
 
 
-def _parse_archive_format(archive_format: ArchiveFormats) -> Union[Type[ZipFS], Type[TarFS]]:
+def _parse_archive_format(
+    archive_format: ArchiveFormats,
+) -> Union[Type[ZipFS], Type[TarFS]]:
     if archive_format == ".zip":
         return ZipFS
     return TarFS
@@ -368,19 +357,26 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
         exclude: list of filename patterns that should be excluded from archive.
         exclude_dirs: list of directory patterns that should be excluded from archive.
 
-    Raises:
-        HTTPException: When path is not found or is outside job directory.
-
     Returns:
         FileResponse: Archive containing the output of job_dir
 
     """
-    # TODO refactor subdir validation function?
+    subdirectory = _parse_subdirectory(path, job_dir)
+    return await retrieve_job_directory_as_archive(
+        subdirectory,
+        background_tasks,
+        archive_format=archive_format,
+        exclude=exclude,
+        exclude_dirs=exclude_dirs,
+    )
+
+
+def _parse_subdirectory(path: str, job_dir: Path) -> Path:
     try:
-        job_output_dir = (job_dir / path).expanduser().resolve(strict=True)
-        if not job_output_dir.is_relative_to(job_dir):
+        subdirectory = (job_dir / path).expanduser().resolve(strict=True)
+        if not subdirectory.is_relative_to(job_dir):
             raise FileNotFoundError()
-        if not job_output_dir.is_dir():
+        if not subdirectory.is_dir():
             raise FileNotFoundError()
     except FileNotFoundError as exc:
         raise HTTPException(
@@ -388,10 +384,4 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
             detail="File not found",
         ) from exc
 
-    return await retrieve_job_directory_as_archive(
-        job_output_dir,
-        background_tasks,
-        archive_format=archive_format,
-        exclude=exclude,
-        exclude_dirs=exclude_dirs,
-    )
+    return subdirectory
