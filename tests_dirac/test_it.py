@@ -241,6 +241,11 @@ async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
 
         assert "icannotwork" in stdout
         assert "idonotexist" in stderr
+
+        await fs.download(gdescription, description)
+        files_in_job_dir = list(job_dir.iterdir())
+        # stdout.txt and stderr.txt, which is side effect of logs()
+        assert len(files_in_job_dir) == 2
     finally:
         # So next time the test does not complain about existing files
         await fs.delete(gdescription)

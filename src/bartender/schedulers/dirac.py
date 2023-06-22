@@ -210,10 +210,9 @@ class DiracScheduler(AbstractScheduler):
             raise RuntimeError(f"Failed to fetch logs for {job_id}: {message}")
         sandbox_bytes = sandbox["Value"]
         with tarfile.open(fileobj=BytesIO(sandbox_bytes)) as tar:
-            return (
-                await _extract_text_file(tar, "jobstdout.txt"),
-                await _extract_text_file(tar, "jobstderr.txt"),
-            )
+            await _extract_text_file(tar, "jobstdout.txt", job_dir / "stdout.txt")
+            await _extract_text_file(tar, "jobstderr.txt", job_dir / "stderr.txt")
+            return await super().logs(job_id, job_dir)
 
     async def _job_script(self, description: JobDescription, scriptdir: Path) -> Path:
         file = Path(scriptdir / "job.sh")
@@ -320,23 +319,14 @@ def _relative_output_dir(description: JobDescription) -> Path:
     return Path(*description.job_dir.parts[nr_home_dir_parts:])
 
 
-async def _extract_text_file(tar: tarfile.TarFile, name: str) -> str:
-    """Extract text file from tarfile and return contents.
+async def _extract_text_file(tar: tarfile.TarFile, src: str, target: Path) -> None:
+    """Extract text file from tarfile.
 
     Args:
         tar: Tarfile to extract file from.
-        name: Name of file to extract.
-
-    Raises:
-        RuntimeError: When file is not found in tarfile.
-
-    Returns:
-        Contents of file.
+        src: Name of file to extract.
+        target: Path to write file to.
     """
-    aextractfile = async_wrap(tar.extractfile)
-    buffer = await aextractfile(name)
-    if buffer is None:
-        raise RuntimeError(f"{name} not found in sandbox")
-    aread = async_wrap(buffer.read)
-    bstr = await aread()
-    return bstr.decode()
+    aextract = async_wrap(tar.extract)
+    await aextract(src, target.parent)
+    (target.parent / src).rename(target)

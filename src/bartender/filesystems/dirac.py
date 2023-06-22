@@ -108,6 +108,9 @@ class DiracFileSystem(AbstractFileSystem):
             if not result["OK"]:
                 raise RuntimeError(result["Message"])
             archive_fn_in_tmpdir = Path(tmpdirname) / archive_base_fn
+            if not archive_fn_in_tmpdir.exists():
+                # Failed job does not have a output.tar
+                return
             # TODO what happens if file in job_dir already exists?
             logger.warning(f"Unpacking {archive_fn_in_tmpdir} to {target.job_dir}")
             await async_wrap(unpack_archive)(archive_fn_in_tmpdir, target.job_dir)
