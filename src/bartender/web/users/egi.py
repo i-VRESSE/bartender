@@ -27,8 +27,6 @@ class EgiCheckinOAuth2(OpenID):
         environment: Literal["production", "development", "demo"] = "production",
     ):
         name = "EGI Check-in"
-        if environment != "production":
-            name = f"{name} {environment}"
         super().__init__(
             client_id,
             client_secret,
