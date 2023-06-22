@@ -1,6 +1,6 @@
 FROM ghcr.io/xenon-middleware/diracclient:8.0.18
 
-RUN pip install poetry==1.4.2
+RUN pip install poetry==1.5.1
 
 # Configuring poetry
 RUN poetry config virtualenvs.create false
