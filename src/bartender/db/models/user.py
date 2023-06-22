@@ -25,6 +25,10 @@ class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
     else:
         # Orcid returns expire of 2293079986 which is greater then Integer|int32
         expires_at: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+        access_token: Mapped[str] = mapped_column(
+            String(length=2048),  # noqa: WPS432 -- SQLAlchemy requires this
+            nullable=False,
+        )
 
 
 if TYPE_CHECKING:

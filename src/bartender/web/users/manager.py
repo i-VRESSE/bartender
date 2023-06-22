@@ -22,6 +22,7 @@ from starlette import status
 from bartender.db.dao.user_dao import CurrentUserDatabase
 from bartender.db.models.user import User
 from bartender.settings import settings
+from bartender.web.users.egi import EgiCheckinOAuth2
 from bartender.web.users.orcid import OrcidOAuth2
 
 # From app/users.py at
@@ -49,6 +50,14 @@ if settings.orcid_client_id != "":
     orcid_oauth_client = OrcidOAuth2(
         client_id=settings.orcid_client_id,
         client_secret=settings.orcid_client_secret,
+    )
+
+egi_oauth_client: Optional[EgiCheckinOAuth2] = None
+if settings.egi_client_id != "":
+    egi_oauth_client = EgiCheckinOAuth2(
+        client_id=settings.egi_client_id,
+        client_secret=settings.egi_client_secret,
+        environment=settings.egi_environment,
     )
 
 
