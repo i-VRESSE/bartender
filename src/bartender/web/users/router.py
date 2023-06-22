@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from bartender.settings import settings
 from bartender.web.users.manager import (
+    egi_oauth_client,
     fastapi_users,
     github_oauth_client,
     local_auth_backend,
@@ -89,6 +90,32 @@ def _orcid_routes(app: FastAPI) -> None:
         )
 
 
+def _egi_routes(app: FastAPI) -> None:
+    # From app/app.py at
+    # https://fastapi-users.github.io/fastapi-users/10.1/configuration/oauth
+    if egi_oauth_client is not None:
+        app.include_router(
+            fastapi_users.get_oauth_router(
+                egi_oauth_client,
+                remote_auth_backend,
+                settings.secret,
+                associate_by_email=True,
+                redirect_url=settings.egi_redirect_url,
+            ),
+            prefix="/auth/egi",
+            tags=["auth"],
+        )
+        app.include_router(
+            fastapi_users.get_oauth_associate_router(
+                egi_oauth_client,
+                UserRead,
+                settings.secret,
+            ),
+            prefix="/auth/associate/egi",
+            tags=["auth"],
+        )
+
+
 def include_users_routes(app: FastAPI) -> None:
     """Register fastapi_users routes.
 
@@ -125,3 +152,4 @@ def include_users_routes(app: FastAPI) -> None:
     _github_routes(app)
     _orcidsandbox_routes(app)
     _orcid_routes(app)
+    _egi_routes(app)
