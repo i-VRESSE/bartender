@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, Type
+from typing import Optional, Tuple, Type
 
+import aiofiles
 from pydantic import BaseModel
 
 from bartender.db.models.job_model import State
@@ -74,6 +75,26 @@ class AbstractScheduler(ABC):
         Args:
             job_id: Identifier of job.
         """
+
+    async def logs(self, job_id: str, job_dir: Path) -> Tuple[str, str]:
+        """Get stdout and stderr of a job.
+
+        If job has not completed, then will raise an exception.
+        If job completed, then stdout,txt and stderr.txt are read from job_dir.
+
+        Args:
+            job_id: Identifier of job.
+            job_dir: Directory where stdout.txt and stderr.txt files
+                of job are stored.
+
+        Returns:
+            Tuple of stdout and stderr.
+        """
+        async with aiofiles.open(job_dir / "stdout.txt", mode="r") as fout:
+            stdout = await fout.read()
+        async with aiofiles.open(job_dir / "stderr.txt", mode="r") as ferr:
+            stderr = await ferr.read()
+        return stdout, stderr
 
     async def __aenter__(self) -> "AbstractScheduler":
         return self

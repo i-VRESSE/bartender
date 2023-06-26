@@ -512,7 +512,6 @@ async def test_stdout(
     assert response.status_code == status.HTTP_200_OK
     assert response.text == "this is stdout"
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    assert response.headers["content-disposition"] == 'inline; filename="stdout.txt"'
 
 
 @pytest.mark.anyio
@@ -529,7 +528,6 @@ async def test_stderr(
     assert response.status_code == status.HTTP_200_OK
     assert response.text == "this is stderr"
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    assert response.headers["content-disposition"] == 'inline; filename="stderr.txt"'
 
 
 @pytest.mark.anyio

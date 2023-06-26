@@ -1,12 +1,17 @@
 import logging
+import tarfile
+from io import BytesIO
 from pathlib import Path
 from textwrap import dedent
+from typing import Tuple
 
 import aiofiles
 from aiofiles.tempfile import TemporaryDirectory
+from DIRAC.Core.Utilities.ReturnValues import DReturnType
 from DIRAC.WorkloadManagementSystem.Client.JobMonitoringClient import (
     JobMonitoringClient,
 )
+from DIRAC.WorkloadManagementSystem.Client.SandboxStoreClient import SandboxStoreClient
 from DIRAC.WorkloadManagementSystem.Client.WMSClient import WMSClient
 
 from bartender.async_utils import async_wrap
@@ -165,6 +170,50 @@ class DiracScheduler(AbstractScheduler):
         """Close scheduler."""
         await teardown_proxy_renewer()
 
+    async def logs(self, job_id: str, job_dir: Path) -> Tuple[str, str]:
+        """Get stdout and stderr of a job.
+
+        If job has not completed, then will raise an exception.
+        If job completed succesfully, then stdout,txt and stderr.txt are read
+        from job_dir.
+        If job failed, then stdout and stderr are read from grid storage.
+
+        Logs of a failed job includes logs of unpacking/packing the
+        input and output files.
+
+        The logs can be fetched on command line
+        with `dirac-wms-job-get-output <job id>`.
+
+        Args:
+            job_id: Identifier of job.
+            job_dir: Directory where stdout.txt and stderr.txt files
+                of job are stored.
+
+        Raises:
+            RuntimeError: When fetching of logs fails.
+
+        Returns:
+            Tuple of stdout and stderr.
+        """
+        try:
+            return await super().logs(job_id, job_dir)
+        except FileNotFoundError:
+            logger.info("Failed to fetch logs from job_dir, trying grid storage")
+        download_sandbox = async_wrap(SandboxStoreClient().downloadSandboxForJob)
+        sandbox: DReturnType[bytes] = await download_sandbox(
+            job_id,
+            "Output",
+            inMemory=True,
+        )
+        if "Message" in sandbox:
+            message = sandbox.get("Message")
+            raise RuntimeError(f"Failed to fetch logs for {job_id}: {message}")
+        sandbox_bytes = sandbox["Value"]
+        with tarfile.open(fileobj=BytesIO(sandbox_bytes)) as tar:
+            await _extract_text_file(tar, "jobstdout.txt", job_dir / "stdout.txt")
+            await _extract_text_file(tar, "jobstderr.txt", job_dir / "stderr.txt")
+            return await super().logs(job_id, job_dir)
+
     async def _job_script(self, description: JobDescription, scriptdir: Path) -> Path:
         file = Path(scriptdir / "job.sh")
         # default OutputSandboxLimit is 10Mb which is too small sometimes,
@@ -176,43 +225,25 @@ class DiracScheduler(AbstractScheduler):
         return file
 
     def _job_script_content(self, description: JobDescription) -> str:
-        stage_in = self._stage_in_script(description)
-        stage_out = self._stage_out_script(description)
         command = self._command_script(description)
+        # TODO when command has non-zero return code then
+        # output.tar is not uploaded,
+        # you can get logs with scheduduler.raw_logs()
+        # but output.tar is gone, wouild be nice to have it
+        # see possible options at
+        # https://github.com/i-VRESSE/bartender/pull/72
         return dedent(
             f"""\
             #!/bin/bash
-            set -e
-            {stage_in}
-            {command}
-            {stage_out}
-            """,
-        )
-
-    def _stage_in_script(self, description: JobDescription) -> str:
-        fn = "input.tar"
-        fn_on_grid = description.job_dir / fn
-        return dedent(
-            f"""\
-            # Download & unpack input files
-            dirac-dms-get-file {fn_on_grid}
-            tar -xf {fn}
-            rm {fn}
+            # Unpack input files
+            tar -xf input.tar
+            rm input.tar
             find . -type f > .input_files.txt
-            """,
-        )
-
-    def _stage_out_script(self, description: JobDescription) -> str:
-        fn = "output.tar"
-        fn_on_grid = description.job_dir / fn
-        se = self.config.storage_element
-        return dedent(
-            f"""\
-            # Pack & upload output files
-            echo {fn} >> .input_files.txt
-            tar -cf {fn} --exclude-from=.input_files.txt .
-            dirac-dms-add-file {fn_on_grid} {fn} {se}
-            rm {fn}
+            {command}
+            # Pack output files
+            echo output.tar >> .input_files.txt
+            tar -cf output.tar --exclude-from=.input_files.txt .
+            exit $(cat returncode)
             """,
         )
 
@@ -220,12 +251,25 @@ class DiracScheduler(AbstractScheduler):
         command = description.command
         if self.config.apptainer_image:
             image = self.config.apptainer_image
+            # TODO if command is complex then qoutes are likely needed
             command = f"apptainer run {image} {description.command}"
+        # added echo so DIRAC
+        # uploads sandbox and output.tar
+        # if stdout and stderr are empty then
+        # sandbox (containing jobstderr.txt and jobstdout.txt)
+        # is not uploaded and uploading output.tar fails due to
+        # UnboundLocalError: local variable 'result_sbUpload'
+
+        # added cat of stdout.txt and stderr.txt
+        # so if job fails then logs are available in output sandbox.
         return dedent(
             f"""\
             # Run command
+            echo 'Running command for {description.job_dir}'
             ({command}) > stdout.txt 2> stderr.txt
             echo -n $? > returncode
+            cat stdout.txt
+            cat stderr.txt >&2
             """,
         )
 
@@ -234,20 +278,55 @@ class DiracScheduler(AbstractScheduler):
         abs_job_sh = jobsh.absolute()
 
         job_name = description.job_dir.name
-        # The jobstdout.txt and jobstderr.txt can be fetched
-        # with `dirac-wms-job-get-output <job id>`.
-        # TODO add input.tar in inputsandbox instead of dirac-dms-get-file
-        # tried but got `Failed Input Data Resolution` error
-        # TODO add output.tar in OutputData+OutputSE instead of dirac-dms-add-file
-        # tried but got
-        # `JobWrapperError: No output SEs defined in VO configuration` error
+        # jobstdout.txt and jobstderr.txt contain logs of whole job
+        # including logs of execution of command.
+
+        # OutputPath must be relative to user's home directory
+        # to prevent files being uploaded outside user's home directory.
+        output_path = _relative_output_dir(description)
         return dedent(
             f"""\
             JobName = "{job_name}";
             Executable = "{jobsh.name}";
             InputSandbox = {{"{abs_job_sh}"}};
+            InputData = {{ "{description.job_dir}/input.tar" }};
+            InputDataModule = "DIRAC.WorkloadManagementSystem.Client.InputDataResolution";
+            InputDataPolicy = "DIRAC.WorkloadManagementSystem.Client.DownloadInputData";
+            OutputData = {{ "output.tar" }};
+            OutputSE = {{ "{self.config.storage_element}" }};
+            OutputPath = "{output_path}";
             StdOutput = "jobstdout.txt";
             StdError = "jobstderr.txt";
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
-            """,
+            """,  # noqa: E501, WPS237
         )
+
+
+def _relative_output_dir(description: JobDescription) -> Path:
+    """Return description.output_dir relative to user's home directory.
+
+    user home directory is /<vo>/user/<initial>/<user>
+    to write /tutoVO/user/c/ciuser/bartenderjobs/job1/input.tar
+    OutputPath must be bartenderjobs/job1
+
+    Args:
+        description: Description of job.
+
+    Returns:
+        .description.output_dir relative to user's home directory.
+    """
+    nr_home_dir_parts = 5
+    return Path(*description.job_dir.parts[nr_home_dir_parts:])
+
+
+async def _extract_text_file(tar: tarfile.TarFile, src: str, target: Path) -> None:
+    """Extract text file from tarfile.
+
+    Args:
+        tar: Tarfile to extract file from.
+        src: Name of file to extract.
+        target: Path to write file to.
+    """
+    aextract = async_wrap(tar.extract)
+    await aextract(src, target.parent)
+    (target.parent / src).rename(target)
