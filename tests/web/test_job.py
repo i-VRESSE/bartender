@@ -1,3 +1,4 @@
+import io
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
@@ -5,6 +6,8 @@ from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI
+from fs.tarfs import TarFS
+from fs.zipfs import ZipFS
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -54,6 +57,10 @@ async def mock_ok_job(
     (job_dir / "somefile.txt").write_text("hello")
     (job_dir / "stderr.txt").write_text("this is stderr")
     (job_dir / "stdout.txt").write_text("this is stdout")
+
+    job_subdir = job_dir / "output"
+    job_subdir.mkdir()
+    (job_subdir / "readme.txt").write_text("hi from output dir")
     return job_id
 
 
@@ -505,7 +512,6 @@ async def test_stdout(
     assert response.status_code == status.HTTP_200_OK
     assert response.text == "this is stdout"
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    assert response.headers["content-disposition"] == 'inline; filename="stdout.txt"'
 
 
 @pytest.mark.anyio
@@ -522,7 +528,6 @@ async def test_stderr(
     assert response.status_code == status.HTTP_200_OK
     assert response.text == "this is stderr"
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    assert response.headers["content-disposition"] == 'inline; filename="stderr.txt"'
 
 
 @pytest.mark.anyio
@@ -543,6 +548,12 @@ async def test_directories(
         "is_dir": True,
         "is_file": False,
         "children": [
+            {
+                "is_dir": True,
+                "is_file": False,
+                "name": "output",
+                "path": "output",
+            },
             {
                 "is_dir": False,
                 "is_file": True,
@@ -603,3 +614,71 @@ async def test_directories_from_path(
         ],
     }
     assert response.json() == expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "archive_format",
+    [".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"],
+)
+async def test_job_directory_as_archive(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    archive_format: str,
+) -> None:
+    url = (
+        fastapi_app.url_path_for(
+            "retrieve_job_directory_as_archive",
+            jobid=mock_ok_job,
+        )
+        + f"?archive_format={archive_format}"
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    expected_content_type = (
+        "application/zip" if archive_format == ".zip" else "application/x-tar"
+    )
+    expected_content_disposition = (
+        f'attachment; filename="{mock_ok_job}{archive_format}"'
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == expected_content_type
+    assert response.headers["content-disposition"] == expected_content_disposition
+
+    fs = ZipFS if archive_format == ".zip" else TarFS
+
+    with io.BytesIO(response.content) as responsefile:
+        with fs(responsefile) as archive:
+            stdout = archive.readtext("stdout.txt")
+
+    assert stdout == "this is stdout"
+
+
+@pytest.mark.anyio
+async def test_job_subdirectory_as_archive(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    url = fastapi_app.url_path_for(
+        "retrieve_job_subdirectory_as_archive",
+        jobid=mock_ok_job,
+        path="output",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == "application/zip"
+    assert (
+        response.headers["content-disposition"] == 'attachment; filename="output.zip"'
+    )
+
+    with io.BytesIO(response.content) as responsefile:
+        with ZipFS(responsefile) as archive:
+            stdout = archive.readtext("readme.txt")
+
+    assert stdout == "hi from output dir"

@@ -14,7 +14,7 @@ from bartender.shared.ssh import SshConnectConfig
 def prepare_input(job_dir: Path) -> JobDescription:
     (job_dir / "input").write_text("Lorem ipsum")
     return JobDescription(
-        command="echo -n hello && mkdir output && wc input > output/output.txt",
+        command="echo -n hello && mkdir -p output && wc input > output/output.txt",
         job_dir=job_dir,
     )
 
@@ -201,6 +201,51 @@ async def test_states_and_cancel(tmp_path: Path) -> None:  # noqa: WPS217 readab
         await sleep(1)
         states = await scheduler.states([job_id])
         assert states == ["error"]
+    finally:
+        # So next time the test does not complain about existing files
+        await fs.delete(gdescription)
+        await fs.close()
+        await scheduler.close()
+
+
+@pytest.mark.anyio
+async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
+    tmp_path: Path,
+) -> None:
+    fs_config = DiracFileSystemConfig(
+        lfn_root="/tutoVO/user/c/ciuser/bartenderjobs",
+        storage_element="StorageElementOne",
+    )
+    fs = DiracFileSystem(fs_config)
+    sched_config = DiracSchedulerConfig(storage_element=fs_config.storage_element)
+    scheduler = DiracScheduler(sched_config)
+    # emulate external job id with job1 subdir
+    # job_dir.name is used as directory to upload inputfiles to lfn_root
+    job_dir = tmp_path / "job4"
+    job_dir.mkdir()
+    description = JobDescription(
+        command="echo icannotwork && ls /idonotexist",
+        job_dir=job_dir,
+    )
+    gdescription = fs.localize_description(description, tmp_path)
+    try:
+        await fs.upload(description, gdescription)
+
+        job_id = await scheduler.submit(gdescription)
+
+        assert job_id
+
+        await wait_for_job(scheduler, job_id, expected="error")
+
+        stdout, stderr = await scheduler.logs(job_id, description.job_dir)
+
+        assert "icannotwork" in stdout
+        assert "idonotexist" in stderr
+
+        await fs.download(gdescription, description)
+        files_in_job_dir = list(job_dir.iterdir())
+        # stdout.txt and stderr.txt, which is side effect of logs()
+        assert len(files_in_job_dir) == 2
     finally:
         # So next time the test does not complain about existing files
         await fs.delete(gdescription)

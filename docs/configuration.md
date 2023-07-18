@@ -254,16 +254,12 @@ If you need [DIRAC](http://diracgrid.org/) support create a conda environment
 instead of creating a virtual environment.
 
 ```bash
-mamba create --name bartender dirac-grid python=3.10
+mamba create --name bartender dirac-grid python=3.10 poetry=1.5.1
 conda activate bartender
+poetry install
 ```
 
-The conda environment contains all DIRAC dependencies.
-Install DIRAC itself with
-
-```bash
-pip install DIRAC==8.0
-```
+The conda environment contains all DIRAC dependencies and DIRAC itself.
 
 (Cannot use `poetry install --with=dirac` as Poetry gets stuck resolving
 dependencies because it ignores the already installed DIRAC dependencies.)

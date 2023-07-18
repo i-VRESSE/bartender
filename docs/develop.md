@@ -213,3 +213,22 @@ do this outside container with
 docker compose -f tests_dirac/docker-compose.yml rm -fs dirac-tuto
 docker compose -f tests_dirac/docker-compose.yml up dirac-tuto
 ```
+
+When the DIRAC server container is running you can login to it with
+
+```shell
+docker exec -ti tests_dirac-dirac-tuto-1 bash
+. bashrc
+dirac-proxy-init -K ~diracuser/.globus/userkey.pem -C ~diracuser/.globus/usercert.pem
+# to fetch job status
+dirac-wms-job-status 1
+dirac-wms-job-logging-info 1
+# to download raw logs
+dirac-wms-job-get-output 1
+# to download output files
+dirac-wms-job-get-output-data 1
+# to browse storage
+dirac-dms-filecatalog-cli
+# pilot logs
+cat ~diracpilot/localsite/output/*
+```

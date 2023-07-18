@@ -62,9 +62,8 @@ repos:
     name: Check with Flake8
     entry: poetry run flake8
     language: system
-    pass_filenames: false
     types: [python]
-    args: [--count, .]
+    args: [--count]
 
   - id: mypy
     name: Validate types with MyPy
