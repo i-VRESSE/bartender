@@ -3,7 +3,8 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Literal
 
-from cryptography.hazmat.primitives import serialization
+from jose import jwk
+from jose.backends.base import Key
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
 from yarl import URL
@@ -71,7 +72,7 @@ class Settings(BaseSettings):
     # User auth
     secret: str = "SECRET"  # TODO should not have default when running in production
 
-    jwt_public_key_path: Path = Path("public_key.pem")
+    public_key: FilePath = Path("public_key.pem")
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)
@@ -84,6 +85,7 @@ class Settings(BaseSettings):
             database URL.
         """
         return URL.build(
+            # TODO switch to sqlite so we don't need to run postgres container
             scheme="postgresql+asyncpg",
             host=self.db_host,
             port=self.db_port,
@@ -93,15 +95,16 @@ class Settings(BaseSettings):
         )
 
     @property
-    def jwt_public_key(self):
+    def jwt_key(self) -> Key:
+        """Public key object.
+
+        Returns:
+            JOSE Key object for public key.
+        """
         # TODO read public key from JWKS endpoint
         # TODO public key content as env variable
-        if not self.jwt_public_key_path.exists():
-            with open(self.jwt_public_key_path, "rb") as key_file:
-                return serialization.load_pem_public_key(
-                    key_file.read(),
-                )
-        raise FileNotFoundError(self.jwt_public_key_path)
+        rsa_public_key = self.public_key.read_bytes()
+        return jwk.construct(rsa_public_key, "RS256")
 
     class Config:
         env_file = ".env"

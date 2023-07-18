@@ -39,11 +39,6 @@ autodoc_typehints = "both"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    # Commonly used libraries, uncomment when used in package
-    # 'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    # 'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-    # 'scikit-learn': ('https://scikit-learn.org/stable/', None),
-    # 'matplotlib': ('https://matplotlib.org/stable/', None),
-    # 'pandas': ('http://pandas.pydata.org/docs/', None),
+    "sqlalchemy": ("https://docs.sqlalchemy.org/en/14/", None),
     "asyncssh": ("https://asyncssh.readthedocs.io/en/latest/", None),
 }

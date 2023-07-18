@@ -91,7 +91,7 @@ async def upload_job(  # noqa: WPS211
         valid = context.applications.keys()
         raise KeyError(f"Invalid application. Valid applications: {valid}")
     _check_role(application, submitter, context)
-    job_id = await job_dao.create_job(upload.filename, application, submitter)
+    job_id = await job_dao.create_job(upload.filename, application, submitter.username)
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
 

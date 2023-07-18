@@ -13,6 +13,7 @@ packages = [{include = "bartender", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+# TODO upgrade to pydantic v2
 fastapi = "^0.95.0"
 uvicorn = {version = "^0.21.1", extras = ["standard"]}
 pydantic = {version = "^1.10.7", extras = ["dotenv"]}
@@ -26,8 +27,8 @@ aiofiles = "^23.1.0"
 asyncssh = "^2.13.1"
 pyyaml = "^6.0"
 arq = "^0.25.0"
-pyjwt = { extras=["crypto"], version = "^2.7.0"}
 fs = "^2.4.16"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"

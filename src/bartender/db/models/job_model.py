@@ -47,7 +47,7 @@ class Job(Base):
         String(length=20),  # noqa: WPS432
         default="new",
     )
-    submitter: Mapped[str] = mapped_column(String(length=200))
+    submitter: Mapped[str] = mapped_column(String(length=254))  # noqa: WPS432
     # Identifier for job used by the scheduler
     internal_id: Mapped[Optional[str]] = mapped_column(
         String(length=200),  # noqa: WPS432

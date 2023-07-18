@@ -29,12 +29,46 @@ BARTENDER_ENVIRONMENT="dev"
 You can read more about BaseSettings class here:
 <https://pydantic-docs.helpmanual.io/usage/settings/>
 
+## Authentication
+
+The bartender web service uses [JWT tokens](https://jwt.io/) for authentication.
+
+The tokens should use the RS256 algorithm,
+which requires a public and private RSA key pair.
+A key pair can be generated with
+
+```bash
+openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa -pubout -in private_key.pem -out public_key.pem
+```
+
+The private key of the RSA key pair is used to generate a token in
+an another web application or with the `bartender generate-token` command.
+
+The public key of the RSA key pair is used to verify that the token comes
+from a trusted source.
+The public key file location is `public_key.pem`
+or value of `BARTENDER_PUBLIC_KEY` environment variable.
+
+The token payload should contain the following claims:
+
+* `sub`: The user id. Used to identifiy who submitted a job.
+* `exp`: The expiration time of the token.
+* `iss`: The issuer of the token. Used to track from where jobs are submitted.
+* `roles`: The roles of the user.
+  See [Applications](#applications) how roles are used.
+
 ## Configuration file
 
-Bartender uses a configuration file for setting up applications and
-destinations. An [example configuration
-file](https://github.com/i-VRESSE/bartender/blob/main/config-example.yaml) is
-shipped with the repository. Here, we explain the options in more detail.
+Bartender uses a configuration file for setting up applications and destinations.
+
+The configuration file is `config.yaml` or
+value of `BARTENDER_CONFIG_FILENAME` environment variable.
+An
+[example configuration file](https://github.com/i-VRESSE/bartender/blob/main/config-example.yaml)
+is shipped with the repository.
+
+Here, we explain the options in more detail.
 
 ## Applications
 
@@ -65,8 +99,7 @@ applications:
   replaced with value of the config key.
 * The `allowed_roles` key holds an array of role names, one of which a submitter
   should have. When key is not set or list is empty then any authorized user
-  is allowed. See [User management docs](user_management.md#roles) how to
-  assign/unassign roles to/from users.
+  is allowed. See [Authentication](#authentication) how to set roles on users.
 * The application command should not overwrite files uploaded during submission
   as these might not be downloaded from location where application is run.
 
