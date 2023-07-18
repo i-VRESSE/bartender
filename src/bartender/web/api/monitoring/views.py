@@ -1,10 +1,15 @@
 from fastapi import APIRouter
+from sqlalchemy import text
+
+from bartender.db.dependencies import CurrentSession
 
 router = APIRouter()
 
 
 @router.get("/health")
-def health_check() -> None:
+async def health_check(
+    session: CurrentSession,
+) -> None:
     """
     Checks the health of a project.
 
@@ -12,4 +17,5 @@ def health_check() -> None:
     """
     # TODO check
     # 1. Database connection is live
+    await session.execute(text("SELECT 1"))
     # 2. Schedulers and filesystems of job destinations are working.
