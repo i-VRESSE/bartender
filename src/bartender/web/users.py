@@ -1,4 +1,4 @@
-from typing import Annotated, Optional, Sequence
+from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException
 from fastapi.security import (
@@ -7,23 +7,15 @@ from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
 )
-from jose import jwt
-from pydantic import BaseModel
-from starlette.status import HTTP_403_FORBIDDEN
+from jose.exceptions import ExpiredSignatureError, JWTClaimsError, JWTError
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from bartender.settings import settings
+from bartender.user import User, token2user
 
 header = HTTPBearer(bearerFormat="jwt", auto_error=False)
 cookie = APIKeyCookie(name="bartenderToken", auto_error=False)
 query = APIKeyQuery(name="token", auto_error=False)
-
-
-class User(BaseModel):
-    """User model."""
-
-    username: str
-    roles: Sequence[str]
-    apikey: str
 
 
 def current_api_token(
@@ -63,45 +55,21 @@ def current_user(
     Args:
         apikey: API key
 
+    Raises:
+        HTTPException: Unauthorized 401 response if API key is invalid.
+
     Returns:
         User
     """
     public_key = settings.jwt_key
-    # TODO catch exceptions and raise 40x error
-    options = {
-        "verify_signature": True,
-        "verify_aud": True,
-        "verify_iat": True,
-        "verify_exp": True,
-        "verify_nbf": True,
-        "verify_iss": True,
-        "verify_sub": True,
-        "verify_jti": True,
-        "verify_at_hash": True,
-        "require_aud": False,
-        "require_iat": False,
-        "require_exp": True,
-        "require_nbf": False,
-        "require_iss": True,
-        "require_sub": True,
-        "require_jti": False,
-        "require_at_hash": False,
-        "leeway": 0,
-    }
-    data = jwt.decode(
-        apikey,
-        public_key,
-        algorithms=["RS256"],
-        # TODO verify more besides exp and public key
-        # like aud, iss, nbf
-        options=options,
-    )
-    return User(
-        username=data["sub"],
-        roles=data["roles"],
-        apikey=apikey,
-        # TODO store issuer in db so we can see from where job was submitted?
-    )
+    try:
+        return token2user(apikey, public_key)
+    except ExpiredSignatureError as exception:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(exception))
+    except JWTClaimsError as exception:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(exception))
+    except JWTError as exception:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(exception))
 
 
 CurrentUser = Annotated[User, Depends(current_user)]

@@ -270,6 +270,7 @@ The destination picker could look something like:
 def picker(
     job_dir: Path,
     application_name: str,
+    user: User,
     context: "Context",
 ) -> str:
   # Calculate size of job_dir in bytes

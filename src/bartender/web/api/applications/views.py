@@ -112,6 +112,7 @@ async def upload_job(  # noqa: WPS211
         job_id,
         job_dir,
         application,
+        submitter,
         job_dao,
         context,
     )
