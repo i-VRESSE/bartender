@@ -23,6 +23,8 @@ RUN poetry install --without=dev --no-interaction --no-ansi
 ENV BARTENDER_HOST=0.0.0.0
 ENV BARTENDER_PORT=8000
 
+# Mounting config.yaml and public_key.pem should be done when running the container
+
 CMD ["/usr/local/bin/bartender", "serve"]
 
 HEALTHCHECK --interval=5m --timeout=3s CMD curl -f http://${BARTENDER_HOST}:${BARTENDER_PORT}/api/health || exit 1

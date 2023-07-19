@@ -9,4 +9,5 @@
 self
 develop
 configuration
+deploy
 ```
