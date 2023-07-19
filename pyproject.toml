@@ -47,6 +47,7 @@ httpx = "^0.22.0"
 types-aiofiles = "^23"
 testcontainers = "^3.7.0"
 types-pyyaml = "^6.0.12.2"
+rsa = "^4.9"
 
 [tool.poetry.group.docs]
 optional = true

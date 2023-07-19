@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -11,6 +12,9 @@ from bartender.filesystems.queue import (
     teardown_file_staging_queue,
 )
 from bartender.settings import settings
+from bartender.user import JwtDecoder
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -26,6 +30,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _setup_db(app)
     _parse_context(app)
     setup_file_staging_queue(app)
+    setup_jwt_decoder(app)
     yield
     await app.state.db_engine.dispose()
     await close_context(app.state.context)
@@ -56,3 +61,18 @@ def _parse_context(app: FastAPI) -> None:
     config = build_config(settings.config_filename)
     app.state.config = config
     app.state.context = build_context(config)
+
+
+def setup_jwt_decoder(app: FastAPI) -> None:
+    """Setup JWT token decoder.
+
+    Args:
+        app: fastAPI application.
+    """
+    # TODO read public key from JWKS endpoint from web application that generates tokens
+    # with settings.jwks = "https://example.com/.well-known/jwks.json"
+    if settings.public_key.exists():
+        app.state.jwt_decoder = JwtDecoder.from_file(settings.public_key)
+    else:
+        logger.warning("JWT public key not found, authentication will not work")
+        app.state.jwt_decoder = None

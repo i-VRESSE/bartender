@@ -3,8 +3,6 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Literal
 
-from jose import jwk
-from jose.backends.base import Key
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
 from yarl import URL
@@ -69,10 +67,8 @@ class Settings(BaseSettings):
     db_base: str = "bartender"
     db_echo: bool = False
 
-    # User auth
-    secret: str = "SECRET"  # TODO should not have default when running in production
-
-    public_key: FilePath = Path("public_key.pem")
+    # RSA public key used to verify JWT tokens
+    public_key: Path = Path("public_key.pem")
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)
@@ -93,18 +89,6 @@ class Settings(BaseSettings):
             password=self.db_pass,
             path=f"/{self.db_base}",
         )
-
-    @property
-    def jwt_key(self) -> Key:
-        """Public key object.
-
-        Returns:
-            JOSE Key object for public key.
-        """
-        # TODO read public key from JWKS endpoint
-        # TODO public key content as env variable
-        rsa_public_key = self.public_key.read_bytes()
-        return jwk.construct(rsa_public_key, "RS256")
 
     class Config:
         env_file = ".env"

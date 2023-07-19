@@ -2,7 +2,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from bartender.web.users import User
+from bartender.user import User
 
 if TYPE_CHECKING:
     from bartender.context import Context

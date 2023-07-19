@@ -5,18 +5,17 @@ from argparse import (
     ArgumentParser,
     RawDescriptionHelpFormatter,
 )
-from datetime import datetime, timedelta
 from importlib.metadata import version
 from pathlib import Path
 from textwrap import dedent
 from typing import Any, Optional
 
 import uvicorn
-from jose import jwt
 
 from bartender.config import build_config
 from bartender.schedulers.arq import ArqSchedulerConfig, run_workers
 from bartender.settings import settings
+from bartender.user import generate_token_subcommand
 
 
 def serve() -> None:
@@ -60,66 +59,6 @@ def perform(config: Path, destination_names: Optional[list[str]] = None) -> None
         raise ValueError("No valid destination found in config file.")
 
     asyncio.run(run_workers(configs))
-
-
-def generate_token(  # noqa: WPS211 -- too many arguments
-    private_key: Path,
-    username: str,
-    roles: list[str],
-    lifetime: int,
-    issuer: str,
-    oformat: str,
-) -> None:
-    """Generate a JSON Web Token (JWT) with the given parameters.
-
-    Args:
-        private_key: Path to the private key file.
-        username: The username to include in the token.
-        roles: A list of roles to include in the token.
-        lifetime: The lifetime of the token in minutes.
-        issuer: The issuer of the token.
-        oformat: The format of the token output. Can be "header" or "string".
-
-    Returns:
-        None
-    """
-    # TODO use scope to allow different actions
-    # no scope could only be used to list applications and check health
-    # scope:read could be used to read your own job
-    # scope:write could be used to allow submission/deletion jobs
-
-    # TODO allow super user to read jobs from all users
-    # by allowing super user to impersonate other users
-    # with act claim
-    # see https://www.rfc-editor.org/rfc/rfc8693.html#name-act-actor-claim
-    # https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-token-claims
-    # https://www.iana.org/assignments/jwt/jwt.xhtml#claims
-    # alternativly a super user could also have 'super' role in roles claims
-
-    # TODO allow job to be readable by users who is member of a group
-    # use groups claims see https://www.iana.org/assignments/jwt/jwt.xhtml#claims
-    # add group column job table, so on submission we store which group can read
-    # the job. Add endpoints to add/remove group to/from existing job
-
-    # TODO allow job to be readable by anonymous users aka without token
-    # Used for storing example jobs or scenarios
-    # User should have super role.
-    # Add public boolena column to job table
-    # Add endpoints to make job public or private
-    # Public job should not expire
-    expire = datetime.utcnow() + timedelta(minutes=lifetime)
-    payload = {
-        "sub": username,
-        "exp": expire,
-        "roles": roles,
-        "iss": issuer,
-    }
-    private_key_body = Path(private_key).read_bytes()
-    token = jwt.encode(payload, private_key_body, algorithm="RS256")
-    if oformat == "header":
-        print(f"Authorization: Bearer {token}")  # noqa: WPS421 -- user feedback
-    else:
-        print(token)  # noqa: WPS421 -- user feedback
 
 
 def build_parser() -> ArgumentParser:
@@ -233,7 +172,7 @@ def add_generate_token_subcommand(
         choices=["header", "plain"],
         help="Format of output",
     )
-    generate_token_sp.set_defaults(func=generate_token)
+    generate_token_sp.set_defaults(func=generate_token_subcommand)
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:

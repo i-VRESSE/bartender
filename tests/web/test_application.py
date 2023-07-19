@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Dict, Generator
 from zipfile import ZipFile
 
-import jwt
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
@@ -48,6 +47,7 @@ async def test_upload(
     job_root_dir: Path,
     tmp_path: Path,
     auth_headers: Dict[str, str],
+    current_user_token: str,
 ) -> None:
     """Test upload of a job archive."""
     url = fastapi_app.url_path_for("upload_job", application="app1")
@@ -61,12 +61,11 @@ async def test_upload(
 
     assert job["state"] == "ok"
 
-    assert_job_dir(job_root_dir, str(job["id"]))
+    assert_job_dir(job_root_dir, str(job["id"]), current_user_token)
 
 
 @pytest.mark.anyio
 async def test_upload_with_role_granted(
-    current_user_with_role: None,
     fastapi_app: FastAPI,
     client: AsyncClient,
     job_root_dir: Path,
@@ -86,35 +85,31 @@ async def test_upload_with_no_role_granted(
     client: AsyncClient,
     job_root_dir: Path,
     tmp_path: Path,
-    auth_headers: Dict[str, str],
+    second_user_token: str,
 ) -> None:
     url = app_with_roles.url_path_for("upload_job", application="app1")
+    headers = {"Authorization": f"Bearer {second_user_token}"}
     with prepare_form_data(tmp_path) as files:
-        response = await client.put(url, files=files, headers=auth_headers)
+        response = await client.put(url, files=files, headers=headers)
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert "Missing role" in response.text
 
 
-def assert_job_dir(job_root_dir: Path, job_id: str) -> None:  # noqa: WPS218
+def assert_job_dir(  # noqa: WPS218
+    job_root_dir: Path,
+    job_id: str,
+    current_user_token: str,
+) -> None:
     job_dir = job_root_dir / job_id
     meta_job_id, meta_job_token = (job_dir / "meta").read_text().splitlines()
     assert meta_job_id == job_id
-    assert jwt_decode(meta_job_token)
+    assert meta_job_token == current_user_token
     assert (job_dir / "job.ini").read_text() == "# Example config file"
     assert (job_dir / "input.csv").read_text() == "# Example input data file"
     assert (job_dir / "stdout.txt").read_text() == " 0  4 21 job.ini\n"
     assert (job_dir / "stderr.txt").read_text() == ""
     assert (job_dir / "returncode").read_text() == "0"
-
-
-def jwt_decode(token: str) -> Dict[str, Any]:
-    # value from fastapi_app fixture
-    key = "testsecret"
-    # values from fastapi_users.authentication.JWTStrategy
-    audience = ["fastapi-users:auth"]
-    algorithms = ["HS256"]
-    return jwt.decode(token, key, audience=audience, algorithms=algorithms)
 
 
 async def wait_for_job_completion(

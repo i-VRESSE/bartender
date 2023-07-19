@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import (
     APIKeyCookie,
     APIKeyQuery,
@@ -8,10 +8,13 @@ from fastapi.security import (
     HTTPBearer,
 )
 from jose.exceptions import ExpiredSignatureError, JWTClaimsError, JWTError
-from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
+from starlette.status import (
+    HTTP_401_UNAUTHORIZED,
+    HTTP_403_FORBIDDEN,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 
-from bartender.settings import settings
-from bartender.user import User, token2user
+from bartender.user import JwtDecoder, User
 
 header = HTTPBearer(bearerFormat="jwt", auto_error=False)
 cookie = APIKeyCookie(name="bartenderToken", auto_error=False)
@@ -47,23 +50,46 @@ def current_api_token(
     raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authenticated")
 
 
+def get_jwt_decoder(request: Request) -> JwtDecoder:
+    """Get JWT decoder from app state.
+
+    Args:
+        request: current request.
+
+    Raises:
+        HTTPException: Internal server error 500 if JWT decoder is not setup.
+
+    Returns:
+        JWT decoder object
+    """
+    try:
+        return request.app.state.jwt_decoder
+    except AttributeError:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="JWT decoder not setup",
+        )
+
+
 def current_user(
     apikey: Annotated[str, Depends(current_api_token)],
+    jwt_decoder: Annotated[JwtDecoder, Depends(get_jwt_decoder)],
 ) -> User:
     """Current user based on API token.
 
     Args:
         apikey: API key
+        jwt_decoder: JWT decoder
 
     Raises:
         HTTPException: Unauthorized 401 response if API key is invalid.
+            Or internal server error 500 if JWT decoder is not setup.
 
     Returns:
         User
     """
-    public_key = settings.jwt_key
     try:
-        return token2user(apikey, public_key)
+        return jwt_decoder(apikey)
     except ExpiredSignatureError as exception:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(exception))
     except JWTClaimsError as exception:
