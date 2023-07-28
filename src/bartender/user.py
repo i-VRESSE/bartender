@@ -68,7 +68,7 @@ class JwtDecoder:
         )
         return User(
             username=data["sub"],
-            roles=data["roles"],
+            roles=data["roles"] if "roles" in data else [],
             apikey=apikey,
             # TODO store issuer in db so we can see from where job was submitted?
         )
