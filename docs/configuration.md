@@ -42,13 +42,12 @@ openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:204
 openssl rsa -pubout -in private_key.pem -out public_key.pem
 ```
 
-The private key of the RSA key pair is used to generate a token in
-an another web application or with the `bartender generate-token` command.
-
-The public key of the RSA key pair is used to verify that the token comes
-from a trusted source.
-The public key file location is `public_key.pem`
-or value of `BARTENDER_PUBLIC_KEY` environment variable.
+The consumer (usually another web application) uses their private key to 
+generate a token. Bartender can then use the corresponding public key to 
+verify that the token comes from the trusted source. To this end, bartender 
+needs to store (a list of) public key(s) that it knows it can trust. The 
+public key should be stored as `public_key.pem` or set through the value 
+of `BARTENDER_PUBLIC_KEY` environment variable.
 
 The token payload should contain the following claims:
 
@@ -57,6 +56,10 @@ The token payload should contain the following claims:
 * `iss`: The issuer of the token. Used to track from where jobs are submitted.
 * `roles`: The roles of the user.
   See [Applications](#applications) how roles are used.
+
+Bartender can also generate its own tokens using the 
+`bartender generate-token` command. In this case bartender needs to have 
+access to its own private key as well. 
 
 ## Configuration file
 
