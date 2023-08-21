@@ -29,6 +29,11 @@ services:
     - type: bind
       source: ../public_key.pem
       target: /app/src/public_key.pem
+    # If you want to generate a token for testing purposes with the `bartender generate-token` command
+    # also mount private key by uncommenting the following lines
+    # - type: bind
+    #   source: ../private_key.pem
+    #   target: /app/src/private_key.pem
     - type: volume
       source: bartender-jobs
       target: /tmp/jobs

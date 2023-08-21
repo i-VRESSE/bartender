@@ -42,7 +42,7 @@ openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:204
 openssl rsa -pubout -in private_key.pem -out public_key.pem
 ```
 
-The private key of the RSA key pair is used to generate a token in
+The private key of the RSA key pair is used to sign a token in
 an another web application or with the `bartender generate-token` command.
 
 The public key of the RSA key pair is used to verify that the token comes
@@ -55,7 +55,7 @@ The token payload should contain the following claims:
 * `sub`: The user id. Used to identifiy who submitted a job.
 * `exp`: The expiration time of the token.
 * `iss`: The issuer of the token. Used to track from where jobs are submitted.
-* `roles`: The roles of the user.
+* `roles`: Optionally. The roles of the user.
   See [Applications](#applications) how roles are used.
 
 ## Configuration file
@@ -87,8 +87,11 @@ applications:
   haddock3:
     command: haddock3 $config
     config: workflow.cfg
+  adminapp:
+    command: some-admin-application $config
+    config: config.yaml
     allowed_roles:
-      - easy
+      - admin  # Only users with admin role can submit jobs for this application
 ```
 
 * The key is the name of the application
@@ -97,8 +100,9 @@ applications:
 * The `command` key is the command executed in the directory of the unpacked
   archive that the consumer uploaded. The `$config` in command string will be
   replaced with value of the config key.
-* The `allowed_roles` key holds an array of role names, one of which a submitter
-  should have. When key is not set or list is empty then any authorized user
+* Optionally, the `allowed_roles` key holds an array of role names,
+  one of which a submitter should have.
+  When key is not set or list is empty then any authorized user
   is allowed. See [Authentication](#authentication) how to set roles on users.
 * The application command should not overwrite files uploaded during submission
   as these might not be downloaded from location where application is run.
