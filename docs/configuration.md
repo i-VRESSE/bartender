@@ -70,6 +70,16 @@ is shipped with the repository.
 
 Here, we explain the options in more detail.
 
+## Job root dir
+
+By default, the files of jobs are stored in `/tmp/jobs`. To change the
+directory, set the `job_root_dir` parameter in the configuration file to a valid
+path.
+
+```yaml
+job_root_dir: /tmp/jobs
+```
+
 ## Applications
 
 Bartender accepts jobs for different applications.
@@ -365,16 +375,6 @@ destination use:
 
 ```yaml
 destination_picker: bartender.picker.pick_round
-```
-
-## Job root dir
-
-By default, the files of jobs are stored in `/tmp/jobs`. To change the
-directory, set the `job_root_dir` parameter in the configuration file to a valid
-path.
-
-```yaml
-job_root_dir: /tmp/jobs
 ```
 
 ## Job flow
