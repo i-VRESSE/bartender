@@ -1,18 +1,21 @@
 import asyncio
-import contextlib
 import sys
-from argparse import ArgumentParser
+from argparse import (
+    ArgumentDefaultsHelpFormatter,
+    ArgumentParser,
+    RawDescriptionHelpFormatter,
+)
 from importlib.metadata import version
 from pathlib import Path
-from typing import Optional
+from textwrap import dedent
+from typing import Any, Optional
 
 import uvicorn
 
 from bartender.config import build_config
-from bartender.db.dao.user_dao import get_user_db
-from bartender.db.session import make_engine, make_session_factory
 from bartender.schedulers.arq import ArqSchedulerConfig, run_workers
 from bartender.settings import settings
+from bartender.user import generate_token_subcommand
 
 
 def serve() -> None:
@@ -26,37 +29,6 @@ def serve() -> None:
         log_level=settings.log_level,
         factory=True,
     )
-
-
-async def make_super_async(email: str) -> None:
-    """Async method to grant a user super rights.
-
-    Args:
-        email: Email of user
-
-    Raises:
-        ValueError: When user can not be found
-    """
-    session_factory = make_session_factory(make_engine())
-    get_user_db_context = contextlib.asynccontextmanager(get_user_db)
-    async with session_factory() as session:
-        async with get_user_db_context(session) as user_db:
-            user = await user_db.get_by_email(email)
-            if user is None:
-                raise ValueError(f"User with {email} not found")
-            await user_db.give_super_powers(user)
-            print(  # noqa: WPS421 -- user feedback on command line
-                f"User with {email} is now super user",
-            )
-
-
-def make_super(email: str) -> None:
-    """Grant a user super rights.
-
-    Args:
-        email: Email of user
-    """
-    asyncio.run(make_super_async(email))
 
 
 def perform(config: Path, destination_names: Optional[list[str]] = None) -> None:
@@ -102,10 +74,6 @@ def build_parser() -> ArgumentParser:
     serve_sp = subparsers.add_parser("serve", help="Serve web service")
     serve_sp.set_defaults(func=serve)
 
-    super_sp = subparsers.add_parser("super", help="Grant super rights to user")
-    super_sp.add_argument("email", help="Email address of logged in user")
-    super_sp.set_defaults(func=make_super)
-
     perform_sp = subparsers.add_parser("perform", help="Async Redis queue job worker")
     perform_sp.add_argument(
         "--config",
@@ -123,7 +91,88 @@ def build_parser() -> ArgumentParser:
     )
     perform_sp.set_defaults(func=perform)
 
+    add_generate_token_subcommand(subparsers)
+
     return parser
+
+
+class Formatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
+    """Format help message for subcommands."""
+
+    pass  # noqa: WPS420, WPS604 -- no need to implement methods
+
+
+def add_generate_token_subcommand(
+    subparsers: Any,
+) -> None:
+    """Add generate-token subcommand to parser.
+
+    Args:
+        subparsers: Subparsers to add generate-token subcommand to.
+    """
+    generate_token_sp = subparsers.add_parser(
+        "generate-token",
+        formatter_class=Formatter,
+        description=dedent(  # noqa: WPS462 -- docs
+            """\
+            Generate token.
+
+            Token is required to consume the protected endpoints.
+
+            Example:
+                ```shell
+                # Generate a rsa key pair
+                openssl genpkey -algorithm RSA -out private_key.pem \\
+                    -pkeyopt rsa_keygen_bits:2048
+                openssl rsa -pubout -in private_key.pem -out public_key.pem
+                # Generate token
+                bartender generate-token --format header > token.txt
+                # Use token
+                curl -X 'GET' \\
+                    'http://127.0.0.1:8000/api/whoami' \\
+                    -H 'accept: application/json' \\
+                    -H @token.txt | jq .
+                ```
+        """,
+        ),
+        help="Generate token.",
+    )
+    generate_token_sp.add_argument(
+        "--private-key",
+        default=Path("private_key.pem"),
+        type=Path,
+        help="Path to RSA private key file",
+    )
+    generate_token_sp.add_argument(
+        "--username",
+        default="someone",
+        help="Username to use in token",
+    )
+    generate_token_sp.add_argument(
+        "--roles",
+        nargs="+",
+        default=["expert", "guru"],
+        help="Roles to use in token",
+    )
+    onehour_in_minutes = 60
+    generate_token_sp.add_argument(
+        "--lifetime",
+        default=onehour_in_minutes,
+        type=int,
+        help="Lifetime of token in minutes",
+    )
+    generate_token_sp.add_argument(
+        "--issuer",
+        default="bartendercli",
+        help="Issuer of token",
+    )
+    generate_token_sp.add_argument(
+        "--oformat",
+        default="plain",
+        choices=["header", "plain"],
+        help="Format of output",
+    )
+    generate_token_sp.set_defaults(func=generate_token_subcommand)
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:

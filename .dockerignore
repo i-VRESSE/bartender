@@ -145,3 +145,5 @@ cython_debug/
 
 # The app config
 /config.yaml
+/private_key.pem
+/public_key.pem

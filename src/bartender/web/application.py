@@ -6,7 +6,6 @@ from fastapi.routing import APIRoute
 
 from bartender.web.api.router import api_router
 from bartender.web.lifespan import lifespan
-from bartender.web.users.router import include_users_routes
 
 
 def get_app() -> FastAPI:
@@ -30,8 +29,6 @@ def get_app() -> FastAPI:
 
     # Main router for the API.
     app.include_router(router=api_router, prefix="/api")
-
-    include_users_routes(app)
 
     use_route_names_as_operation_ids(app)
 

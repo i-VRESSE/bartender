@@ -1,28 +1,23 @@
-import contextlib
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, AsyncGenerator, Callable, Dict, Generator, TypedDict, cast
-from uuid import UUID
+from typing import Any, AsyncGenerator, Callable, Dict, Generator
 
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
-from sqlalchemy import select
+from rsa.key import PrivateKey, PublicKey
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import Mapped
-from starlette import status
 from testcontainers.redis import RedisContainer
 
 from bartender.config import ApplicatonConfiguration, Config, get_config
 from bartender.context import Context, get_context
 from bartender.db.base import Base
-from bartender.db.dao.user_dao import get_user_db
 from bartender.db.dependencies import get_db_session
-from bartender.db.models.user import User
 from bartender.db.utils import create_database, drop_database
 from bartender.destinations import Destination, DestinationConfig
 from bartender.filesystems.local import LocalFileSystem, LocalFileSystemConfig
@@ -35,7 +30,9 @@ from bartender.filesystems.queue import (
 from bartender.picker import pick_first
 from bartender.schedulers.memory import MemoryScheduler, MemorySchedulerConfig
 from bartender.settings import settings
+from bartender.user import JwtDecoder, User, generate_token
 from bartender.web.application import get_app
+from bartender.web.users import get_jwt_decoder
 
 
 @pytest.fixture(scope="session")
@@ -193,11 +190,37 @@ async def demo_file_staging_queue(
 
 
 @pytest.fixture
+def rsa_private_key() -> bytes:
+    # Generating key pair takes a long time, so we use a pre-generated one.
+    return PrivateKey(
+        16527233807183266269587235774365684740774442848897320223621644242162708075059004841994812461818551827813820028470541786594824951798924962833196937230332653347198242638972401822735075360903329143434122437254590842505520000637777584258863217840733503759046884365443875217172374074672632511614003376644212446501060173045618568392384402659352797171568914979982599935263980121157653531287731867867326624158720037621597557065975115568717924320256636245212365326666346692788428023844882564782417147188015148534865863136348561301497209141595301187823693513544644608177477609585687544044700889309819613155368700909410083294879,  # noqa: E501
+        65537,
+        16036992530939857666384806820562994792560983018599070524753516674425944041033725909287518636562966971118059372118454671939892017635061647030707735009056630976522847309766573830251486144100666954825612221376187427673734430940662372641010247831694549713124929695464735289769790874325292877471773224196003464927888430829809896707363739035492071190604807795076177158622133953913251698586467753318006753650104814965278886101243804987384744165994550506467931731657793604361723532290798162824052964643382452657694969218202591179563541368032631796737297278407443583396564933401588994826686823168536008646497707732114719774753,  # noqa: E501
+        3171967619107811069817361866821354854560605851348765969643669560644751648434285601101280062817063639695049513708445583547887807170050138218912545320896949050175144991491657826856804357927098073351793115431246799523325080335397219305826816519226967228208697717903201527652952239459621368951904879478366851746631123668687306758641,  # noqa: E501
+        5210404326836076382067892473139554034909041503501665437923474045215820466047899918700828184145139200036788456268704594084460724877064607773425827543403046979191340362536974491902533344983810692931792294710343456528614405630142620960411772083200797551925562926976727904019758115353594552719,  # noqa: E501
+    ).save_pkcs1()
+
+
+@pytest.fixture
+def rsa_publc_key() -> bytes:
+    return PublicKey(
+        16527233807183266269587235774365684740774442848897320223621644242162708075059004841994812461818551827813820028470541786594824951798924962833196937230332653347198242638972401822735075360903329143434122437254590842505520000637777584258863217840733503759046884365443875217172374074672632511614003376644212446501060173045618568392384402659352797171568914979982599935263980121157653531287731867867326624158720037621597557065975115568717924320256636245212365326666346692788428023844882564782417147188015148534865863136348561301497209141595301187823693513544644608177477609585687544044700889309819613155368700909410083294879,  # noqa: E501
+        65537,
+    ).save_pkcs1()
+
+
+@pytest.fixture
+def demo_jwt_decoder(rsa_publc_key: bytes) -> JwtDecoder:
+    return JwtDecoder.from_bytes(rsa_publc_key)
+
+
+@pytest.fixture
 async def fastapi_app(
     dbsession: AsyncSession,
     demo_config: Config,
     demo_context: Context,
     demo_file_staging_queue: FileStagingQueue,
+    demo_jwt_decoder: JwtDecoder,
 ) -> FastAPI:
     """Fixture for creating FastAPI app.
 
@@ -211,7 +234,7 @@ async def fastapi_app(
     application.dependency_overrides[
         get_file_staging_queue
     ] = lambda: demo_file_staging_queue
-    settings.secret = "testsecret"  # noqa: S105
+    application.dependency_overrides[get_jwt_decoder] = lambda: demo_jwt_decoder
     return application
 
 
@@ -232,70 +255,26 @@ async def client(
         yield ac
 
 
-async def new_user(
-    email: str,
-    password: str,
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-) -> Any:
-    new_user = {"email": email, "password": password}
-    register_url = fastapi_app.url_path_for("register:register")
-    return await client.post(register_url, json=new_user)
-
-
-MockUser = TypedDict("MockUser", {"id": str, "email": str, "password": str})
-
-
-@pytest.fixture
-async def current_user_model(fastapi_app: FastAPI, client: AsyncClient) -> MockUser:
-    email = "me@example.com"
-    password = "mysupersecretpassword"  # noqa: S105 needed for tests
-    response = await new_user(email, password, fastapi_app, client)
-    body = response.json()
-    body["password"] = password
-    return body
-
-
-@pytest.fixture
-def current_user_id(current_user_model: MockUser) -> str:
-    return current_user_model["id"]
-
-
-async def new_user_token(
-    email: str,
-    password: str,
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-) -> str:
-    await new_user(email, password, fastapi_app, client)
-    login_url = fastapi_app.url_path_for("auth:local.login")
-    login_response = await client.post(
-        login_url,
-        data={
-            "grant_type": "password",
-            "username": email,
-            "password": password,
-        },
+def generate_test_token(rsa_private_key: bytes, username: str, roles: list[str]) -> str:
+    # Expire long enough in the future so it does not expire during tests.
+    expire = datetime.utcnow() + timedelta(days=1)
+    return generate_token(
+        private_key=rsa_private_key,
+        username=username,
+        roles=roles,
+        issuer="pytest",
+        expire=expire,
     )
-    return login_response.json()["access_token"]
 
 
 @pytest.fixture
-async def current_user_token(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-    current_user_model: MockUser,
-) -> str:
-    """Registers dummy user and returns its auth token.
+def current_user_token(rsa_private_key: bytes) -> str:
+    return generate_test_token(rsa_private_key, "me@example.com", ["role1"])
 
-    :return: token
-    """
-    return await new_user_token(
-        current_user_model["email"],
-        current_user_model["password"],
-        fastapi_app,
-        client,
-    )
+
+@pytest.fixture
+async def second_user_token(rsa_private_key: bytes) -> str:
+    return generate_test_token(rsa_private_key, "user@example.com", [])
 
 
 @pytest.fixture
@@ -309,26 +288,11 @@ def auth_headers(current_user_token: str) -> Dict[str, str]:
 
 
 @pytest.fixture
-async def current_user(dbsession: AsyncSession, current_user_token: str) -> User:
-    # User.email is typed as str in fastapi-user package, which confuses mypy,
-    # cast it to correct type
-    user_column = cast(Mapped[str], User.email)
-    query = select(User).where(user_column == "me@example.com")
-    result = await dbsession.execute(query)
-    return result.unique().scalar_one()
-
-
-@pytest.fixture
-async def second_user_token(fastapi_app: FastAPI, client: AsyncClient) -> str:
-    """Registers second dummy user and returns its auth token.
-
-    :return: token
-    """
-    return await new_user_token(
-        "user2@example.com",
-        "mysupersecretpassword2",
-        fastapi_app,
-        client,
+def current_user(current_user_token: str) -> User:
+    return User(
+        username="me@example.com",
+        roles=["role1"],
+        apikey=current_user_token,
     )
 
 
@@ -346,39 +310,9 @@ def redis_dsn(redis_server: RedisContainer) -> str:
 
 
 @pytest.fixture
-async def current_user_is_super(dbsession: AsyncSession, current_user_id: str) -> None:
-    # First user can not become super user by calling routes,
-    # Must make user user super by talking to db directly.
-    get_user_db_context = contextlib.asynccontextmanager(get_user_db)
-    async with get_user_db_context(dbsession) as user_db:
-        user = await user_db.get(UUID(current_user_id))
-        if user is None:
-            raise ValueError(f"User with {current_user_id} id not found")
-        await user_db.give_super_powers(user)
-
-
-@pytest.fixture
 def app_with_roles(
     fastapi_app: FastAPI,
     demo_applications: dict[str, ApplicatonConfiguration],
 ) -> FastAPI:
     demo_applications["app1"].allowed_roles = ["role1"]
     return fastapi_app
-
-
-@pytest.fixture
-async def current_user_with_role(
-    app_with_roles: FastAPI,
-    current_user_is_super: None,
-    current_user_id: str,
-    auth_headers: Dict[str, str],
-    client: AsyncClient,
-) -> None:
-    url = app_with_roles.url_path_for(
-        "assign_role_to_user",
-        role_id="role1",
-        user_id=current_user_id,
-    )
-    response = await client.put(url, headers=auth_headers)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json() == ["role1"]

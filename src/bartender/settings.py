@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseSettings, Field
 from pydantic.types import FilePath
@@ -67,24 +67,8 @@ class Settings(BaseSettings):
     db_base: str = "bartender"
     db_echo: bool = False
 
-    # User auth
-    secret: str = "SECRET"  # TODO should not have default when running in production
-
-    # Social OAuth logins
-    # must set to non '' to have GitHub social login enabled
-    github_client_id: str = ""
-    github_client_secret: str = ""
-    github_redirect_url: Optional[str] = None
-    orcidsandbox_client_id: str = ""
-    orcidsandbox_client_secret: str = ""
-    orcidsandboxd_redirect_url: Optional[str] = None
-    orcid_client_id: str = ""
-    orcid_client_secret: str = ""
-    orcid_redirect_url: Optional[str] = None
-    egi_client_id: str = ""
-    egi_client_secret: str = ""
-    egi_redirect_url: Optional[str] = None
-    egi_environment: Literal["production", "development", "demo"] = "production"
+    # RSA public key used to verify JWT tokens
+    public_key: Path = Path("public_key.pem")
 
     # Settings for configuration
     config_filename: FilePath = Field(default_factory=default_config_filename)
@@ -97,6 +81,7 @@ class Settings(BaseSettings):
             database URL.
         """
         return URL.build(
+            # TODO switch to sqlite so we don't need to run postgres container
             scheme="postgresql+asyncpg",
             host=self.db_host,
             port=self.db_port,

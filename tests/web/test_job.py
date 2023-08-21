@@ -15,11 +15,11 @@ from starlette import status
 from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import State
-from bartender.db.models.user import User
 from bartender.destinations import Destination
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.queue import FileStagingQueue
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
+from bartender.user import User
 from bartender.web.api.job.views import retrieve_job, retrieve_jobs
 
 somedt = datetime(2022, 1, 1, tzinfo=timezone.utc)
@@ -36,7 +36,7 @@ async def mock_db_of_job(
     return await dao.create_job(
         name="testjob1",
         application="app1",
-        submitter=current_user,
+        submitter=current_user.username,
         created_on=somedt,
         updated_on=somedt,
     )
@@ -398,7 +398,7 @@ async def prepare_job(
     job_id = await dao.create_job(
         name="testjob1",
         application="app1",
-        submitter=current_user,
+        submitter=current_user.username,
         created_on=somedt,
         updated_on=somedt,
     )

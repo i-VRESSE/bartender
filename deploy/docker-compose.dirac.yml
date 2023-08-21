@@ -31,10 +31,17 @@ services:
       BARTENDER_DB_USER: bartender
       BARTENDER_DB_PASS: bartender
       BARTENDER_DB_BASE: bartender
+      BARTENDER_PUBLIC_KEY: /app/src/public_key.pem
     volumes:
     - type: bind
       source: ../config.yaml
       target: /app/src/config.yaml
+    - type: bind
+      source: ../public_key.pem
+      target: /app/src/public_key.pem
+    - type: volume
+      source: bartender-jobs
+      target: /tmp/jobs
 
   db:
     image: postgres:15.2-bullseye
@@ -55,7 +62,7 @@ services:
   migrator:
     image: bartender-with-dirac:${BARTENDER_VERSION:-latest}
     restart: "no"
-    command: '"alembic upgrade head"'
+    command: alembic upgrade head
     environment:
       BARTENDER_DB_HOST: bartender-db
       BARTENDER_DB_PORT: 5432
@@ -65,11 +72,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-    - type: bind
-      source: ../config.yaml
-      target: /app/src/config.yaml
 
 volumes:
+  bartender-jobs:
+    name: bartender-jobs
   bartender-db-data:
     name: bartender-db-data

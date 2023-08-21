@@ -20,7 +20,7 @@ from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
-from bartender.web.users.manager import CurrentUser
+from bartender.web.users import CurrentUser
 
 router = APIRouter()
 
@@ -52,7 +52,7 @@ async def retrieve_jobs(  # noqa: WPS211
     # TODO now list jobs that user submitted,
     # later also list jobs which are visible by admin
     # or are shared with current user
-    jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user)
+    jobs = await job_dao.get_all_jobs(limit=limit, offset=offset, user=user.username)
     # get current state for each job from scheduler
     await sync_states(
         jobs,
@@ -94,7 +94,7 @@ async def retrieve_job(
         # or are shared with current user
         # TODO When job has state==ok then include URL to applications result page
         # TODO When job has state==error then include URL to error page
-        job = await job_dao.get_job(jobid=jobid, user=user)
+        job = await job_dao.get_job(jobid=jobid, user=user.username)
         if job.destination is not None:
             destination = context.destinations[job.destination]
             await sync_state(

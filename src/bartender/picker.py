@@ -2,15 +2,18 @@ from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from bartender.user import User
+
 if TYPE_CHECKING:
     from bartender.context import Context
 
-DestinationPicker = Callable[[Path, str, "Context"], str]
+DestinationPicker = Callable[[Path, str, User, "Context"], str]
 
 
 def pick_first(
     job_dir: Path,
     application_name: str,
+    submitter: User,
     context: "Context",
 ) -> str:
     """Always picks first available destination from context.
@@ -18,6 +21,7 @@ def pick_first(
     Args:
         job_dir: Location where job input files are located.
         application_name: Application name that should be run.
+        submitter: User that submitted the job.
         context: Context with applications and destinations.
 
     Returns:
@@ -37,6 +41,7 @@ class PickRound:
         self,
         job_dir: Path,
         application_name: str,
+        submitter: User,
         context: "Context",
     ) -> str:
         """Always picks the next destination.
@@ -48,6 +53,7 @@ class PickRound:
         Args:
             job_dir: Location where job input files are located.
             application_name: Application name that should be run.
+            submitter: User that submitted the job.
             context: Context with applications and destinations.
 
         Returns:

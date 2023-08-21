@@ -4,12 +4,14 @@ from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
+from bartender.web.users import User
 
 
-async def submit(
+async def submit(  # noqa: WPS211
     external_job_id: int,
     job_dir: Path,
     application: str,
+    submitter: User,
     job_dao: JobDAO,
     context: Context,
 ) -> None:
@@ -19,6 +21,7 @@ async def submit(
         external_job_id: External job id.
         job_dir: Location where job input files are located.
         application: Application name that should be run.
+        submitter: User that submitted the job.
         job_dao: JobDAO object.
         context: Context with applications and destinations.
     """
@@ -27,6 +30,7 @@ async def submit(
     destination_name = context.destination_picker(
         job_dir,
         application,
+        submitter,
         context,
     )
     destination = context.destinations[destination_name]

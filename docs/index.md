@@ -8,6 +8,6 @@
 
 self
 develop
-user_management
 configuration
+deploy
 ```
