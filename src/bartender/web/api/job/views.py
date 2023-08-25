@@ -1,7 +1,15 @@
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, PlainTextResponse
 from fs.copy import copy_fs
 from fs.osfs import OSFS
@@ -193,6 +201,54 @@ def retrieve_job_files(
         # instead of always presenting save as dialog.
         content_disposition_type="inline",
     )
+
+
+@router.post("/{jobid}/files/{path:path}", status_code=status.HTTP_201_CREATED)
+async def add_job_file(
+    path: str,
+    job_dir: CurrentCompletedJobDir,
+    file: UploadFile = File(description="File to add to job."),
+):
+    """Upload file to completed job.
+
+    Can only create new file, existing files cannot be overwritten.
+
+    After job is completed you can do additional analysis on the output files.
+    This endpoint allows you to upload the analysis results to the job directory.
+
+    Args:
+        path: Name of file you want to retrieve uploaded file as.
+        file: File to upload.
+        job_dir: Directory with job files.
+
+    Raises:
+        HTTPException: When file already exists or is outside job directory.
+
+    Returns:
+        Created 201
+    """
+    try:
+        full_path = (job_dir / path).expanduser().resolve(strict=True)
+        if not full_path.is_relative_to(job_dir):
+            raise FileNotFoundError()
+        if not full_path.exists():
+            raise FileExistsError()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        ) from exc
+    except FileExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="File or directory already exists",
+        ) from exc
+    async with open(full_path, "wb") as out_file:
+        CHUNK_SIZE = 1024 * 1024  # 1Mb
+        while content := await file.read(CHUNK_SIZE):
+            if isinstance(content, str):
+                break  # type narrowing for mypy, content is always bytes
+            await out_file.write(content)
 
 
 CurrentJob = Annotated[Job, Depends(retrieve_job)]
