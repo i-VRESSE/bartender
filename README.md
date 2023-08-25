@@ -25,7 +25,7 @@ functions or supply your own.
 
 Bartender can be used as the computational backend for a web application, the
 web application should guide visitors into the submission and show the results.
-See <https://github.com/i-VRESSE/bartended-haddock3> for an example.
+See <https://github.com/i-VRESSE/haddock3-webapp> for an example.
 
 Documentation for users and developers is available
 at <https://i-vresse-bartender.readthedocs.io> .
