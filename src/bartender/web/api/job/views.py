@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
+from aiofiles import open
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -207,8 +208,8 @@ def retrieve_job_files(
 async def add_job_file(
     path: str,
     job_dir: CurrentCompletedJobDir,
-    file: UploadFile = File(description="File to add to job."),
-):
+    file: UploadFile = File(description="File to add to job directory."),
+) -> None:
     """Upload file to completed job.
 
     Can only create new file, existing files cannot be overwritten.
@@ -227,27 +228,21 @@ async def add_job_file(
     Returns:
         Created 201
     """
-    try:
-        full_path = (job_dir / path).expanduser().resolve(strict=True)
-        if not full_path.is_relative_to(job_dir):
-            raise FileNotFoundError()
-        if not full_path.exists():
-            raise FileExistsError()
-    except FileNotFoundError as exc:
+    full_path = (job_dir / path).expanduser().resolve()
+    if not full_path.is_relative_to(job_dir):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="File not found",
-        ) from exc
-    except FileExistsError as exc:
+        )
+    if full_path.exists():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="File or directory already exists",
-        ) from exc
+        )
+    full_path.parent.mkdir(parents=True, exist_ok=True)
     async with open(full_path, "wb") as out_file:
-        CHUNK_SIZE = 1024 * 1024  # 1Mb
-        while content := await file.read(CHUNK_SIZE):
-            if isinstance(content, str):
-                break  # type narrowing for mypy, content is always bytes
+        chunk_size = 1024 * 1024  # 1Mb
+        while content := await file.read(chunk_size):
             await out_file.write(content)
 
 

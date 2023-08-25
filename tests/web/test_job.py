@@ -1,5 +1,5 @@
-import io
 from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional
 from unittest.mock import Mock
@@ -499,6 +499,41 @@ async def test_files_given_bad_paths(
 
 
 @pytest.mark.anyio
+async def test_add_job_file(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    job_id = str(mock_ok_job)
+    path = "somewhere/somefile.txt"
+    content = "some content".encode("utf-8")
+    url = fastapi_app.url_path_for("add_job_file", jobid=job_id, path=path)
+    response = await client.post(url, headers=auth_headers, files={"file": content})
+
+    assert response.status_code == status.HTTP_201_CREATED
+    response2 = await client.get(url, headers=auth_headers)
+    assert response2.read() == content
+
+
+@pytest.mark.anyio
+async def test_add_job_file_already_exists(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    job_id = str(mock_ok_job)
+    content = "some content".encode("utf-8")
+    # somefile.txt is created in mock_ok_job fixture
+    path = "somefile.txt"
+    url = fastapi_app.url_path_for("add_job_file", jobid=job_id, path=path)
+    response = await client.post(url, headers=auth_headers, files={"file": content})
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+
+
+@pytest.mark.anyio
 async def test_stdout(
     fastapi_app: FastAPI,
     client: AsyncClient,
@@ -650,7 +685,7 @@ async def test_job_directory_as_archive(
 
     fs = ZipFS if archive_format == ".zip" else TarFS
 
-    with io.BytesIO(response.content) as responsefile:
+    with BytesIO(response.content) as responsefile:
         with fs(responsefile) as archive:
             stdout = archive.readtext("stdout.txt")
 
@@ -677,7 +712,7 @@ async def test_job_subdirectory_as_archive(
         response.headers["content-disposition"] == 'attachment; filename="output.zip"'
     )
 
-    with io.BytesIO(response.content) as responsefile:
+    with BytesIO(response.content) as responsefile:
         with ZipFS(responsefile) as archive:
             stdout = archive.readtext("readme.txt")
 
