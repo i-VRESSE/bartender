@@ -11,3 +11,11 @@ destinations:
       slots: 1
     filesystem:
       type: local
+interactive_applications:
+  wcl:
+    command: cat README.md | wc -l > README.md.count
+    description: Count the number of lines in README.md file.
+    input:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      additionalProperties: false
+      type: object

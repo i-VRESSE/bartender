@@ -12,6 +12,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from bartender.config import Config, InteractiveApplicationConfiguration
 from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import State
@@ -682,3 +683,66 @@ async def test_job_subdirectory_as_archive(
             stdout = archive.readtext("readme.txt")
 
     assert stdout == "hi from output dir"
+
+
+@pytest.fixture
+def demo_interactive_application(
+    demo_config: Config,
+) -> InteractiveApplicationConfiguration:
+    config = InteractiveApplicationConfiguration(
+        command="echo hello",
+        input={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        },
+        timeout=10.0,
+    )
+    demo_config.interactive_applications["wcm"] = config
+    yield config
+    del demo_config.interactive_applications["wcm"]
+
+
+@pytest.mark.anyio
+async def test_list_interactive_apps(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    demo_interactive_application: InteractiveApplicationConfiguration,
+) -> None:
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for("list_interactive_apps", jobid=job_id)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    result = response.json()
+    assert result == ["wcm"]
+    assert response.headers["content-type"] == "application/json"
+
+
+@pytest.mark.anyio
+async def test_get_interactive_app(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    demo_interactive_application: InteractiveApplicationConfiguration,
+) -> None:
+    job_id = str(mock_ok_job)
+    url = fastapi_app.url_path_for(
+        "get_interactive_app",
+        jobid=job_id,
+        application="wcm",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "command": "echo hello",
+        "input": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        },
+        "timeout": 10.0,
+    }
+    assert response.headers["content-type"] == "application/json"

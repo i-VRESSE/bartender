@@ -12,7 +12,6 @@ from bartender.filesystems.queue import (
     teardown_file_staging_queue,
 )
 from bartender.settings import settings
-from bartender.tinyapps import initialize_tinyapps_routes
 from bartender.user import JwtDecoder
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _parse_context(app)
     setup_file_staging_queue(app)
     setup_jwt_decoder(app)
-    initialize_tinyapps_routes(app)
     yield
     await app.state.db_engine.dispose()
     await close_context(app.state.context)

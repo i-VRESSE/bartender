@@ -6,7 +6,8 @@ from tempfile import gettempdir
 from typing import Annotated, Any
 
 from fastapi import Depends, Request
-from pydantic import BaseModel, Field, validator
+from jsonschema import Draft202012Validator
+from pydantic import BaseModel, Field, confloat, validator
 from pydantic.types import DirectoryPath
 from yaml import safe_load as load_yaml
 
@@ -49,6 +50,78 @@ class ApplicatonConfiguration(BaseModel):
         return JobDescription(job_dir=job_dir, command=command)
 
 
+class InteractiveApplicationConfiguration(BaseModel):
+    """Configuration for an interactive application.
+
+    Interactive apps that can be run on a completed job.
+
+    Interactive apps are small interactive calculations that
+    can be run within a request-response cycle (<30s).
+
+    A interactive app should
+
+    * be quick to run (<60s)
+    * produce very little output (stdout, stderr, files)
+    * in the job directory only write new files and overwrite its own files.
+    * not have any arguments that can leak information,
+        for example paths to files outside the job directory.
+
+    Example:
+
+        Given completed job 123 run interactive app rescore with:
+
+        ```python
+        response = client.post('/api/job/123/interactiveapp/rescore', json={
+            'module': 1,
+            'w_elec': 0.2,
+            'w_vdw': 0.2,
+            'w_desolv': 0.2,
+            'w_bsa': 0.1,
+            'w_air': 0.3,
+        })
+        if response.json()['returncode'] == 0:
+            # Find the results in the job directory somewhere
+            files = client.get('/api/job/123/files')
+        ```
+
+    Attributes:
+        command: Shell command template to run in job directory.
+            Use Python string template syntax to substitute variables from request body.
+        input: JSON schema of request body.
+            Dialect of JSON Schema should be draft 2020-12.
+            Root should be an object and its properties should be scalar.
+        description: Description of the interactive app.
+        timeout: Maximum time in seconds to wait for command to finish.
+    """
+
+    command: str
+    input: dict[Any, Any]
+    description: str = ""
+    timeout: confloat(gt=0, le=60) = 30.0
+
+    @validator("input")
+    def check_input(cls, v):
+        """Validate input schema.
+
+        Args:
+            v: The unvalidated input schema.
+
+        Raises:
+            ValueError: When input schema is invalid.
+        """
+        Draft202012Validator.check_schema(v)
+        if v["type"] != "object":
+            raise ValueError("input should have type=object")
+        if "properties" in v:
+            for prop in v["properties"].values():
+                # TODO add enum support aka {"enum": ["red", "amber", "green"]}
+                if prop["type"] not in {"string", "integer", "number", "boolean"}:
+                    raise ValueError(
+                        "input properties be scalar",
+                    )
+        return v
+
+
 class Config(BaseModel):
     """Bartender configuration.
 
@@ -66,6 +139,7 @@ class Config(BaseModel):
     )
     job_root_dir: DirectoryPath = Path(gettempdir()) / "jobs"
     destination_picker: str = "bartender.picker:pick_first"
+    interactive_applications: dict[str, InteractiveApplicationConfiguration] = {}
 
     class Config:
         validate_all = True

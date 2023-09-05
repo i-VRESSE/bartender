@@ -8,6 +8,7 @@ from fastapi import (
     File,
     HTTPException,
     Query,
+    Request,
     UploadFile,
 )
 from fastapi.responses import FileResponse, PlainTextResponse
@@ -21,11 +22,13 @@ from sqlalchemy.exc import NoResultFound
 from starlette import status
 
 from bartender.async_utils import async_wrap
+from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import CompletedStates, Job
 from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
+from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users import CurrentUser
@@ -471,3 +474,70 @@ def _parse_subdirectory(path: str, job_dir: Path) -> Path:
         ) from exc
 
     return subdirectory
+
+
+@router.get("/{jobid}/interactive")
+def list_interactive_apps(config: CurrentConfig) -> list[str]:
+    """List interactive apps that can be run on a completed job.
+
+    Returns:
+        List of interactive apps.
+    """
+    return list(config.interactive_applications.keys())
+
+
+@router.get("/{jobid}/interactive/{application}", response_model_exclude_defaults=True)
+def get_interactive_app(
+    application: str,
+    config: CurrentConfig,
+) -> InteractiveApplicationConfiguration:
+    """Get interactive app configuration.
+
+    Args:
+        application: The interactive application.
+        config: The bartender configuration.
+
+    Returns:
+        The interactive application configuration.
+
+    """
+    return config.interactive_applications[application]
+
+
+@router.post(
+    "/{jobid}/interactive/{application}",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        # As we pick application with path parameter,
+                        # we can't show schema of application here.
+                        # So we just show minimal schema.
+                    },
+                },
+            },
+        },
+    },
+)
+async def run_interactive_app(
+    request: Request,
+    job_dir: CurrentCompletedJobDir,
+    application: Annotated[
+        InteractiveApplicationConfiguration,
+        Depends(get_interactive_app),
+    ],
+) -> InteractiveAppResult:
+    """Run interactive app on a completed job.
+
+    Args:
+        request: The request.
+        job_dir: The job directory.
+        application: The interactive application.
+
+    Returns:
+        The result of running the interactive application.
+    """
+    payload = await request.json()
+    return await run(job_dir, payload, application)
