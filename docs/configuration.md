@@ -407,3 +407,61 @@ graph TD
         P --> Q[Copy output files\nfrom compute node\nto grid storage]
     end
 ```
+
+## Interactive applications
+
+Interactive applications run quick commands (< 30 seconds)
+that use the output of a completed job.
+
+For example, a user can run a job that generates a scores
+(Haddock3 with caprieval module) and then run a command that uses
+the score dependencies to re-calculate the score.
+
+The interactive application can be configured in the `config.yaml`
+ file under `interactive_applications` key.
+
+For example
+
+```yaml
+interactive_applications:
+  rescore:
+    command: >
+        haddock3-int_rescore
+          --run-dir output
+          --module $module
+          --w_elec $w_elec --w_vdw $w_vdw --w_desolv $w_desolv --w_bsa $w_bsa --w_air $w_air
+    description: Rescore a HADDOCK run with different weights.
+    input:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      additionalProperties: false
+      properties:
+        module:
+          type: integer
+        w_air:
+          type: number
+        w_bsa:
+          type: number
+        w_desolv:
+          type: number
+        w_elec:
+          type: number
+        w_vdw:
+          type: number
+      required:
+      - module
+      - w_elec
+      - w_vdw
+      - w_desolv
+      - w_bsa
+      - w_air
+      type: object
+```
+
+A JSON body can be sent to the
+`POST /api/job/{jobid}/interactive/{application}` endpoint.
+The JSON body should be validated against
+the JSON schema in the `input` key.
+The JSON body will be used, with the `command` key as template,
+to construct the command string.
+The command is executed in the directory of the completed job
+and the log output is returned.
