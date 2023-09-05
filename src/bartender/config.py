@@ -100,7 +100,7 @@ class InteractiveApplicationConfiguration(BaseModel):
     timeout: confloat(gt=0, le=60) = 30.0
 
     @validator("input")
-    def check_input(cls, v):
+    def check_input(cls, v: dict[Any, Any]) -> dict[Any, Any]:
         """Validate input schema.
 
         Args:

@@ -420,11 +420,12 @@ def _parse_subdirectory(path: str, job_dir: Path) -> Path:
 
 
 @router.get("/{jobid}/interactive")
-def list_interactive_apps(config: CurrentConfig) -> list[str]:
+def list_interactive_apps(jobid: int, config: CurrentConfig) -> list[str]:
     """List interactive apps that can be run on a completed job.
 
     Args:
         config: The bartender configuration.
+        jobid: The job identifier.
 
     Returns:
         List of interactive apps.
@@ -435,12 +436,14 @@ def list_interactive_apps(config: CurrentConfig) -> list[str]:
 @router.get("/{jobid}/interactive/{application}", response_model_exclude_defaults=True)
 def get_interactive_app(
     application: str,
+    jobid: int,
     config: CurrentConfig,
 ) -> InteractiveApplicationConfiguration:
     """Get interactive app configuration.
 
     Args:
         application: The interactive application.
+        jobid: The job identifier.
         config: The bartender configuration.
 
     Returns:

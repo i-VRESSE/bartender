@@ -72,7 +72,7 @@ async def test_run_invalid_payload(
 )
 def test_build_command(
     app_config: InteractiveApplicationConfiguration,
-    payload: object,
+    payload: dict[Any, Any],
     expected: str,
 ) -> None:
     command = _build_command(payload, app_config)

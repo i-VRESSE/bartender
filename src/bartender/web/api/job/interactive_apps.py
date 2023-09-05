@@ -83,7 +83,7 @@ def _build_command(
 
 async def run(
     job_dir: Path,
-    payload: object,
+    payload: dict[Any, Any],
     app: InteractiveApplicationConfiguration,
 ) -> InteractiveAppResult:
     """

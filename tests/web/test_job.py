@@ -698,8 +698,7 @@ def demo_interactive_application(
         timeout=10.0,
     )
     demo_config.interactive_applications["wcm"] = config
-    yield config
-    del demo_config.interactive_applications["wcm"]
+    return config
 
 
 @pytest.mark.anyio
