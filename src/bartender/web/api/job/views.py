@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from fs.copy import copy_fs
 from fs.osfs import OSFS
@@ -423,6 +423,9 @@ def _parse_subdirectory(path: str, job_dir: Path) -> Path:
 def list_interactive_apps(config: CurrentConfig) -> list[str]:
     """List interactive apps that can be run on a completed job.
 
+    Args:
+        config: The bartender configuration.
+
     Returns:
         List of interactive apps.
     """
@@ -447,6 +450,12 @@ def get_interactive_app(
     return config.interactive_applications[application]
 
 
+CurrentInteractiveAppConf = Annotated[
+    InteractiveApplicationConfiguration,
+    Depends(get_interactive_app),
+]
+
+
 @router.post(
     "/{jobid}/interactive/{application}",
     openapi_extra={
@@ -467,10 +476,7 @@ def get_interactive_app(
 async def run_interactive_app(
     request: Request,
     job_dir: CurrentCompletedJobDir,
-    application: Annotated[
-        InteractiveApplicationConfiguration,
-        Depends(get_interactive_app),
-    ],
+    application: CurrentInteractiveAppConf,
 ) -> InteractiveAppResult:
     """Run interactive app on a completed job.
 

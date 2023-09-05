@@ -3,6 +3,7 @@ from asyncio.subprocess import PIPE
 from pathlib import Path
 from shlex import quote
 from string import Template
+from typing import Any
 
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
@@ -64,7 +65,10 @@ async def _shell(job_dir: Path, command: str, timeout: float) -> InteractiveAppR
     )
 
 
-def _build_command(payload: object, app: InteractiveApplicationConfiguration) -> str:
+def _build_command(
+    payload: dict[Any, Any],
+    app: InteractiveApplicationConfiguration,
+) -> str:
     # TODO rewrap validation exception into HTTPValidationError
     # TODO cache validator
     validator = Draft202012Validator(app.input)
