@@ -426,9 +426,9 @@ For example
 interactive_applications:
   rescore:
     command: >
-        haddock3-int_rescore
-          --run-dir output
-          --module $module
+        haddock3-int_rescore \
+          --run-dir output \
+          --module $module \
           --w_elec $w_elec --w_vdw $w_vdw --w_desolv $w_desolv --w_bsa $w_bsa --w_air $w_air
     description: Rescore a HADDOCK run with different weights.
     input:

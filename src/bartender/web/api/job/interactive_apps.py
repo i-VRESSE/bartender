@@ -77,7 +77,7 @@ def _build_command(
     # TODO to allow nested payload we could use a Jinja2 template
     # but need to be careful with newlines
     return Template(app.command).substitute(
-        {key: quote(value) for key, value in payload.items()},
+        {key: quote(str(value)) for key, value in payload.items()},
     )
 
 
