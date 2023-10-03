@@ -26,3 +26,82 @@ destinations:
       slots: 1
     filesystem:
       type: local
+interactive_applications:
+  rescore:
+    command: >
+      haddock3-re score \
+        --w_elec $w_elec --w_vdw $w_vdw --w_desolv $w_desolv --w_bsa $w_bsa --w_air $w_air \
+        $capri_dir
+    description: Rescore a HADDOCK run with different weights.
+    input:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      additionalProperties: false
+      properties:
+        capri_dir:
+          type: string
+        w_air:
+          type: number
+        w_bsa:
+          type: number
+        w_desolv:
+          type: number
+        w_elec:
+          type: number
+        w_vdw:
+          type: number
+      required:
+      - capri_dir
+      - w_elec
+      - w_vdw
+      - w_desolv
+      - w_bsa
+      - w_air
+      type: object
+  clustrmsd:
+    command: >
+      haddock3-re clustrmsd \
+      --n_clusters $n_clusters --distance $distance --threshold $threshold \
+      $clustrmsd_dir
+    description: Recluster a HADDOCK run with RSMD and different parameters.
+    input:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      additionalProperties: false
+      properties:
+        clustrmsd_dir:
+          type: string
+        distance:
+          type: number
+        n_clusters:
+          type: number
+        threshold:
+          type: number
+      required:
+      - clustrmsd_dir
+      - distance
+      - n_clusters
+      - threshold
+      type: object
+  reclustfcc:
+    command: >
+      haddock3-re clustfcc \
+      --fraction $fraction --strictness $strictness --threshold $threshold \
+      $clustfcc_dir
+    description: Recluster a HADDOCK run with FCC and different parameters.
+    input:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      additionalProperties: false
+      properties:
+        clustfcc_dir:
+          type: string
+        fraction:
+          type: number
+        strictness:
+          type: number
+        threshold:
+          type: number
+      required:
+      - clustfcc_dir
+      - fraction
+      - strictness
+      - threshold
+      type: object
