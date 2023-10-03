@@ -10,21 +10,6 @@ from pydantic import BaseModel
 
 from bartender.config import InteractiveApplicationConfiguration
 
-"""
-Notes for self:
-
-Pros:
-* Can use job directory without having to copy stuff around
-Cons:
-* Each interactiveapp will have own openapi endpoint.
-    The generated openapi client will be specific to bartender instance.
-    To use bartender with haddock3-webapp (which has generated client)
-    you already need to configure haddock3 as application in config.yaml
-    so this is not a big deal.
-* Different then rest of bonvinlab apps.
-* Trust interactiveapp to not do anything wrong in job directory.
-"""
-
 
 class InteractiveAppResult(BaseModel):
     """Represents the result of running a InteractiveApp.
@@ -65,10 +50,19 @@ async def _shell(job_dir: Path, command: str, timeout: float) -> InteractiveAppR
     )
 
 
-def _build_command(
+def build_command(
     payload: dict[Any, Any],
     app: InteractiveApplicationConfiguration,
 ) -> str:
+    """Builds a command string for an interactive application.
+
+    Args:
+        payload: A dictionary containing the input data for the application.
+        app: An object containing the configuration for the interactive application.
+
+    Returns:
+        str: A string representing the command to be executed.
+    """
     # TODO rewrap validation exception into HTTPValidationError
     # TODO cache validator
     validator = Draft202012Validator(app.input)
@@ -97,7 +91,7 @@ async def run(
     Returns:
         The result of running the interactive application.
     """
-    command = _build_command(payload, app)
+    command = build_command(payload, app)
     return await _shell(job_dir, command, timeout=app.timeout)
     # TODO return path where results of command are stored
     # TODO to not overload the system limit number of concurrent running shell commands

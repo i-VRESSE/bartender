@@ -70,9 +70,10 @@ class InteractiveApplicationConfiguration(BaseModel):
 
         Given completed job 123 run interactive app rescore with:
 
-        ```python
+    .. code-block:: python
+
         response = client.post('/api/job/123/interactiveapp/rescore', json={
-            'module': 1,
+            'capri_dir': 'output/06_caprieval',
             'w_elec': 0.2,
             'w_vdw': 0.2,
             'w_desolv': 0.2,
@@ -82,7 +83,6 @@ class InteractiveApplicationConfiguration(BaseModel):
         if response.json()['returncode'] == 0:
             # Find the results in the job directory somewhere
             files = client.get('/api/job/123/files')
-        ```
 
     Attributes:
         command: Shell command template to run in job directory.
@@ -97,10 +97,10 @@ class InteractiveApplicationConfiguration(BaseModel):
     command: str
     input: dict[Any, Any]
     description: str = ""
-    timeout: confloat(gt=0, le=60) = 30.0
+    timeout: confloat(gt=0, le=60) = 30.0  # type: ignore
 
     @validator("input")
-    def check_input(cls, v: dict[Any, Any]) -> dict[Any, Any]:
+    def check_input(cls, v: dict[Any, Any]) -> dict[Any, Any]:  # noqa: N805, WPS111
         """Validate input schema.
 
         Args:
@@ -108,12 +108,16 @@ class InteractiveApplicationConfiguration(BaseModel):
 
         Raises:
             ValueError: When input schema is invalid.
+
+        Returns:
+            The validated input schema.
         """
         Draft202012Validator.check_schema(v)
         if v["type"] != "object":
             raise ValueError("input should have type=object")
-        if "properties" in v:
-            for prop in v["properties"].values():
+        properties = v.get("properties", None)
+        if properties:
+            for prop in properties.values():
                 # TODO add enum support aka {"enum": ["red", "amber", "green"]}
                 if prop["type"] not in {"string", "integer", "number", "boolean"}:
                     raise ValueError(

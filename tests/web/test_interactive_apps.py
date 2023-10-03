@@ -6,7 +6,7 @@ from jsonschema import ValidationError
 
 from bartender.web.api.job.interactive_apps import (
     InteractiveApplicationConfiguration,
-    _build_command,
+    build_command,
     run,
 )
 
@@ -75,5 +75,5 @@ def test_build_command(
     payload: dict[Any, Any],
     expected: str,
 ) -> None:
-    command = _build_command(payload, app_config)
+    command = build_command(payload, app_config)
     assert command == expected
