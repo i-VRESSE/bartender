@@ -57,7 +57,7 @@ interactive_applications:
       - w_bsa
       - w_air
       type: object
-  clustrmsd:
+  reclustrmsd:
     command: >
       haddock3-re clustrmsd \
       --n_clusters $n_clusters --distance $distance --threshold $threshold \
