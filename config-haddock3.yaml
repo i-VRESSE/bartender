@@ -83,8 +83,8 @@ interactive_applications:
       type: object
   reclustfcc:
     command: >
-      haddock3-re clustfcc \
-      --fraction $fraction --strictness $strictness --threshold $threshold \
+      haddock3-re clustfcc
+      --fraction $fraction --strictness $strictness --threshold $threshold
       $clustfcc_dir
     description: Recluster a HADDOCK run with FCC and different parameters.
     input:
