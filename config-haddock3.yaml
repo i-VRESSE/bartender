@@ -6,19 +6,19 @@ applications:
   # Below are other haddock3 commands,
   # that could be hosted by bartender web service.
   # TODO add support for label and parameters keys
-  haddock3-pp:
-    label: HADDOCK3 preprocess PDB files
-    command: haddock3-pp --output-directory . *.pdb
-  haddock3-analyse:
-    command: haddock3-analyse --run-dir . --modules $modules
-    parameters:
-      modules:
-        type: array
-        items:
-          type: int
-  haddock3-score:
-    command: haddock3-score --outputpdb --outputpsf $config
-    config: complex.pdb
+  # haddock3-pp:
+  #   label: HADDOCK3 preprocess PDB files
+  #   command: haddock3-pp --output-directory . *.pdb
+  # haddock3-analyse:
+  #   command: haddock3-analyse --run-dir . --modules $modules
+  #   parameters:
+  #     modules:
+  #       type: array
+  #       items:
+  #         type: int
+  # haddock3-score:
+  #   command: haddock3-score --outputpdb --outputpsf $config
+  #   config: complex.pdb
 destinations:
   local:
     scheduler:
@@ -59,8 +59,8 @@ interactive_applications:
       type: object
   reclustrmsd:
     command: >
-      haddock3-re clustrmsd \
-      --n_clusters $n_clusters --distance $distance --threshold $threshold \
+      haddock3-re clustrmsd
+      --n_clusters $n_clusters --distance $distance --threshold $threshold
       $clustrmsd_dir
     description: Recluster a HADDOCK run with RSMD and different parameters.
     input:
