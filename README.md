@@ -52,8 +52,11 @@ at <https://i-vresse-bartender.readthedocs.io> .
         -e "POSTGRES_PASSWORD=bartender" \
         -e "POSTGRES_USER=bartender" \
         -e "POSTGRES_DB=bartender" \
+        --mount type=volume,source=bartender-db,target=/var/lib/postgresql/data \
         postgres:15.2-bullseye
     ```
+
+    (Use `docker volume rm bartender-db` to remove the database`)
 
 1. Create tables in the database
 
