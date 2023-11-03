@@ -84,7 +84,7 @@ interactive_applications:
   reclustfcc:
     command: >
       haddock3-re clustfcc
-      --fraction $fraction --strictness $strictness --threshold $threshold
+      --fraction_cutoff $fraction_cutoff --strictness $strictness --threshold $threshold
       $clustfcc_dir
     description: Recluster a HADDOCK run with FCC and different parameters.
     input:
@@ -93,7 +93,7 @@ interactive_applications:
       properties:
         clustfcc_dir:
           type: string
-        fraction:
+        fraction_cutoff:
           type: number
         strictness:
           type: number
@@ -101,7 +101,7 @@ interactive_applications:
           type: number
       required:
       - clustfcc_dir
-      - fraction
+      - fraction_cutoff
       - strictness
       - threshold
       type: object
