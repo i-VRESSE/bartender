@@ -60,7 +60,8 @@ interactive_applications:
   reclustrmsd:
     command: >
       haddock3-re clustrmsd
-      --n_clusters $n_clusters --distance $distance --threshold $threshold
+      --criterion $criterion
+      --n_clusters $n_clusters --clust_cutoff $clust_cutoff --min_population $min_population
       $clustrmsd_dir
     description: Recluster a HADDOCK run with RSMD and different parameters.
     input:
@@ -69,22 +70,25 @@ interactive_applications:
       properties:
         clustrmsd_dir:
           type: string
-        distance:
+        criterion:
+          type: string
+        clust_cutoff:
           type: number
         n_clusters:
           type: number
-        threshold:
+        min_population:
           type: number
       required:
       - clustrmsd_dir
-      - distance
+      - criterion
+      - clust_cutoff
       - n_clusters
-      - threshold
+      - min_population
       type: object
   reclustfcc:
     command: >
       haddock3-re clustfcc
-      --fraction_cutoff $fraction_cutoff --strictness $strictness --threshold $threshold
+      --clust_cutoff $clust_cutoff --strictness $strictness --min_population $min_population
       $clustfcc_dir
     description: Recluster a HADDOCK run with FCC and different parameters.
     input:
@@ -93,15 +97,15 @@ interactive_applications:
       properties:
         clustfcc_dir:
           type: string
-        fraction_cutoff:
+        clust_cutoff:
           type: number
         strictness:
           type: number
-        threshold:
+        min_population:
           type: number
       required:
       - clustfcc_dir
-      - fraction_cutoff
+      - clust_cutoff
       - strictness
-      - threshold
+      - min_population
       type: object
