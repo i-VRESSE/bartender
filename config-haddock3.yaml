@@ -30,8 +30,8 @@ interactive_applications:
   rescore:
     command: >
       haddock3-re score \
-        --w_elec $w_elec --w_vdw $w_vdw --w_desolv $w_desolv --w_bsa $w_bsa --w_air $w_air \
-        $capri_dir
+        --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}} \
+        {{ capri_dir }}
     description: Rescore a HADDOCK run with different weights.
     input:
       $schema: https://json-schema.org/draft/2020-12/schema
@@ -60,9 +60,15 @@ interactive_applications:
   reclustrmsd:
     command: >
       haddock3-re clustrmsd
-      --criterion $criterion
-      --n_clusters $n_clusters --clust_cutoff $clust_cutoff --min_population $min_population
-      $clustrmsd_dir
+      {% if criterion == 'maxclust' -%}
+      --n_clusters {{n_clusters|q}}
+      {% else -%}
+      --clust_cutoff {{clust_cutoff|q}}
+      {% endif -%}
+      {% if min_population -%}
+      --min_population {{min_population|q}}
+      {% endif -%}
+      {{clustrmsd_dir|q}}
     description: Recluster a HADDOCK run with RSMD and different parameters.
     input:
       $schema: https://json-schema.org/draft/2020-12/schema
@@ -72,6 +78,7 @@ interactive_applications:
           type: string
         criterion:
           type: string
+          enum: [maxclust, distance]
         clust_cutoff:
           type: number
         n_clusters:
@@ -79,17 +86,14 @@ interactive_applications:
         min_population:
           type: number
       required:
-      - clustrmsd_dir
       - criterion
-      - clust_cutoff
-      - n_clusters
-      - min_population
+      - clustrmsd_dir
       type: object
   reclustfcc:
     command: >
       haddock3-re clustfcc
-      --clust_cutoff $clust_cutoff --strictness $strictness --min_population $min_population
-      $clustfcc_dir
+      --clust_cutoff {{clust_cutoff|q}} --strictness {{strictness|q}} --min_population {{min_population|q}}
+      {{clustfcc_dir|q}}
     description: Recluster a HADDOCK run with FCC and different parameters.
     input:
       $schema: https://json-schema.org/draft/2020-12/schema

@@ -2,9 +2,9 @@ from asyncio import create_subprocess_shell, wait_for
 from asyncio.subprocess import PIPE
 from pathlib import Path
 from shlex import quote
-from string import Template
 from typing import Any
 
+from jinja2 import Environment
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
 
@@ -50,6 +50,12 @@ async def _shell(job_dir: Path, command: str, timeout: float) -> InteractiveAppR
     )
 
 
+template_environment = (
+    Environment()  # noqa: S701 -- used to generate shell commands not HTML
+)
+template_environment.filters["q"] = lambda variable: quote(str(variable))
+
+
 def build_command(
     payload: dict[Any, Any],
     app: InteractiveApplicationConfiguration,
@@ -68,11 +74,8 @@ def build_command(
     validator = Draft202012Validator(app.input)
     validator.validate(payload)
 
-    # TODO to allow nested payload we could use a Jinja2 template
-    # but need to be careful with newlines
-    return Template(app.command).substitute(
-        {key: quote(str(value)) for key, value in payload.items()},
-    )
+    template = template_environment.from_string(app.command)
+    return template.render(**payload)
 
 
 async def run(

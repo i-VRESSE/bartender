@@ -14,7 +14,7 @@ from bartender.web.api.job.interactive_apps import (
 @pytest.fixture
 def app_config() -> InteractiveApplicationConfiguration:
     return InteractiveApplicationConfiguration(
-        command="cat ${input_file} | wc -m  > ${output_file}",
+        command="cat {{ input_file|q }} | wc -m  > {{ output_file|q }}",
         input={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
@@ -76,4 +76,36 @@ def test_build_command(
     expected: str,
 ) -> None:
     command = build_command(payload, app_config)
+    assert command == expected
+
+
+@pytest.mark.parametrize(
+    "payload, expected",
+    [
+        (
+            {},
+            "ls",
+        ),
+        (
+            {"recursive": True},
+            "ls --recursive",
+        ),
+        (
+            {"recursive": False},
+            "ls",
+        ),
+    ],
+)
+def test_build_command_optional_field(payload: dict[Any, Any], expected: str) -> None:
+    config = InteractiveApplicationConfiguration(
+        command="ls{% if recursive %} --recursive{% endif %}",
+        input={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+                "recursive": {"type": "boolean"},
+            },
+        },
+    )
+    command = build_command(payload, config)
     assert command == expected
