@@ -29,10 +29,11 @@ destinations:
 interactive_applications:
   rescore:
     command: >
-      haddock3-re score \
-        --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}} \
-        {{ capri_dir }}
+      haddock3-re score
+      --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}}
+      {{ capri_dir|q }}
     description: Rescore a HADDOCK run with different weights.
+    job_application: haddock3
     input:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
@@ -70,6 +71,7 @@ interactive_applications:
       {% endif -%}
       {{clustrmsd_dir|q}}
     description: Recluster a HADDOCK run with RSMD and different parameters.
+    job_application: haddock3
     input:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
@@ -95,6 +97,7 @@ interactive_applications:
       --clust_cutoff {{clust_cutoff|q}} --strictness {{strictness|q}} --min_population {{min_population|q}}
       {{clustfcc_dir|q}}
     description: Recluster a HADDOCK run with FCC and different parameters.
+    job_application: haddock3
     input:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false

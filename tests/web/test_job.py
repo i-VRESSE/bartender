@@ -745,3 +745,68 @@ async def test_get_interactive_app(
         "timeout": 10.0,
     }
     assert response.headers["content-type"] == "application/json"
+
+
+@pytest.mark.anyio
+async def test_run_interactive_app_invalid_jobapp(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    demo_config: Config,
+) -> None:
+    config = InteractiveApplicationConfiguration(
+        command="echo hello",
+        input={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        },
+        timeout=10.0,
+        job_application="app2",  # mock_ok_job has app1
+    )
+    demo_config.interactive_applications["wcm"] = config
+    job_id = str(mock_ok_job)
+
+    url = fastapi_app.url_path_for(
+        "run_interactive_app",
+        jobid=job_id,
+        application="wcm",
+    )
+    response = await client.post(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.json() == {"detail": 'Job was not run with application "app1"'}
+
+
+@pytest.mark.anyio
+async def test_run_interactive_app_invalid_requestbody(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    demo_config: Config,
+) -> None:
+    config = InteractiveApplicationConfiguration(
+        command="echo hello",
+        input={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": False,
+        },
+        timeout=10.0,
+        job_application="app1",  # mock_ok_job has app1
+    )
+    demo_config.interactive_applications["wcm"] = config
+    job_id = str(mock_ok_job)
+
+    url = fastapi_app.url_path_for(
+        "run_interactive_app",
+        jobid=job_id,
+        application="wcm",
+    )
+    response = await client.post(url, headers=auth_headers, json={"foo": "bar"})
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.json() == {
+        "detail": "Additional properties are not allowed ('foo' was unexpected)",
+    }

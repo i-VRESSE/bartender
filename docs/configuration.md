@@ -413,55 +413,80 @@ graph TD
 Interactive applications run quick commands (< 30 seconds)
 that use the output of a completed job.
 
-For example, a user can run a job that generates a scores
-(Haddock3 with caprieval module) and then run a command that uses
-the score dependencies to re-calculate the score.
-
 The interactive application can be configured in the `config.yaml`
- file under `interactive_applications` key.
+file under `interactive_applications` key.
 
-For example
+For example, a user can run a job that generates a scores
+(Haddock3 with caprieval module) and then run a command that
+re-calculates the score with different weights.
 
 ```yaml
 interactive_applications:
-  rescore:
-    command: >
-        haddock3-int_rescore \
-          --run-dir output \
-          --module $module \
-          --w_elec $w_elec --w_vdw $w_vdw --w_desolv $w_desolv --w_bsa $w_bsa --w_air $w_air
-    description: Rescore a HADDOCK run with different weights.
-    input:
-      $schema: https://json-schema.org/draft/2020-12/schema
-      additionalProperties: false
-      properties:
-        module:
-          type: integer
-        w_air:
-          type: number
-        w_bsa:
-          type: number
-        w_desolv:
-          type: number
-        w_elec:
-          type: number
-        w_vdw:
-          type: number
-      required:
-      - module
-      - w_elec
-      - w_vdw
-      - w_desolv
-      - w_bsa
-      - w_air
-      type: object
+    rescore:
+        command: >
+            haddock3-re score
+            --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}}
+            {{ capri_dir|q }}
+        description: Rescore a HADDOCK run with different weights.
+        job_application: haddock3
+        input:
+            $schema: https://json-schema.org/draft/2020-12/schema
+            additionalProperties: false
+            properties:
+                capri_dir:
+                    type: string
+                w_air:
+                    type: number
+                w_bsa:
+                    type: number
+                w_desolv:
+                    type: number
+                w_elec:
+                    type: number
+                w_vdw:
+                    type: number
+            required:
+                - capri_dir
+                - w_elec
+                - w_vdw
+                - w_desolv
+                - w_bsa
+                - w_air
+            type: object
 ```
 
 A JSON body can be sent to the
 `POST /api/job/{jobid}/interactive/{application}` endpoint.
-The JSON body should be validated against
-the JSON schema in the `input` key.
-The JSON body will be used, with the `command` key as template,
-to construct the command string.
+
+The JSON body will be validated against the JSON schema
+(version 2020-12) in the `input` key.
+
+The validated JSON body will be used, with the `command` value
+as a [Jinja template](https://palletsprojects.com/p/jinja/),
+to render the command string.
+
 The command is executed in the directory of the completed job
 and the log output is returned.
+
+In the command template make sure to use the `|q` filter so the
+user supplied values are [shell-escaped](https://docs.python.org/3/library/shlex.html#shlex.quote).
+Also to prevent unintended newlines in the rendered command use `>` in YAML.
+
+The `job_application` key is to only allow to run interactive applications in jobs
+that were submitted for that application.
+If not set then any applications job is allowed.
+
+### Embedded files
+
+Files can be embedded in the JSON body of the request.
+The value should be base64 encoded string.
+In the input schema for property value use something like
+
+```yaml
+type: string
+contentEncoding: base64
+contentMediaType: image/png
+```
+
+In the command template the property key will point to
+a temporary file with the base64 decoded content.

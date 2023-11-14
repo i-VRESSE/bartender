@@ -8,6 +8,7 @@ from fs.osfs import OSFS
 from fs.tarfs import TarFS
 from fs.walk import Walker
 from fs.zipfs import ZipFS
+from jsonschema import ValidationError
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
@@ -426,6 +427,7 @@ def list_interactive_apps(jobid: int, config: CurrentConfig) -> list[str]:
     Args:
         config: The bartender configuration.
         jobid: The job identifier.
+            It is not used, but there for consistency.
 
     Returns:
         List of interactive apps.
@@ -444,6 +446,7 @@ def get_interactive_app(
     Args:
         application: The interactive application.
         jobid: The job identifier.
+            It is not used, but there for consistency.
         config: The bartender configuration.
 
     Returns:
@@ -479,6 +482,7 @@ CurrentInteractiveAppConf = Annotated[
 async def run_interactive_app(
     request: Request,
     job_dir: CurrentCompletedJobDir,
+    job: CurrentJob,
     application: CurrentInteractiveAppConf,
 ) -> InteractiveAppResult:
     """Run interactive app on a completed job.
@@ -486,10 +490,26 @@ async def run_interactive_app(
     Args:
         request: The request.
         job_dir: The job directory.
+        job: The job.
         application: The interactive application.
 
     Returns:
         The result of running the interactive application.
+
+    Raises:
+        HTTPException: When job was not run with
+            the required application or the payload is invalid.
     """
+    if application.job_application and application.job_application != job.application:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f'Job was not run with application "{job.application}"',
+        )
     payload = await request.json()
-    return await run(job_dir, payload, application)
+    try:
+        return await run(job_dir, payload, application)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.message,
+        ) from exc

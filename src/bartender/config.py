@@ -90,14 +90,21 @@ class InteractiveApplicationConfiguration(BaseModel):
         input: JSON schema of request body.
             Dialect of JSON Schema should be draft 2020-12.
             Root should be an object and its properties should be scalar.
+        summary: Summary of the interactive app.
         description: Description of the interactive app.
         timeout: Maximum time in seconds to wait for command to finish.
+        job_application: Name of the application that generated the job.
+            If not set, the interactive app can be run on any job.
+            If set, the interactive app can only be run on jobs
+            that were uploaded to given application.
     """
 
     command: str
     input: dict[Any, Any]
-    description: str = ""
+    summary: str | None = None
+    description: str | None = None
     timeout: confloat(gt=0, le=60) = 30.0  # type: ignore
+    job_application: str | None = None
 
     @validator("input")
     def check_input(cls, v: dict[Any, Any]) -> dict[Any, Any]:  # noqa: N805, WPS111
@@ -115,15 +122,10 @@ class InteractiveApplicationConfiguration(BaseModel):
         Draft202012Validator.check_schema(v)
         if v["type"] != "object":
             raise ValueError("input should have type=object")
-        properties = v.get("properties", None)
-        if properties:
-            for prop in properties.values():
-                # TODO add enum support aka {"enum": ["red", "amber", "green"]}
-                if prop["type"] not in {"string", "integer", "number", "boolean"}:
-                    raise ValueError(
-                        "input properties be scalar",
-                    )
         return v
+
+
+InteractiveApplicationConfigurations = dict[str, InteractiveApplicationConfiguration]
 
 
 class Config(BaseModel):
@@ -143,7 +145,7 @@ class Config(BaseModel):
     )
     job_root_dir: DirectoryPath = Path(gettempdir()) / "jobs"
     destination_picker: str = "bartender.picker:pick_first"
-    interactive_applications: dict[str, InteractiveApplicationConfiguration] = {}
+    interactive_applications: InteractiveApplicationConfigurations = {}
 
     class Config:
         validate_all = True

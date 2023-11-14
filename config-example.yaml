@@ -13,9 +13,21 @@ destinations:
       type: local
 interactive_applications:
   wcl:
-    command: cat README.md | wc -l > README.md.count
-    description: Count the number of lines in README.md file.
+    command: >
+      {% set flag = {
+        'lines': '-l',
+        'words': '-w',
+        'chars': '-m',
+        'bytes': '-c',
+      }[what] -%}
+      cat README.md | wc {{ flag|q }} > README.md.count
+    description: Count the number of lines, words, chars or bytes in README.md file.
     input:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       type: object
+      properties:
+        what:
+          type: string
+          enum: [lines, words, chars, bytes]
+          default: lines

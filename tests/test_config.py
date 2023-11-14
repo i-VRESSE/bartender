@@ -3,10 +3,17 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from jsonschema import SchemaError
 from pydantic import ValidationError
 from yaml import safe_dump as yaml_dump
 
-from bartender.config import ApplicatonConfiguration, Config, build_config, get_config
+from bartender.config import (
+    ApplicatonConfiguration,
+    Config,
+    InteractiveApplicationConfiguration,
+    build_config,
+    get_config,
+)
 from bartender.destinations import DestinationConfig
 from bartender.filesystems.local import LocalFileSystemConfig
 from bartender.filesystems.sftp import SftpFileSystemConfig
@@ -130,3 +137,30 @@ def test_get_config(demo_config: Config) -> None:
 
     expected = demo_config
     assert config == expected
+
+
+class TestInteractiveApplicationConfiguration:
+    def test_check_input_valid_schema(self) -> None:
+        input_schema = {
+            "type": "object",
+            "properties": {"message": {"type": "string"}},
+            "required": ["message"],
+        }
+        config = InteractiveApplicationConfiguration(
+            command="echo {{ message }}",
+            input=input_schema,
+        )
+        assert config.input == input_schema
+
+    def test_check_input_invalid_schema(self) -> None:
+        input_schema = {"type": "incorrect"}
+        with pytest.raises(
+            SchemaError,
+            match="is not valid under any of the given schemas",
+        ):
+            InteractiveApplicationConfiguration(command="hostname", input=input_schema)
+
+    def test_check_input_not_a_object(self) -> None:
+        input_schema = {"type": "string"}
+        with pytest.raises(ValueError, match="input should have type=object"):
+            InteractiveApplicationConfiguration(command="hostname", input=input_schema)
