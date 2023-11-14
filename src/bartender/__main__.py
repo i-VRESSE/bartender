@@ -151,7 +151,7 @@ def add_generate_token_subcommand(
     generate_token_sp.add_argument(
         "--roles",
         nargs="+",
-        default=["expert", "guru"],
+        default=[],
         help="Roles to use in token",
     )
     onehour_in_minutes = 60
