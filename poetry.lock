@@ -2103,16 +2103,21 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 
 [[package]]
 name = "pytest-env"
-version = "0.6.2"
-description = "py.test plugin that allows you to add environment variables."
+version = "1.1.1"
+description = "pytest plugin that allows you to add environment variables."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest-env-0.6.2.tar.gz", hash = "sha256:7e94956aef7f2764f3c147d216ce066bf6c42948bb9e293169b1b1c880a580c2"},
+    {file = "pytest_env-1.1.1-py3-none-any.whl", hash = "sha256:2b71b37c6810f28bec790a7b373c777af87352b3a359b3de0edb9d24df5cf8b3"},
+    {file = "pytest_env-1.1.1.tar.gz", hash = "sha256:1efb8acce1f6431196150f3b30673443ff05a6fabff64539a9495cd2248adf9e"},
 ]
 
 [package.dependencies]
-pytest = ">=2.6.0"
+pytest = ">=7.4.3"
+tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
+
+[package.extras]
+test = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "pytest-mock (>=3.12)"]
 
 [[package]]
 name = "python-dotenv"
@@ -3420,4 +3425,4 @@ tokenize-rt = ">=2.1"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "5ec4666f05037bba69addd93576ebd9802e770ad7bbf880898af85f6bdc98b6a"
+content-hash = "0ff8a710eb340665b008ccd9f8b7cbee951a559ed83398bf8c7bed2de23ad1f0"
