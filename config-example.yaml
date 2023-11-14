@@ -2,7 +2,7 @@ job_root_dir: /tmp/jobs
 destination_picker: bartender.picker:pick_first
 applications:
   wc:
-    command: wc config
+    command: wc $config
     config: README.md
 destinations:
   local:
