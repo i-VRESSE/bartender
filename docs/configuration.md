@@ -411,11 +411,11 @@ graph TD
 ## Interactive applications
 
 Interactive applications run quick commands (< 30 seconds)
-that use the output of a completed job.
+on the web server that use the output of a completed job.
 
 An interactive app should
 
-* be quick to run (<60s)
+* be quick to run (< 30 seconds)
 * produce very little output (stdout, stderr, files)
 * in the job directory only write new files or overwrite its own files.
 * not have any arguments that can leak information,
@@ -425,7 +425,7 @@ The interactive application can be configured in the `config.yaml`
 file under `interactive_applications` key.
 
 For example, a user can run a job that generates scores
-(Haddock3 with caprieval module) and then run a command that
+(Haddock3 with caprieval module) and then run an interactive application that
 re-calculates the scores with different weights.
 
 ```yaml
@@ -470,7 +470,7 @@ For the example above the endpoint could be `POST /api/job/1/interactive/rescore
 The JSON body will be validated against the JSON schema
 (version 2020-12) defined under the `input_schema` key.
 
-The `command_template` value is as a [Jinja template](https://palletsprojects.com/p/jinja/).
+The `command_template` value is a [Jinja template](https://palletsprojects.com/p/jinja/)
 and will be used to render the validated JSON body into a command string.
 
 The command is executed in the directory of the completed job

@@ -4,16 +4,15 @@ from base64 import b64decode
 from contextlib import asynccontextmanager
 from os.path import join
 from pathlib import Path
-from shlex import quote
 from typing import Any, AsyncGenerator, Literal
 
 from aiofiles import open
 from aiofiles.tempfile import TemporaryDirectory
-from jinja2 import Environment
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
 
 from bartender.config import InteractiveApplicationConfiguration
+from bartender.template_environment import template_environment
 
 
 class InteractiveAppResult(BaseModel):
@@ -53,17 +52,6 @@ async def _shell(job_dir: Path, command: str, timeout: float) -> InteractiveAppR
         stderr=stderr.decode(),
         stdout=stdout.decode(),
     )
-
-
-template_environment = (
-    Environment(  # noqa: S701 -- used to generate shell commands not HTML
-        autoescape=False,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-)
-# TODO find way to always quote variables without having to use q filter
-template_environment.filters["q"] = lambda variable: quote(str(variable))
 
 
 def build_command(
@@ -163,8 +151,10 @@ def get_path_in_payload(data: dict[Any, Any], path: str) -> Any | None:
     Get the value at the specified path in the given dictionary.
 
     Args:
-        data: The dictionary to search for the value.
+        data: The dictionary or list to search for the value.
         path: The path to the value, separated by dots.
+            Can be nested. For example, "foo.bar.1" will set the value of
+            data["foo"]["bar"][1].
 
     Returns:
         The value at the specified path, or None if the path does not exist.
@@ -180,7 +170,7 @@ def set_path_in_payload(data: dict[Any, Any], path: str, value: Any) -> None:
     Args:
         data: The dictionary to modify.
         path: The path to set the value for.
-            Can be nested. For example, "foo.bar[1]" will set the value of
+            Can be nested. For example, "foo.bar.1" will set the value of
             data["foo"]["bar"][1].
         value: The value to set for the path.
 
@@ -198,7 +188,7 @@ async def stage_embedded_file(
     encoding: MediaEncoding,
     media_dir: str,
 ) -> None:
-    """State embedded file.
+    """Stage embedded file.
 
     Extracts an embedded file from the given payload,
     writes it to disk in the specified media directory,

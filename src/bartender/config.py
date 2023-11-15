@@ -6,7 +6,6 @@ from tempfile import gettempdir
 from typing import Annotated, Any
 
 from fastapi import Depends, Request
-from jinja2 import Template as JinjaTemplate
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, Field, confloat, root_validator, validator
 from pydantic.types import DirectoryPath
@@ -14,6 +13,7 @@ from yaml import safe_load as load_yaml
 
 from bartender.destinations import DestinationConfig, default_destinations
 from bartender.schedulers.abstract import JobDescription
+from bartender.template_environment import template_environment
 
 
 class ApplicatonConfiguration(BaseModel):
@@ -128,7 +128,7 @@ class InteractiveApplicationConfiguration(BaseModel):
         Returns:
             The validated command template.
         """
-        JinjaTemplate(v)
+        template_environment.from_string(v)
         return v
 
 

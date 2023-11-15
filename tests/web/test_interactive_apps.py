@@ -186,3 +186,55 @@ async def test_run_with_embedded_files(
     }
     result = await run(job_dir, payload, config)
     assert result.returncode == 0
+
+
+@pytest.mark.skip(reason="Not implemented yet")
+@pytest.mark.anyio
+async def test_run_with_nested_embedded_files(
+    job_dir: Path,
+) -> None:
+    template = (
+        "cmp {{ file1|q }} {{ object.file2|q }} && cmp {{ array.0|q }} {{ array.1|q }}"
+    )
+    input_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            "file1": {"type": "string", "title": "File in job directory"},
+            "object": {
+                "type": "object",
+                "properties": {
+                    "file2": {
+                        "type": "string",
+                        "title": "Embedded file to compare file1 with",
+                        "contentMediaType": "text/plain",
+                    },
+                },
+            },
+            "array": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "title": "Embedded file to compare file1 with",
+                    "contentMediaType": "text/plain",
+                },
+            },
+        },
+        "required": ["file1", "object", "array"],
+    }
+    config = InteractiveApplicationConfiguration(
+        command_template=dedent(template),
+        input_schema=input_schema,
+    )
+    payload = {
+        "file1": "input.txt",
+        "object": {
+            "file2": "hello world",
+        },
+        "array": [
+            "hello world",
+            "hello world",
+        ],
+    }
+    result = await run(job_dir, payload, config)
+    assert result.returncode == 0
