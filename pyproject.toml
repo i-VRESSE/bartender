@@ -14,7 +14,7 @@ packages = [{include = "bartender", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 # TODO upgrade to pydantic v2
-fastapi = "^0.95.0"
+fastapi = "^0.99.0"
 uvicorn = {version = "^0.21.1", extras = ["standard"]}
 pydantic = {version = "^1.10.7", extras = ["dotenv"]}
 yarl = "^1.7.2"
