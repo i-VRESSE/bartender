@@ -16,8 +16,8 @@ from bartender.web.api.job.interactive_apps import (
 @pytest.fixture
 def app_config() -> InteractiveApplicationConfiguration:
     return InteractiveApplicationConfiguration(
-        command="cat {{ input_file|q }} | wc -m  > {{ output_file|q }}",
-        input={
+        command_template="cat {{ input_file|q }} | wc -m  > {{ output_file|q }}",
+        input_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
@@ -100,8 +100,8 @@ def test_build_command(
 )
 def test_build_command_optional_field(payload: dict[Any, Any], expected: str) -> None:
     config = InteractiveApplicationConfiguration(
-        command="ls{% if recursive %} --recursive{% endif %}",
-        input={
+        command_template="ls{% if recursive %} --recursive{% endif %}",
+        input_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
@@ -123,8 +123,8 @@ def test_build_command_lookup() -> None:
         }[what] %}
         cat README.md | wc {{ flag|q }} > README.md.count"""
     config = InteractiveApplicationConfiguration(
-        command=dedent(template),
-        input={
+        command_template=dedent(template),
+        input_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "additionalProperties": False,
@@ -177,8 +177,8 @@ async def test_run_with_embedded_files(
         "required": ["file1", "file2"],
     }
     config = InteractiveApplicationConfiguration(
-        command=dedent(template),
-        input=input_schema,
+        command_template=dedent(template),
+        input_schema=input_schema,
     )
     payload = {
         "file1": "input.txt",

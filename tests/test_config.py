@@ -101,6 +101,39 @@ class TestConfig:
         )
         assert config == expected
 
+    def test_job_application_valid(self, tmp_path: Path) -> None:
+        raw_config: Any = {
+            "job_root_dir": str(tmp_path),
+            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "interactive_applications": {
+                "app2": {
+                    "command_template": "hostname",
+                    "input_schema": {"type": "object"},
+                    "job_application": "app1",
+                },
+            },
+        }
+        config = Config(**raw_config)
+        assert config.interactive_applications["app2"].job_application == "app1"
+
+    def test_job_application_invalid(self, tmp_path: Path) -> None:
+        config: Any = {
+            "job_root_dir": str(tmp_path),
+            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "interactive_applications": {
+                "app2": {
+                    "command_template": "hostname",
+                    "input_schema": {"type": "object"},
+                    "job_application": "app99",
+                },
+            },
+        }
+        with pytest.raises(
+            ValidationError,
+            match="Interactive application app2 has invalid job_application app99",
+        ):
+            Config(**config)
+
 
 @pytest.mark.anyio
 async def test_build_config_minimal(tmp_path: Path) -> None:
@@ -141,42 +174,51 @@ def test_get_config(demo_config: Config) -> None:
 
 
 class TestInteractiveApplicationConfiguration:
-    def test_check_input_valid_schema(self) -> None:
+    def test_check_input_schema_valid_schema(self) -> None:
         input_schema = {
             "type": "object",
             "properties": {"message": {"type": "string"}},
             "required": ["message"],
         }
         config = InteractiveApplicationConfiguration(
-            command="echo {{ message }}",
-            input=input_schema,
+            command_template="echo {{ message }}",
+            input_schema=input_schema,
         )
-        assert config.input == input_schema
+        assert config.input_schema == input_schema
 
-    def test_check_input_invalid_schema(self) -> None:
+    def test_check_input_schema_invalid_schema(self) -> None:
         input_schema = {"type": "incorrect"}
         with pytest.raises(
             SchemaError,
             match="is not valid under any of the given schemas",
         ):
-            InteractiveApplicationConfiguration(command="hostname", input=input_schema)
+            InteractiveApplicationConfiguration(
+                command_template="hostname",
+                input_schema=input_schema,
+            )
 
-    def test_check_input_not_a_object(self) -> None:
+    def test_check_input_schema_not_a_object(self) -> None:
         input_schema = {"type": "string"}
         with pytest.raises(ValueError, match="input should have type=object"):
-            InteractiveApplicationConfiguration(command="hostname", input=input_schema)
+            InteractiveApplicationConfiguration(
+                command_template="hostname",
+                input_schema=input_schema,
+            )
 
-    def test_check_command_valid_jinja(self) -> None:
-        command = "echo {{ message }}"
+    def test_check_command_template_valid_jinja(self) -> None:
+        command_template = "echo {{ message }}"
         input_schema = {"type": "object"}
         config = InteractiveApplicationConfiguration(
-            command=command,
-            input=input_schema,
+            command_template=command_template,
+            input_schema=input_schema,
         )
-        assert config.command == command
+        assert config.command_template == command_template
 
-    def test_check_command_invalid_jinja(self) -> None:
-        command = "echo {{ message"
+    def test_check_command_template_invalid_jinja(self) -> None:
+        command_template = "echo {{ message"
         input_schema = {"type": "object"}
         with pytest.raises(TemplateSyntaxError, match="unexpected end of template"):
-            InteractiveApplicationConfiguration(command=command, input=input_schema)
+            InteractiveApplicationConfiguration(
+                command_template=command_template,
+                input_schema=input_schema,
+            )

@@ -13,7 +13,7 @@ destinations:
       type: local
 interactive_applications:
   wcl:
-    command: >
+    command_template: >
       {% set flag = {
         'lines': '-l',
         'words': '-w',

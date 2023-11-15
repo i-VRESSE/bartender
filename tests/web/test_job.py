@@ -690,8 +690,8 @@ def demo_interactive_application(
     demo_config: Config,
 ) -> InteractiveApplicationConfiguration:
     config = InteractiveApplicationConfiguration(
-        command="echo hello",
-        input={
+        command_template="echo hello",
+        input_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
         },
@@ -756,8 +756,8 @@ async def test_run_interactive_app_invalid_jobapp(
     demo_config: Config,
 ) -> None:
     config = InteractiveApplicationConfiguration(
-        command="echo hello",
-        input={
+        command_template="echo hello",
+        input_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
         },
@@ -787,8 +787,8 @@ async def test_run_interactive_app_invalid_requestbody(
     demo_config: Config,
 ) -> None:
     config = InteractiveApplicationConfiguration(
-        command="echo hello",
-        input={
+        command_template="echo hello",
+        input_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "additionalProperties": False,

@@ -79,10 +79,10 @@ def build_command(
     Returns:
         str: A string representing the command to be executed.
     """
-    validator = Draft202012Validator(app.input)
+    validator = Draft202012Validator(app.input_schema)
     validator.validate(payload)
 
-    template = template_environment.from_string(app.command)
+    template = template_environment.from_string(app.command_template)
     return template.render(**payload)
 
 
@@ -259,6 +259,6 @@ async def run(
     Returns:
         The result of running the interactive application.
     """
-    async with stage_embedded_files(payload, app.input):
+    async with stage_embedded_files(payload, app.input_schema):
         command = build_command(payload, app)
         return await _shell(job_dir, command, timeout=app.timeout)

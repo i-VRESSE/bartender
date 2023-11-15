@@ -28,7 +28,7 @@ destinations:
       type: local
 interactive_applications:
   rescore:
-    command: >
+    command_template: >
       haddock3-re score
       --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}}
       {{ capri_dir|q }}
@@ -59,7 +59,7 @@ interactive_applications:
       - w_air
       type: object
   reclustrmsd:
-    command: >
+    command_template: >
       haddock3-re clustrmsd
       {% if criterion == 'maxclust' -%}
       --n_clusters {{n_clusters|q}}
@@ -92,7 +92,7 @@ interactive_applications:
       - clustrmsd_dir
       type: object
   reclustfcc:
-    command: >
+    command_template: >
       haddock3-re clustfcc
       --clust_cutoff {{clust_cutoff|q}} --strictness {{strictness|q}} --min_population {{min_population|q}}
       {{clustfcc_dir|q}}

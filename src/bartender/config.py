@@ -8,7 +8,7 @@ from typing import Annotated, Any
 from fastapi import Depends, Request
 from jinja2 import Template as JinjaTemplate
 from jsonschema import Draft202012Validator
-from pydantic import BaseModel, Field, confloat, validator
+from pydantic import BaseModel, Field, confloat, root_validator, validator
 from pydantic.types import DirectoryPath
 from yaml import safe_load as load_yaml
 
@@ -54,61 +54,52 @@ class ApplicatonConfiguration(BaseModel):
 class InteractiveApplicationConfiguration(BaseModel):
     """Configuration for an interactive application.
 
-    Interactive apps that can be run on a completed job.
-
-    Interactive apps are small interactive calculations that
-    can be run within a request-response cycle (<30s).
-
-    A interactive app should
-
-    * be quick to run (<60s)
-    * produce very little output (stdout, stderr, files)
-    * in the job directory only write new files and overwrite its own files.
-    * not have any arguments that can leak information,
-        for example paths to files outside the job directory.
-
     Example:
 
-        Given completed job 123 run interactive app rescore with:
+        Given completed job 1 run interactive app rescore with:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        response = client.post('/api/job/123/interactiveapp/rescore', json={
-            'capri_dir': 'output/06_caprieval',
-            'w_elec': 0.2,
-            'w_vdw': 0.2,
-            'w_desolv': 0.2,
-            'w_bsa': 0.1,
-            'w_air': 0.3,
-        })
-        if response.json()['returncode'] == 0:
-            # Find the results in the job directory somewhere
-            files = client.get('/api/job/123/files')
+            response = client.post('/api/job/1/interactiveapp/rescore', json={
+                'capri_dir': 'output/06_caprieval',
+                'w_elec': 0.2,
+                'w_vdw': 0.2,
+                'w_desolv': 0.2,
+                'w_bsa': 0.1,
+                'w_air': 0.3,
+            })
+            if response.json()['returncode'] == 0:
+                # Find the results in the job directory somewhere
+                path = '/api/job/1/files/output/06_caprieval_interactive/capri_clt.tsv'
+                files = client.get(path)
 
     Attributes:
-        command: Shell command template to run in job directory.
-            Use Python string template syntax to substitute variables from request body.
-        input: JSON schema of request body.
+        command_template: Shell command template to run in job directory.
+            Use Jinja2 template syntax to substitute variables from request body.
+        input_schema: JSON schema of request body.
             Dialect of JSON Schema should be draft 2020-12.
-            Root should be an object and its properties should be scalar.
+            Root should be an object.
         summary: Summary of the interactive app.
         description: Description of the interactive app.
         timeout: Maximum time in seconds to wait for command to finish.
         job_application: Name of the application that generated the job.
             If not set, the interactive app can be run on any job.
             If set, the interactive app can only be run on jobs
-            that were uploaded to given application.
+            that were submitted for that given application.
     """
 
-    command: str
-    input: dict[Any, Any]
+    command_template: str
+    input_schema: dict[Any, Any]
     summary: str | None = None
     description: str | None = None
     timeout: confloat(gt=0, le=60) = 30.0  # type: ignore
     job_application: str | None = None
 
-    @validator("input")
-    def check_input(cls, v: dict[Any, Any]) -> dict[Any, Any]:  # noqa: N805, WPS111
+    @validator("input_schema")
+    def check_input_schema(
+        cls,  # noqa: N805
+        v: dict[Any, Any],  # noqa: WPS111
+    ) -> dict[Any, Any]:
         """Validate input schema.
 
         Args:
@@ -125,8 +116,8 @@ class InteractiveApplicationConfiguration(BaseModel):
             raise ValueError("input should have type=object")
         return v
 
-    @validator("command")
-    def check_command(cls, v: str) -> str:  # noqa: N805, WPS111
+    @validator("command_template")
+    def check_command_template(cls, v: str) -> str:  # noqa: N805, WPS111
         """Validate command template.
 
         Raises TemplateSyntaxError when command template is invalid.
@@ -189,6 +180,32 @@ class Config(BaseModel):
     # TODO validate destination_picker
     # check string format
     # optionally check if it can be imported
+
+    @root_validator
+    def check_job_application(
+        cls,  # noqa: N805 following pydantic docs
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Check that all interactive applications have a valid job_application.
+
+        Args:
+            values: The configuration values to check.
+
+        Returns:
+            The original configuration values.
+
+        Raises:
+            AssertionError: If an interactive application has
+                an invalid job_application.
+        """
+        if "applications" not in values:
+            return values
+        valid_applications = set(values["applications"].keys())
+        for name, config in values["interactive_applications"].items():
+            assert (  # noqa: S101
+                config.job_application in valid_applications
+            ), f"Interactive application {name} has invalid job_application {config.job_application}"  # noqa: E501
+        return values
 
 
 def build_config(config_filename: Path) -> Config:

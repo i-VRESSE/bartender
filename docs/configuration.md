@@ -413,6 +413,14 @@ graph TD
 Interactive applications run quick commands (< 30 seconds)
 that use the output of a completed job.
 
+An interactive app should
+
+* be quick to run (<60s)
+* produce very little output (stdout, stderr, files)
+* in the job directory only write new files or overwrite its own files.
+* not have any arguments that can leak information,
+     for example paths to files outside the job directory.
+
 The interactive application can be configured in the `config.yaml`
 file under `interactive_applications` key.
 
@@ -423,7 +431,7 @@ re-calculates the scores with different weights.
 ```yaml
 interactive_applications:
     rescore:
-        command: >
+        command_template: >
             haddock3-re score
             --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}}
             {{ capri_dir|q }}
@@ -460,11 +468,10 @@ A JSON body can be sent to the
 For the example above the endpoint could be `POST /api/job/1/interactive/rescore`.
 
 The JSON body will be validated against the JSON schema
-(version 2020-12) defined under the `input` key.
+(version 2020-12) defined under the `input_schema` key.
 
-The validated JSON body will be used, with the `command` value
-as a [Jinja template](https://palletsprojects.com/p/jinja/),
-to render the command string.
+The `command_template` value is as a [Jinja template](https://palletsprojects.com/p/jinja/).
+and will be used to render the validated JSON body into a command string.
 
 The command is executed in the directory of the completed job
 and the return code, standard out and standard error are returned.
