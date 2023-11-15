@@ -416,9 +416,9 @@ that use the output of a completed job.
 The interactive application can be configured in the `config.yaml`
 file under `interactive_applications` key.
 
-For example, a user can run a job that generates a scores
+For example, a user can run a job that generates scores
 (Haddock3 with caprieval module) and then run a command that
-re-calculates the score with different weights.
+re-calculates the scores with different weights.
 
 ```yaml
 interactive_applications:
@@ -457,24 +457,27 @@ interactive_applications:
 
 A JSON body can be sent to the
 `POST /api/job/{jobid}/interactive/{application}` endpoint.
+For the example above the endpoint could be `POST /api/job/1/interactive/rescore`.
 
 The JSON body will be validated against the JSON schema
-(version 2020-12) in the `input` key.
+(version 2020-12) defined under the `input` key.
 
 The validated JSON body will be used, with the `command` value
 as a [Jinja template](https://palletsprojects.com/p/jinja/),
 to render the command string.
 
 The command is executed in the directory of the completed job
-and the log output is returned.
+and the return code, standard out and standard error are returned.
 
 In the command template make sure to use the `|q` filter so the
 user supplied values are [shell-escaped](https://docs.python.org/3/library/shlex.html#shlex.quote).
-Also to prevent unintended newlines in the rendered command use `>` in YAML.
+Also to prevent [unintended newlines](https://yaml.org/spec/1.2.2/#65-line-folding)
+in the rendered command use `>` in YAML.
 
-The `job_application` key is to only allow to run interactive applications in jobs
-that were submitted for that application.
-If not set then any applications job is allowed.
+The `job_application` key can be set to only allow
+a interactive application to run in jobs
+that were submitted for that given application.
+If not set then the interactive application can run in any job.
 
 ### Embedded files
 
