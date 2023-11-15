@@ -12,7 +12,7 @@ destinations:
     filesystem:
       type: local
 interactive_applications:
-  wcl:
+  count:
     command_template: >
       {% set flag = {
         'lines': '-l',
@@ -22,7 +22,8 @@ interactive_applications:
       }[what] -%}
       cat README.md | wc {{ flag|q }} > README.md.count
     description: Count the number of lines, words, chars or bytes in README.md file.
-    input:
+    job_application: wc
+    input_schema:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       type: object

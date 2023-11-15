@@ -1,4 +1,7 @@
-destination_picker: bartender.config:pick_first
+# Example configuration file for haddock3 and haddock3-re.
+# Expects executables to be in PATH,
+# if not edit this file to use absolute path to executables
+destination_picker: bartender.picker:pick_first
 applications:
   haddock3:
     command: haddock3 $config
@@ -16,9 +19,6 @@ applications:
   #       type: array
   #       items:
   #         type: int
-  # haddock3-score:
-  #   command: haddock3-score --outputpdb --outputpsf $config
-  #   config: complex.pdb
 destinations:
   local:
     scheduler:
@@ -34,7 +34,7 @@ interactive_applications:
       {{ capri_dir|q }}
     description: Rescore a HADDOCK run with different weights.
     job_application: haddock3
-    input:
+    input_schema:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       properties:
@@ -72,7 +72,7 @@ interactive_applications:
       {{clustrmsd_dir|q}}
     description: Recluster a HADDOCK run with RSMD and different parameters.
     job_application: haddock3
-    input:
+    input_schema:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       properties:
@@ -98,7 +98,7 @@ interactive_applications:
       {{clustfcc_dir|q}}
     description: Recluster a HADDOCK run with FCC and different parameters.
     job_application: haddock3
-    input:
+    input_schema:
       $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       properties:

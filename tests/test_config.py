@@ -111,6 +111,11 @@ class TestConfig:
                     "input_schema": {"type": "object"},
                     "job_application": "app1",
                 },
+                "app3": {
+                    "command_template": "hostname",
+                    "input_schema": {"type": "object"},
+                    # Absent is valid
+                },
             },
         }
         config = Config(**raw_config)

@@ -198,10 +198,12 @@ class Config(BaseModel):
             AssertionError: If an interactive application has
                 an invalid job_application.
         """
-        if "applications" not in values:
+        if "applications" not in values or "interactive_applications" not in values:
             return values
         valid_applications = set(values["applications"].keys())
         for name, config in values["interactive_applications"].items():
+            if config.job_application is None:
+                continue
             assert (  # noqa: S101
                 config.job_application in valid_applications
             ), f"Interactive application {name} has invalid job_application {config.job_application}"  # noqa: E501
