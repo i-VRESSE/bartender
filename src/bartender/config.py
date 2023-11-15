@@ -6,6 +6,7 @@ from tempfile import gettempdir
 from typing import Annotated, Any
 
 from fastapi import Depends, Request
+from jinja2 import Template as JinjaTemplate
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, Field, confloat, validator
 from pydantic.types import DirectoryPath
@@ -122,6 +123,21 @@ class InteractiveApplicationConfiguration(BaseModel):
         Draft202012Validator.check_schema(v)
         if v["type"] != "object":
             raise ValueError("input should have type=object")
+        return v
+
+    @validator("command")
+    def check_command(cls, v: str) -> str:  # noqa: N805, WPS111
+        """Validate command template.
+
+        Raises TemplateSyntaxError when command template is invalid.
+
+        Args:
+            v: The unvalidated command template.
+
+        Returns:
+            The validated command template.
+        """
+        JinjaTemplate(v)
         return v
 
 

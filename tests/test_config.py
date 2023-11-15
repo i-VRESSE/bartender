@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from jinja2.exceptions import TemplateSyntaxError
 from jsonschema import SchemaError
 from pydantic import ValidationError
 from yaml import safe_dump as yaml_dump
@@ -164,3 +165,18 @@ class TestInteractiveApplicationConfiguration:
         input_schema = {"type": "string"}
         with pytest.raises(ValueError, match="input should have type=object"):
             InteractiveApplicationConfiguration(command="hostname", input=input_schema)
+
+    def test_check_command_valid_jinja(self) -> None:
+        command = "echo {{ message }}"
+        input_schema = {"type": "object"}
+        config = InteractiveApplicationConfiguration(
+            command=command,
+            input=input_schema,
+        )
+        assert config.command == command
+
+    def test_check_command_invalid_jinja(self) -> None:
+        command = "echo {{ message"
+        input_schema = {"type": "object"}
+        with pytest.raises(TemplateSyntaxError, match="unexpected end of template"):
+            InteractiveApplicationConfiguration(command=command, input=input_schema)
