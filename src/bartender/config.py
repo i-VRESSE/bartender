@@ -326,7 +326,7 @@ def unroll_application_route(
     }
     return {
         "tags": ["application"],
-        "operationId": aname,
+        "operationId": f"upload_{aname}",
         "summary": f"Upload job to {aname}",
         "requestBody": request_body,
         "responses": existing_put_path["responses"],

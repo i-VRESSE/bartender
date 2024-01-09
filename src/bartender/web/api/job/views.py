@@ -161,7 +161,17 @@ def get_dir_of_completed_job(
 CurrentCompletedJobDir = Annotated[Path, Depends(get_dir_of_completed_job)]
 
 
-@router.get("/{jobid}/files/{path:path}")
+@router.get(
+    "/{jobid}/files/{path:path}",
+    responses={
+        200: {
+            "content": {
+                "application/octet-stream": {},
+            },
+        },
+    },
+    response_class=FileResponse,
+)
 def retrieve_job_files(
     path: str,
     job_dir: CurrentCompletedJobDir,
@@ -316,7 +326,14 @@ ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
 
 @router.get(
     "/{jobid}/archive",
-    responses={200: {"content": {"application/octet-stream": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/octet-stream": {},
+            },
+        },
+    },
+    response_class=FileResponse,
 )
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
