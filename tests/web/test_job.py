@@ -702,52 +702,6 @@ def demo_interactive_application(
 
 
 @pytest.mark.anyio
-async def test_list_interactive_apps(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-    auth_headers: Dict[str, str],
-    mock_ok_job: int,
-    demo_interactive_application: InteractiveApplicationConfiguration,
-) -> None:
-    job_id = str(mock_ok_job)
-    url = fastapi_app.url_path_for("list_interactive_apps", jobid=job_id)
-    response = await client.get(url, headers=auth_headers)
-
-    assert response.status_code == status.HTTP_200_OK
-    result = response.json()
-    assert result == ["wcm"]
-    assert response.headers["content-type"] == "application/json"
-
-
-@pytest.mark.anyio
-async def test_get_interactive_app(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-    auth_headers: Dict[str, str],
-    mock_ok_job: int,
-    demo_interactive_application: InteractiveApplicationConfiguration,
-) -> None:
-    job_id = str(mock_ok_job)
-    url = fastapi_app.url_path_for(
-        "get_interactive_app",
-        jobid=job_id,
-        application="wcm",
-    )
-    response = await client.get(url, headers=auth_headers)
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {
-        "command_template": "echo hello",
-        "input_schema": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-        },
-        "timeout": 10.0,
-    }
-    assert response.headers["content-type"] == "application/json"
-
-
-@pytest.mark.anyio
 async def test_run_interactive_app_invalid_jobapp(
     fastapi_app: FastAPI,
     client: AsyncClient,

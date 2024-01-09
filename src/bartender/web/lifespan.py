@@ -4,7 +4,11 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from bartender.config import build_config
+from bartender.config import (
+    build_config,
+    unroll_application_routes,
+    unroll_interactive_app_routes,
+)
 from bartender.context import build_context, close_context
 from bartender.db.session import make_engine, make_session_factory
 from bartender.filesystems.queue import (
@@ -27,11 +31,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         Nothing.
     """
+    startup(app)
+
+    yield
+
+    await shutdown(app)
+
+
+def startup(app: FastAPI) -> None:
+    """Logic which runs on application's startup.
+
+    Args:
+        app: The FastAPI application instance.
+    """
     _setup_db(app)
     _parse_context(app)
     setup_file_staging_queue(app)
     setup_jwt_decoder(app)
-    yield
+    unroll_openapi(app)
+
+
+async def shutdown(app: FastAPI) -> None:
+    """Logic which runs on application's shutdown.
+
+    Args:
+        app: fastAPI application.
+    """
     await app.state.db_engine.dispose()
     await close_context(app.state.context)
     await teardown_file_staging_queue(app)
@@ -76,3 +101,26 @@ def setup_jwt_decoder(app: FastAPI) -> None:
     else:
         logger.warning("JWT public key not found, authentication will not work")
         app.state.jwt_decoder = None
+
+
+def unroll_openapi(app: FastAPI) -> None:
+    """Convert dynamic application routes to static routes.
+
+    Args:
+        app: FastAPI app
+
+    Raises:
+        RuntimeError: If OpenAPI schema is not generated.
+    """
+    # If the schema has already been generated, don't do it again
+    if not app.openapi_schema:
+        app.openapi()
+        if app.openapi_schema is None:
+            raise RuntimeError(
+                "OpenAPI schema should be generated at this point",
+            )
+        unroll_application_routes(app.openapi_schema, app.state.config.applications)
+        unroll_interactive_app_routes(
+            app.openapi_schema,
+            app.state.config.interactive_applications,
+        )

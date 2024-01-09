@@ -12,35 +12,6 @@ from starlette import status
 
 
 @pytest.mark.anyio
-async def test_list_applications(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-) -> None:
-    url = fastapi_app.url_path_for("list_applications")
-    response = await client.get(url)
-    apps = response.json()
-    assert apps == ["app1"]
-
-
-@pytest.mark.anyio
-async def test_get_application(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-) -> None:
-    url = fastapi_app.url_path_for("get_application", application="app1")
-
-    response = await client.get(url)
-    app = response.json()
-
-    expected = {
-        "command": "wc $config",
-        "config": "job.ini",
-        "allowed_roles": [],
-    }
-    assert app == expected
-
-
-@pytest.mark.anyio
 async def test_upload(
     fastapi_app: FastAPI,
     client: AsyncClient,

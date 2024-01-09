@@ -35,7 +35,6 @@ interactive_applications:
     description: Rescore a HADDOCK run with different weights.
     job_application: haddock3
     input_schema:
-      $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       properties:
         capri_dir:
@@ -73,7 +72,6 @@ interactive_applications:
     description: Recluster a HADDOCK run with RSMD and different parameters.
     job_application: haddock3
     input_schema:
-      $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       properties:
         clustrmsd_dir:
@@ -99,7 +97,6 @@ interactive_applications:
     description: Recluster a HADDOCK run with FCC and different parameters.
     job_application: haddock3
     input_schema:
-      $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       properties:
         clustfcc_dir:

@@ -51,6 +51,9 @@ class ApplicatonConfiguration(BaseModel):
         return JobDescription(job_dir=job_dir, command=command)
 
 
+ApplicatonConfigurations = dict[str, ApplicatonConfiguration]
+
+
 class InteractiveApplicationConfiguration(BaseModel):
     """Configuration for an interactive application.
 
@@ -146,7 +149,7 @@ class Config(BaseModel):
 
     """
 
-    applications: dict[str, ApplicatonConfiguration]
+    applications: ApplicatonConfigurations
     destinations: dict[str, DestinationConfig] = Field(
         default_factory=default_destinations,
     )
@@ -160,8 +163,8 @@ class Config(BaseModel):
     @validator("applications")
     def applications_non_empty(
         cls,  # noqa: N805 following pydantic docs
-        v: dict[str, ApplicatonConfiguration],  # noqa: WPS111 following pydantic docs
-    ) -> dict[str, ApplicatonConfiguration]:
+        v: ApplicatonConfigurations,  # noqa: WPS111 following pydantic docs
+    ) -> ApplicatonConfigurations:
         """Validates that applications dict is filled.
 
         Args:
@@ -243,20 +246,136 @@ def get_config(request: Request) -> Config:
 CurrentConfig = Annotated[Config, Depends(get_config)]
 
 
-def get_roles(config: CurrentConfig) -> list[str]:
-    """Get roles from config.
+def unroll_application_routes(
+    openapi_schema: dict[str, Any],
+    applications: ApplicatonConfigurations,
+) -> None:
+    """Unroll application routes.
+
+    Replaces `/api/application/{application}` endpoints.
+    Loops over config.applications and add a post route for each
 
     Args:
-        config: The config.
+        openapi_schema: OpenAPI schema
+        applications: Application configurations
+    """
+    existing_put_path = openapi_schema["paths"].pop(
+        "/api/application/{application}",
+    )["put"]
+
+    for aname, config in applications.items():
+        # each application has different request due to config file
+        # so instead of reusing the same schema for all applications
+        # we need to generate a new one for each application
+        openapi_schema["paths"][f"/api/application/{aname}"] = {
+            "put": unroll_application_route(aname, config, existing_put_path),
+        }
+
+    # Drop schema for /api/application/{application} put request
+    ref = existing_put_path["requestBody"]["content"][  # noqa: WPS219
+        "multipart/form-data"
+    ]["schema"]["$ref"]
+    del openapi_schema["components"]["schemas"][  # noqa: WPS420
+        ref.replace("#/components/schemas/", "")
+    ]
+
+
+def unroll_application_route(
+    aname: str,
+    config: ApplicatonConfiguration,
+    existing_put_path: Any,
+) -> dict[str, Any]:
+    """Unroll application route.
+
+    Args:
+        aname: Application name
+        config: Application configuration
+        existing_put_path: Existing PUT path
 
     Returns:
-        list of roles
+        Unrolled PUT path
     """
-    roles = []
-    for app in config.applications.values():
-        for role in app.allowed_roles:
-            roles.append(role)
-    return roles
+    desc = f"Archive containing {config.config} file."
+    request_body = {
+        "content": {
+            "multipart/form-data": {
+                "schema": {
+                    "properties": {
+                        "upload": {
+                            "type": "string",
+                            "format": "binary",
+                            "title": "Upload",
+                            "description": desc,
+                        },
+                    },
+                    "type": "object",
+                    "required": ["upload"],
+                },
+                # Enfore uploaded file is a certain content type
+                # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
+                # does not seem supported by Swagger UI or FastAPI
+                "encoding": {
+                    "upload": {
+                        "contentType": "application/zip, application/x-zip-compressed",
+                    },
+                },
+            },
+        },
+        "required": True,
+    }
+    return {
+        "tags": ["application"],
+        "operationId": aname,
+        "summary": f"Upload job to {aname}",
+        "requestBody": request_body,
+        "responses": existing_put_path["responses"],
+        "security": existing_put_path["security"],
+    }
 
 
-CurrentRoles = Annotated[list[str], Depends(get_roles)]
+def unroll_interactive_app_routes(
+    openapi_schema: dict[str, Any],
+    interactive_applications: InteractiveApplicationConfigurations,
+) -> None:
+    """Unroll interactive app routes.
+
+    Replaces `/api/job/{jobid}/interactive/{application}` endpoint.
+    Loops over config.interactive_applications and add a post route for each
+
+    Args:
+        openapi_schema: OpenAPI schema
+        interactive_applications: Interactive application configurations
+    """
+    path = "/api/job/{jobid}/interactive/{application}"
+    existing_post_path = openapi_schema["paths"].pop(path)["post"]
+    for iname, config in interactive_applications.items():
+        path = f"/api/job/{{jobid}}/interactive/{iname}"
+        post = {
+            "tags": ["interactive"],
+            "operationId": iname,
+            "parameters": [
+                {
+                    "name": "jobid",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                },
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": config.input_schema,
+                    },
+                },
+            },
+            "responses": existing_post_path["responses"],
+            "security": existing_post_path["security"],
+        }
+        if config.summary is not None:
+            post["summary"] = config.summary
+        else:
+            post["summary"] = f"Run {iname} interactive application"
+        if config.description is not None:
+            post["description"] = config.description
+        openapi_schema["paths"][path] = {"post": post}

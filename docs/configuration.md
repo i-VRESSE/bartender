@@ -438,7 +438,6 @@ interactive_applications:
         description: Rescore a HADDOCK run with different weights.
         job_application: haddock3
         input_schema:
-            $schema: https://json-schema.org/draft/2020-12/schema
             additionalProperties: false
             properties:
                 capri_dir:

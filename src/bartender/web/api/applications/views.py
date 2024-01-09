@@ -3,7 +3,6 @@ from fastapi.responses import RedirectResponse
 from starlette import status
 from starlette.background import BackgroundTask
 
-from bartender.config import ApplicatonConfiguration, CurrentConfig
 from bartender.context import Context, CurrentContext
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.filesystem import has_config_file
@@ -15,51 +14,9 @@ from bartender.web.users import CurrentUser, User
 router = APIRouter()
 
 
-@router.get("/")
-def list_applications(config: CurrentConfig) -> list[str]:
-    """List application names.
-
-    Args:
-        config: Config with applications.
-
-    Returns:
-        The list.
-    """
-    return list(config.applications.keys())
-
-
-@router.get("/{application}")
-def get_application(
-    application: str,
-    config: CurrentConfig,
-) -> ApplicatonConfiguration:
-    """Retrieve application configuration.
-
-    Args:
-        application: Name of application
-        config: Config with applications.
-
-    Returns:
-        The application config.
-    """
-    return config.applications[application]
-
-
 @router.put(
-    "/{application}/job",
+    "/{application}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
-    openapi_extra={
-        # Enfore uploaded file is a certain content type
-        # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
-        # does not seem supported by Swagger UI or FastAPI
-        "requestBody": {
-            "content": {
-                "multipart/form-data": {
-                    "encoding": {"upload": {"contentType": "application/zip"}},
-                },
-            },
-        },
-    },
 )
 async def upload_job(  # noqa: WPS211
     application: str,

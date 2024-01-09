@@ -420,33 +420,14 @@ def _parse_subdirectory(path: str, job_dir: Path) -> Path:
     return subdirectory
 
 
-@router.get("/{jobid}/interactive")
-def list_interactive_apps(jobid: int, config: CurrentConfig) -> list[str]:
-    """List interactive apps that can be run on a completed job.
-
-    Args:
-        config: The bartender configuration.
-        jobid: The job identifier.
-            It is not used, but there for consistency.
-
-    Returns:
-        List of interactive apps.
-    """
-    return list(config.interactive_applications.keys())
-
-
-@router.get("/{jobid}/interactive/{application}", response_model_exclude_defaults=True)
 def get_interactive_app(
     application: str,
-    jobid: int,
     config: CurrentConfig,
 ) -> InteractiveApplicationConfiguration:
     """Get interactive app configuration.
 
     Args:
         application: The interactive application.
-        jobid: The job identifier.
-            It is not used, but there for consistency.
         config: The bartender configuration.
 
     Returns:
@@ -464,20 +445,6 @@ CurrentInteractiveAppConf = Annotated[
 
 @router.post(
     "/{jobid}/interactive/{application}",
-    openapi_extra={
-        "requestBody": {
-            "content": {
-                "application/json": {
-                    "schema": {
-                        "type": "object",
-                        # As we pick application with path parameter,
-                        # we can't show schema of application here.
-                        # So we just show minimal schema.
-                    },
-                },
-            },
-        },
-    },
 )
 async def run_interactive_app(
     request: Request,
