@@ -310,13 +310,14 @@ def unroll_application_route(
                     },
                     "type": "object",
                     "required": ["upload"],
+                    "title": f"Upload {aname}",
                 },
                 # Enfore uploaded file is a certain content type
                 # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
                 # does not seem supported by Swagger UI or FastAPI
                 "encoding": {
                     "upload": {
-                        "contentType": "application/zip, application/x-zip-compressed",
+                        "contentType": "application/zip",
                     },
                 },
             },

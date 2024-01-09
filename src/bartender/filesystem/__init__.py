@@ -27,7 +27,7 @@ def has_config_file(
     has = job_config.exists() and job_config.is_file()
     if not has:
         raise IndexError(
-            f"Application requires config file called ${app_config}, "
+            f"Application requires config file called {app_config}, "
             "but was not found in upload",
         )
     return has
