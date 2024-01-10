@@ -276,6 +276,7 @@ def test_unroll_application_routes() -> None:
                     },
                     "type": "object",
                     "required": ["upload"],
+                    "title": "Upload app1",
                 },
                 "encoding": {
                     "upload": {
@@ -291,7 +292,7 @@ def test_unroll_application_routes() -> None:
             "/api/application/app1": {
                 "put": {
                     "tags": ["application"],
-                    "operationId": "app1",
+                    "operationId": "application_app1",
                     "summary": "Upload job to app1",
                     "requestBody": expected_request_body,
                     "responses": "mock responses",
@@ -337,14 +338,14 @@ def test_unroll_interactive_app_routes() -> None:
             "/api/job/{jobid}/interactive/iapp1": {
                 "post": {
                     "tags": ["interactive"],
-                    "operationId": "iapp1",
+                    "operationId": "interactive_application_iapp1",
                     "summary": "Run iapp1 interactive application",
                     "parameters": [
                         {
                             "name": "jobid",
                             "in": "path",
                             "required": True,
-                            "schema": {"type": "string"},
+                            "schema": {"type": "number"},
                         },
                     ],
                     "requestBody": {

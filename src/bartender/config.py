@@ -317,7 +317,7 @@ def unroll_application_route(
                 # does not seem supported by Swagger UI or FastAPI
                 "encoding": {
                     "upload": {
-                        "contentType": "application/zip",
+                        "contentType": "application/zip, application/x-zip-compressed",
                     },
                 },
             },
