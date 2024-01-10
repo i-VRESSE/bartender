@@ -326,7 +326,7 @@ def unroll_application_route(
     }
     return {
         "tags": ["application"],
-        "operationId": f"upload_{aname}",
+        "operationId": f"application_{aname}",
         "summary": f"Upload job to {aname}",
         "requestBody": request_body,
         "responses": existing_put_path["responses"],
@@ -353,13 +353,13 @@ def unroll_interactive_app_routes(
         path = f"/api/job/{{jobid}}/interactive/{iname}"
         post = {
             "tags": ["interactive"],
-            "operationId": iname,
+            "operationId": f"interactive_application_{iname}",
             "parameters": [
                 {
                     "name": "jobid",
                     "in": "path",
                     "required": True,
-                    "schema": {"type": "string"},
+                    "schema": {"type": "number"},
                 },
             ],
             "requestBody": {
