@@ -67,6 +67,22 @@ async def test_upload_with_no_role_granted(
     assert "Missing role" in response.text
 
 
+@pytest.mark.anyio
+async def test_upload_invalid_application(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    tmp_path: Path,
+    auth_headers: Dict[str, str],
+) -> None:
+    """Test upload of a job archive."""
+    url = fastapi_app.url_path_for("upload_job", application="appzzzzzzzz")
+    with prepare_form_data(tmp_path) as files:
+        response = await client.put(url, files=files, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "Invalid application" in response.text
+
+
 def assert_job_dir(  # noqa: WPS218
     job_root_dir: Path,
     job_id: str,

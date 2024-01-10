@@ -39,14 +39,17 @@ async def upload_job(  # noqa: WPS211
     Raises:
         IndexError: When job could not created inside database or when config
             file was not found.
-        KeyError: Application is invalid.
+        HTTPException: Application is invalid.
 
     Returns:
         redirect response.
     """
     if application not in context.applications:
         valid = context.applications.keys()
-        raise KeyError(f"Invalid application. Valid applications: {valid}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid application. Valid applications: {valid}",
+        )
     _check_role(application, submitter, context)
     job_id = await job_dao.create_job(upload.filename, application, submitter.username)
     if job_id is None:
