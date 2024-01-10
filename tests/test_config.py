@@ -206,7 +206,7 @@ class TestInteractiveApplicationConfiguration:
 
     def test_check_input_schema_not_a_object(self) -> None:
         input_schema = {"type": "string"}
-        with pytest.raises(ValueError, match="input should have type=object"):
+        with pytest.raises(ValueError, match="input_schema should have type=object"):
             InteractiveApplicationConfiguration(
                 command_template="hostname",
                 input_schema=input_schema,

@@ -1,3 +1,4 @@
+"""Module for running interactive applications."""
 from asyncio import create_subprocess_shell, wait_for
 from asyncio.subprocess import PIPE
 from base64 import b64decode
@@ -220,7 +221,7 @@ async def stage_embedded_files(
         schema: The schema for the payload
 
     Yields:
-        Nothing when files are staged.
+        Nothing.
     """
     medias = media_in_schema(schema)
     if not medias:

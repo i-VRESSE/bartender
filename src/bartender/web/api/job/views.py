@@ -1,3 +1,4 @@
+from os import getloadavg, sched_getaffinity
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
@@ -460,6 +461,24 @@ CurrentInteractiveAppConf = Annotated[
 ]
 
 
+def check_load(max_load: float = 1.0) -> None:
+    """Check if machine load is too high.
+
+    Args:
+        max_load: Maximum load allowed.
+
+    Raises:
+        HTTPException: When machine load is too high.
+    """
+    nr_cpus = len(sched_getaffinity(0))
+    load_avg_last_minute = getloadavg()[0] / nr_cpus
+    if load_avg_last_minute > max_load:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Machine load is too high, please try again later.",
+        )
+
+
 @router.post(
     "/{jobid}/interactive/{application}",
 )
@@ -482,8 +501,10 @@ async def run_interactive_app(
 
     Raises:
         HTTPException: When job was not run with
-            the required application or the payload is invalid.
+            the required application or the payload is invalid
+            or the load on the machine is too high.
     """
+    check_load()
     if application.job_application and application.job_application != job.application:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
