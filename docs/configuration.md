@@ -411,7 +411,7 @@ graph TD
 ## Interactive applications
 
 Interactive applications run quick commands (< 30 seconds)
-on the web server that use the output of a completed job.
+in the output of a completed job on the web server.
 
 An interactive app should
 
@@ -463,8 +463,7 @@ interactive_applications:
 ```
 
 A JSON body can be sent to the
-`POST /api/job/{jobid}/interactive/{application}` endpoint.
-For the example above the endpoint could be `POST /api/job/1/interactive/rescore`.
+`POST /api/job/{jobid}/interactive/rescore` endpoint.
 
 The JSON body will be validated against the JSON schema
 (version 2020-12) defined under the `input_schema` key.
@@ -474,6 +473,7 @@ and will be used to render the validated JSON body into a command string.
 
 The command is executed in the directory of the completed job
 and the return code, standard out and standard error are returned.
+To find the output files use the other job endpoints.
 
 In the command template make sure to use the `|q` filter so the
 user supplied values are [shell-escaped](https://docs.python.org/3/library/shlex.html#shlex.quote).

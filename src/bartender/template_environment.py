@@ -1,3 +1,4 @@
+"""Jinja2 template environment for validating and rendering templates."""
 from shlex import quote
 
 from jinja2 import Environment

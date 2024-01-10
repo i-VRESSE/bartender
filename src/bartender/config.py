@@ -116,7 +116,7 @@ class InteractiveApplicationConfiguration(BaseModel):
         """
         Draft202012Validator.check_schema(v)
         if v["type"] != "object":
-            raise ValueError("input should have type=object")
+            raise ValueError("input_schema should have type=object")
         return v
 
     @validator("command_template")
@@ -252,8 +252,9 @@ def unroll_application_routes(
 ) -> None:
     """Unroll application routes.
 
-    Replaces `/api/application/{application}` endpoints.
-    Loops over config.applications and add a post route for each
+    In openapi spec replaces `/api/application/{application}`
+    with paths without `{application}`.
+    Loops over config.applications and adds a put route for each.
 
     Args:
         openapi_schema: OpenAPI schema
@@ -272,6 +273,7 @@ def unroll_application_routes(
         }
 
     # Drop schema for /api/application/{application} put request
+    # as it is no longer used
     ref = existing_put_path["requestBody"]["content"][  # noqa: WPS219
         "multipart/form-data"
     ]["schema"]["$ref"]
@@ -285,7 +287,7 @@ def unroll_application_route(
     config: ApplicatonConfiguration,
     existing_put_path: Any,
 ) -> dict[str, Any]:
-    """Unroll application route.
+    """Unroll an application route.
 
     Args:
         aname: Application name
@@ -314,7 +316,7 @@ def unroll_application_route(
                 },
                 # Enfore uploaded file is a certain content type
                 # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
-                # does not seem supported by Swagger UI or FastAPI
+                # does not seem supported by Swagger UI or FastAPI or generated clients
                 "encoding": {
                     "upload": {
                         "contentType": "application/zip, application/x-zip-compressed",
@@ -340,8 +342,9 @@ def unroll_interactive_app_routes(
 ) -> None:
     """Unroll interactive app routes.
 
-    Replaces `/api/job/{jobid}/interactive/{application}` endpoint.
-    Loops over config.interactive_applications and add a post route for each
+    Replaces `/api/job/{jobid}/interactive/{application}`
+    with paths without `{application}`.
+    Loops over config.interactive_applications and adds a post route for each.
 
     Args:
         openapi_schema: OpenAPI schema

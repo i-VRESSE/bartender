@@ -24,7 +24,6 @@ interactive_applications:
     description: Count the number of lines, words, chars or bytes in README.md file.
     job_application: wc
     input_schema:
-      $schema: https://json-schema.org/draft/2020-12/schema
       additionalProperties: false
       type: object
       properties:
