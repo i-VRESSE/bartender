@@ -32,11 +32,15 @@ interactive_applications:
       haddock3-re score
       --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}}
       {{ capri_dir|q }}
+      &&
+      haddock3-analyse  --is_cleaned True --inter True -m {{ module_nr|q }} -r output/
     description: Rescore a HADDOCK run with different weights.
     job_application: haddock3
     input_schema:
       additionalProperties: false
       properties:
+        module_nr:
+          type: number
         capri_dir:
           type: string
         w_air:
@@ -50,6 +54,7 @@ interactive_applications:
         w_vdw:
           type: number
       required:
+      - module_nr
       - capri_dir
       - w_elec
       - w_vdw
@@ -69,11 +74,15 @@ interactive_applications:
       --min_population {{min_population|q}}
       {% endif -%}
       {{clustrmsd_dir|q}}
+      &&
+      haddock3-analyse --is_cleaned True --inter True -m {{ module_nr|q }} -r output/
     description: Recluster a HADDOCK run with RSMD and different parameters.
     job_application: haddock3
     input_schema:
       additionalProperties: false
       properties:
+        module_nr:
+          type: number
         clustrmsd_dir:
           type: string
         criterion:
@@ -94,6 +103,7 @@ interactive_applications:
       haddock3-re clustfcc
       --clust_cutoff {{clust_cutoff|q}} --strictness {{strictness|q}} --min_population {{min_population|q}}
       {{clustfcc_dir|q}}
+      # TODO call analyis
     description: Recluster a HADDOCK run with FCC and different parameters.
     job_application: haddock3
     input_schema:
