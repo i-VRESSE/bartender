@@ -95,6 +95,7 @@ interactive_applications:
         min_population:
           type: number
       required:
+      - module_nr
       - criterion
       - clustrmsd_dir
       type: object
@@ -103,12 +104,15 @@ interactive_applications:
       haddock3-re clustfcc
       --clust_cutoff {{clust_cutoff|q}} --strictness {{strictness|q}} --min_population {{min_population|q}}
       {{clustfcc_dir|q}}
-      # TODO call analyis
+      &&
+      haddock3-analyse --is_cleaned True --inter True -m {{ module_nr|q }} -r output/
     description: Recluster a HADDOCK run with FCC and different parameters.
     job_application: haddock3
     input_schema:
       additionalProperties: false
       properties:
+        module_nr:
+          type: number
         clustfcc_dir:
           type: string
         clust_cutoff:
@@ -118,6 +122,7 @@ interactive_applications:
         min_population:
           type: number
       required:
+      - module_nr
       - clustfcc_dir
       - clust_cutoff
       - strictness
