@@ -132,7 +132,7 @@ def test_unroll_application_routes_maximum() -> None:
 
     unroll_application_routes(openapi_schema, applications)
 
-    desc = "Zip archive containing somerequiredfile.txt, file2.txt file(s)."
+    desc = "Zip archive containing file1.txt, file2.txt file(s)."
     expected_request_body = {
         "content": {
             "multipart/form-data": {
