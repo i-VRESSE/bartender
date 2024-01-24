@@ -48,12 +48,13 @@ def test_unroll_application_routes() -> None:
                             "type": "string",
                             "format": "binary",
                             "title": "Upload",
-                            "description": "Archive containing somefile file.",
+                            "description": "Zip archive.",
                         },
                     },
                     "type": "object",
                     "required": ["upload"],
                     "title": "Upload app1",
+                    "additionalProperties": False,
                 },
                 "encoding": {
                     "upload": {
