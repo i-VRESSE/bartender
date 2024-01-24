@@ -26,10 +26,9 @@ class ApplicatonConfiguration(BaseModel):
             Root should be an object.
         summary: The summary of the application, if any.
         description: The description of the application, if any.
-        upload_needs: A dictionary of file names that should exist in the
+        upload_needs: A list of file names that should exist in the
             uploaded archive file during submission.
-            The key is the name in the command_template.
-            The value is the name of the file in the archive.
+            If empty then no files are required to be present in the archive.
         allowed_roles: A list of roles that are allowed to submit jobs.
             If empty then anyone can submit jobs.
 
@@ -45,7 +44,7 @@ class ApplicatonConfiguration(BaseModel):
     input_schema: dict[Any, Any] | None = None
     summary: str | None = None
     description: str | None = None
-    upload_needs: dict[str, str] = {}
+    upload_needs: list[str] = []
     allowed_roles: list[str] = []
 
     @validator("input_schema")

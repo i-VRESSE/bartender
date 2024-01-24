@@ -26,8 +26,7 @@ def build_description(
         Job description containing the job directory and command.
     """
     template = template_environment.from_string(config.command_template)
-    render_args = {**payload, **config.upload_needs}
-    command = template.render(**render_args)
+    command = template.render(**payload)
     return JobDescription(job_dir=job_dir, command=command)
 
 

@@ -4,16 +4,16 @@
 destination_picker: bartender.picker:pick_first
 applications:
   haddock3:
-    command_template: haddock3 {{ config|q }}
+    command_template: haddock3 workflow.cfg
     upload_needs:
-      config: workflow.cfg
+    - workflow.cfg
   # Below are other haddock3 commands,
   # that could be hosted by bartender web service.
   # haddock3-pp:
   #   summary: HADDOCK3 preprocess PDB files
   #   command_template: haddock3-pp --output-directory . *.pdb
   # haddock3-analyse:
-  #   command_template: haddock3-analyse --run-dir . -m {{ modules|join(' ')|q }}
+  #   command_template: haddock3-analyse --run-dir . -m {{ modules|join(' ') }}
   #   input_schema:
   #     additionalProperties: false
   #     type: object

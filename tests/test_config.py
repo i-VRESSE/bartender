@@ -128,6 +128,37 @@ class TestConfig:
         ):
             Config(**config)
 
+    def test_check_input_schema_valid_schema(self) -> None:
+        input_schema = {
+            "type": "object",
+            "properties": {"message": {"type": "string"}},
+            "required": ["message"],
+        }
+        config = ApplicatonConfiguration(
+            command_template="echo {{ message }}",
+            input_schema=input_schema,
+        )
+        assert config.input_schema == input_schema
+
+    def test_check_input_schema_invalid_schema(self) -> None:
+        input_schema = {"type": "incorrect"}
+        with pytest.raises(
+            SchemaError,
+            match="is not valid under any of the given schemas",
+        ):
+            ApplicatonConfiguration(
+                command_template="hostname",
+                input_schema=input_schema,
+            )
+
+    def test_check_input_schema_not_a_object(self) -> None:
+        input_schema = {"type": "string"}
+        with pytest.raises(ValueError, match="input_schema should have type=object"):
+            ApplicatonConfiguration(
+                command_template="hostname",
+                input_schema=input_schema,
+            )
+
 
 @pytest.mark.anyio
 async def test_build_config_minimal(tmp_path: Path) -> None:

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.datastructures import FormData
 from fastapi.responses import RedirectResponse
 from jsonschema import Draft202012Validator
 from starlette import status
@@ -131,15 +132,27 @@ async def _validate_form(
     """
     if config.input_schema is None:
         return {}
-    async with request.form() as form:
-        payload = {
-            formk: formv for formk, formv in form.items() if isinstance(formv, str)
-        }
+    max_fields = len(config.input_schema.get("properties", {})) + 1
+    async with request.form(max_files=1, max_fields=max_fields) as form:
+        payload = _extract_payload_from_form(form)
         validator = Draft202012Validator(config.input_schema)
         # payload values are strings, while the input_schema might expect other types
         # TODO convert strings to numbers or booleans where needed.
         # use https://jschon.readthedocs.io evaluate().output()?
         # now throws an error if schema expects non-string
-        validator.validate(**payload)
+        validator.validate(payload)
 
     return payload
+
+
+def _extract_payload_from_form(form: FormData) -> dict[str, str]:
+    """Extracts the payload from the form request.
+
+    Args:
+        form: The form request.
+
+    Returns:
+        The payload extracted from the form request.
+        Without any files or duplicate keys.
+    """
+    return {formk: formv for formk, formv in form.items() if isinstance(formv, str)}

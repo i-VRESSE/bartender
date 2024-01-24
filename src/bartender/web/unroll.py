@@ -135,7 +135,7 @@ def unroll_application_request_schema(
     """
     desc = "Zip archive."
     if config.upload_needs:
-        needed_files = ", ".join(config.upload_needs.values())
+        needed_files = ", ".join(config.upload_needs)
         desc = f"Zip archive containing {needed_files} file(s)."
     properties = {
         "upload": {

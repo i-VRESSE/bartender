@@ -2,9 +2,9 @@ job_root_dir: /tmp/jobs
 destination_picker: bartender.picker:pick_first
 applications:
   wc:
-    command_template: wc {{ config|q }}
+    command_template: wc README.md
     upload_needs:
-      config: README.md
+    - README.md
   count:
     command_template: >
       {% set flag = {
@@ -13,9 +13,9 @@ applications:
         'chars': '-m',
         'bytes': '-c',
       }[what] -%}
-      wc {{ flag|q }} {{ file|q }} >  {{ file|q }}.count
+      wc {{ flag|q }} README.md >  count.txt
     upload_needs:
-      file: README.md
+    - README.md
     summary: Count in README.md
     description: Count the number of lines, words, chars or bytes in a file called README.md in a uploaded zip file.
     input_schema:

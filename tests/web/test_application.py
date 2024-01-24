@@ -36,6 +36,29 @@ async def test_upload(
 
 
 @pytest.mark.anyio
+async def test_upload_with_input_schema(
+    app_with_input_schema: FastAPI,
+    client: AsyncClient,
+    job_root_dir: Path,
+    tmp_path: Path,
+    auth_headers: Dict[str, str],
+) -> None:
+    url = app_with_input_schema.url_path_for("upload_job", application="app1")
+    data = {"message": "hello"}
+    with prepare_form_data(tmp_path) as files:
+        response = await client.put(url, files=files, data=data, headers=auth_headers)
+
+    jurl = response.headers["location"]
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    job = await wait_for_job_completion(client, jurl, auth_headers)
+
+    assert job["state"] == "ok"
+    job_dir = job_root_dir / str(job["id"])
+    assert (job_dir / "stdout.txt").read_text() == "hello\n"
+
+
+@pytest.mark.anyio
 async def test_upload_with_role_granted(
     fastapi_app: FastAPI,
     client: AsyncClient,

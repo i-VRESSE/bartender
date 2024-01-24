@@ -20,12 +20,10 @@ def has_needed_files(
         IndexError: When one or more needed files can not be found
 
     Returns:
-        True when found.
+        True when found or no files where needed.
     """
-    if not application.upload_needs:
-        return True
     missing_files = []
-    for needed_file in application.upload_needs.values():
+    for needed_file in application.upload_needs:
         file = job_dir / needed_file
         file_exists = file.exists() and file.is_file()
         if not file_exists:
