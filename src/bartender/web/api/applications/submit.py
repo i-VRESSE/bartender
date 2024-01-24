@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
-
 from bartender.config import ApplicatonConfiguration
 from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
@@ -27,14 +25,6 @@ def build_description(
     Returns:
         Job description containing the job directory and command.
     """
-    if config.input_schema is not None:
-        validator = Draft202012Validator(config.input_schema)
-        # payload values are strings, while the input_schema might expect other types
-        # TODO convert strings to numbers or booleans where needed.
-        # use https://jschon.readthedocs.io evaluate().output()?
-        # now throws an error if schema expects non-string
-        validator.validate(payload)
-
     template = template_environment.from_string(config.command_template)
     render_args = {**payload, **config.upload_needs}
     command = template.render(**render_args)

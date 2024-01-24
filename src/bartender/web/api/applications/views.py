@@ -1,8 +1,10 @@
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
+from jsonschema import Draft202012Validator
 from starlette import status
 from starlette.background import BackgroundTask
 
+from bartender.config import ApplicatonConfiguration
 from bartender.context import Context, CurrentContext
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.filesystem import has_needed_files
@@ -24,7 +26,7 @@ async def upload_job(  # noqa: WPS210, WPS211
     job_dao: CurrentJobDAO,
     submitter: CurrentUser,
     context: CurrentContext,
-    upload: UploadFile = File(description="Archive with config file for application"),
+    upload: UploadFile = File(description="Archive with files needed for application"),
 ) -> RedirectResponse:
     """Creates job model in the database, stage archive locally and submit to scheduler.
 
@@ -42,7 +44,7 @@ async def upload_job(  # noqa: WPS210, WPS211
         HTTPException: Application is invalid.
 
     Returns:
-        redirect response.
+        redirect response to created job.
     """
     if application not in context.applications:
         valid = context.applications.keys()
@@ -66,22 +68,18 @@ async def upload_job(  # noqa: WPS210, WPS211
     # Move to background task or have dedicated routes for preparing input files.
     await stage_job_input(job_dir, upload)
     has_needed_files(context.applications[application], job_dir)
+    payload = await _validate_form(request, context.applications[application])
 
-    async with request.form() as form:
-        # payload is form without files
-        payload = {
-            formk: formv for formk, formv in form.items() if isinstance(formv, str)
-        }
-        task = BackgroundTask(
-            submit,
-            job_id,
-            job_dir,
-            application,
-            submitter,
-            payload,
-            job_dao,
-            context,
-        )
+    task = BackgroundTask(
+        submit,
+        job_id,
+        job_dir,
+        application,
+        submitter,
+        payload,
+        job_dao,
+        context,
+    )
 
     url = request.url_for("retrieve_job", jobid=job_id)
     return RedirectResponse(
@@ -114,3 +112,34 @@ def _check_role(application: str, submitter: User, context: Context) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Missing role.",
         )
+
+
+async def _validate_form(
+    request: Request,
+    config: ApplicatonConfiguration,
+) -> dict[str, str]:
+    """
+    Validates the form request against the config.input_schema if it is defined.
+
+    Args:
+        request: The request object.
+        config: The configuration for the application.
+
+    Returns:
+        The payload extracted from the form request.
+        Without any files or duplicate keys.
+    """
+    if config.input_schema is None:
+        return {}
+    async with request.form() as form:
+        payload = {
+            formk: formv for formk, formv in form.items() if isinstance(formv, str)
+        }
+        validator = Draft202012Validator(config.input_schema)
+        # payload values are strings, while the input_schema might expect other types
+        # TODO convert strings to numbers or booleans where needed.
+        # use https://jschon.readthedocs.io evaluate().output()?
+        # now throws an error if schema expects non-string
+        validator.validate(**payload)
+
+    return payload
