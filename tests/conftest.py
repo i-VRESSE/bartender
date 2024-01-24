@@ -121,8 +121,8 @@ def job_root_dir(tmp_path: Path) -> Path:
 def demo_applications() -> dict[str, ApplicatonConfiguration]:
     return {
         "app1": ApplicatonConfiguration(
-            command="wc $config",
-            config="job.ini",
+            command_template="wc {{ config|q }}",
+            upload_needs={"config": "job.ini"},
             allowed_roles=[],
         ),
     }

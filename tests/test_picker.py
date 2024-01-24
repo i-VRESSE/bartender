@@ -26,7 +26,7 @@ class TestPickFirst:
         context = Context(
             destination_picker=pick_first,
             applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+                "app1": ApplicatonConfiguration(command_template="uptime"),
             },
             destinations={
                 "d1": demo_destination,
@@ -45,7 +45,7 @@ class TestPickFirst:
         context = Context(
             destination_picker=pick_first,
             applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+                "app1": ApplicatonConfiguration(command_template="uptime"),
             },
             destinations={},
             job_root_dir=Path("/jobs"),
@@ -61,7 +61,7 @@ class TestPickRoundWith2Destinations:
         return Context(
             destination_picker=pick_first,
             applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+                "app1": ApplicatonConfiguration(command_template="uptime"),
             },
             destinations={
                 "d1": demo_destination,

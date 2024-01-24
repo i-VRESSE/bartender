@@ -1,7 +1,7 @@
 """Parses config file as list of applications, schedulers and filesystems."""
 
+
 from pathlib import Path
-from string import Template
 from tempfile import gettempdir
 from typing import Annotated, Any
 
@@ -12,43 +12,79 @@ from pydantic.types import DirectoryPath
 from yaml import safe_load as load_yaml
 
 from bartender.destinations import DestinationConfig, default_destinations
-from bartender.schedulers.abstract import JobDescription
 from bartender.template_environment import template_environment
 
 
 class ApplicatonConfiguration(BaseModel):
-    """Command to run application.
+    """Configuration for an application.
 
-    `$config` in command string will be replaced with value of
-    ApplicatonConfiguration.config.
+    Attributes:
+        command_template: Shell command template to run in job directory.
+            Use Jinja2 template syntax to substitute variables from request body.
+        input_schema: JSON schema of request body.
+            Dialect of JSON Schema should be draft 2020-12.
+            Root should be an object.
+        summary: The summary of the application, if any.
+        description: The description of the application, if any.
+        upload_needs: A dictionary of file names that should exist in the
+            uploaded archive file during submission.
+            The key is the name in the command_template.
+            The value is the name of the file in the archive.
+        allowed_roles: A list of roles that are allowed to submit jobs.
+            If empty then anyone can submit jobs.
 
-    The config value must be a path relative to the job directory.
+    Methods:
+        check_input_schema(v) -> dict:
+            Validate the input schema.
 
-    .. code-block:: yaml
-
-        command: wc $config
-        config: README.md
+        check_command_template(v) -> str:
+            Validate the command template.
     """
 
-    command: str
-    config: str
-    # TODO make config optional,
-    # as some commands don't need a config file name as argument
+    command_template: str
+    input_schema: dict[Any, Any] | None = None
+    summary: str | None = None
+    description: str | None = None
+    upload_needs: dict[str, str] = {}
     allowed_roles: list[str] = []
 
-    def description(self, job_dir: Path) -> JobDescription:
-        """Construct job description for this application.
+    @validator("input_schema")
+    def check_input_schema(
+        cls,  # noqa: N805
+        v: dict[Any, Any] | None,  # noqa: WPS111
+    ) -> dict[Any, Any] | None:
+        """Validate input schema.
 
         Args:
-            job_dir: In which directory are the input files.
+            v: The unvalidated input schema.
+
+        Raises:
+            ValueError: When input schema is invalid.
 
         Returns:
-            A job description.
+            The validated input schema.
         """
-        command = Template(self.command).substitute(
-            config=self.config,
-        )
-        return JobDescription(job_dir=job_dir, command=command)
+        if v is None:
+            return v
+        Draft202012Validator.check_schema(v)
+        if v["type"] != "object":
+            raise ValueError("input_schema should have type=object")
+        return v
+
+    @validator("command_template")
+    def check_command_template(cls, v: str) -> str:  # noqa: N805, WPS111
+        """Validate command template.
+
+        Raises TemplateSyntaxError when command template is invalid.
+
+        Args:
+            v: The unvalidated command template.
+
+        Returns:
+            The validated command template.
+        """
+        template_environment.from_string(v)
+        return v
 
 
 ApplicatonConfigurations = dict[str, ApplicatonConfiguration]
@@ -244,142 +280,3 @@ def get_config(request: Request) -> Config:
 
 
 CurrentConfig = Annotated[Config, Depends(get_config)]
-
-
-def unroll_application_routes(
-    openapi_schema: dict[str, Any],
-    applications: ApplicatonConfigurations,
-) -> None:
-    """Unroll application routes.
-
-    In openapi spec replaces `/api/application/{application}`
-    with paths without `{application}`.
-    Loops over config.applications and adds a put route for each.
-
-    Args:
-        openapi_schema: OpenAPI schema
-        applications: Application configurations
-    """
-    existing_put_path = openapi_schema["paths"].pop(
-        "/api/application/{application}",
-    )["put"]
-
-    for aname, config in applications.items():
-        # each application has different request due to config file
-        # so instead of reusing the same schema for all applications
-        # we need to generate a new one for each application
-        openapi_schema["paths"][f"/api/application/{aname}"] = {
-            "put": unroll_application_route(aname, config, existing_put_path),
-        }
-
-    # Drop schema for /api/application/{application} put request
-    # as it is no longer used
-    ref = existing_put_path["requestBody"]["content"][  # noqa: WPS219
-        "multipart/form-data"
-    ]["schema"]["$ref"]
-    del openapi_schema["components"]["schemas"][  # noqa: WPS420
-        ref.replace("#/components/schemas/", "")
-    ]
-
-
-def unroll_application_route(
-    aname: str,
-    config: ApplicatonConfiguration,
-    existing_put_path: Any,
-) -> dict[str, Any]:
-    """Unroll an application route.
-
-    Args:
-        aname: Application name
-        config: Application configuration
-        existing_put_path: Existing PUT path
-
-    Returns:
-        Unrolled PUT path
-    """
-    desc = f"Archive containing {config.config} file."
-    request_body = {
-        "content": {
-            "multipart/form-data": {
-                "schema": {
-                    "properties": {
-                        "upload": {
-                            "type": "string",
-                            "format": "binary",
-                            "title": "Upload",
-                            "description": desc,
-                        },
-                    },
-                    "type": "object",
-                    "required": ["upload"],
-                    "title": f"Upload {aname}",
-                },
-                # Enfore uploaded file is a certain content type
-                # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
-                # does not seem supported by Swagger UI or FastAPI or generated clients
-                "encoding": {
-                    "upload": {
-                        "contentType": "application/zip, application/x-zip-compressed",
-                    },
-                },
-            },
-        },
-        "required": True,
-    }
-    return {
-        "tags": ["application"],
-        "operationId": f"application_{aname}",
-        "summary": f"Upload job to {aname}",
-        "requestBody": request_body,
-        "responses": existing_put_path["responses"],
-        "security": existing_put_path["security"],
-    }
-
-
-def unroll_interactive_app_routes(
-    openapi_schema: dict[str, Any],
-    interactive_applications: InteractiveApplicationConfigurations,
-) -> None:
-    """Unroll interactive app routes.
-
-    Replaces `/api/job/{jobid}/interactive/{application}`
-    with paths without `{application}`.
-    Loops over config.interactive_applications and adds a post route for each.
-
-    Args:
-        openapi_schema: OpenAPI schema
-        interactive_applications: Interactive application configurations
-    """
-    path = "/api/job/{jobid}/interactive/{application}"
-    existing_post_path = openapi_schema["paths"].pop(path)["post"]
-    for iname, config in interactive_applications.items():
-        path = f"/api/job/{{jobid}}/interactive/{iname}"
-        post = {
-            "tags": ["interactive"],
-            "operationId": f"interactive_application_{iname}",
-            "parameters": [
-                {
-                    "name": "jobid",
-                    "in": "path",
-                    "required": True,
-                    "schema": {"type": "number"},
-                },
-            ],
-            "requestBody": {
-                "required": True,
-                "content": {
-                    "application/json": {
-                        "schema": config.input_schema,
-                    },
-                },
-            },
-            "responses": existing_post_path["responses"],
-            "security": existing_post_path["security"],
-        }
-        if config.summary is not None:
-            post["summary"] = config.summary
-        else:
-            post["summary"] = f"Run {iname} interactive application"
-        if config.description is not None:
-            post["description"] = config.description
-        openapi_schema["paths"][path] = {"post": post}

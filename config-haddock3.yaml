@@ -4,21 +4,25 @@
 destination_picker: bartender.picker:pick_first
 applications:
   haddock3:
-    command: haddock3 $config
-    config: workflow.cfg
+    command_template: haddock3 {{ config|q }}
+    upload_needs:
+      config: workflow.cfg
   # Below are other haddock3 commands,
   # that could be hosted by bartender web service.
-  # TODO add support for label and parameters keys
   # haddock3-pp:
-  #   label: HADDOCK3 preprocess PDB files
-  #   command: haddock3-pp --output-directory . *.pdb
+  #   summary: HADDOCK3 preprocess PDB files
+  #   command_template: haddock3-pp --output-directory . *.pdb
   # haddock3-analyse:
-  #   command: haddock3-analyse --run-dir . --modules $modules
-  #   parameters:
-  #     modules:
-  #       type: array
-  #       items:
-  #         type: int
+  #   command_template: haddock3-analyse --run-dir . -m {{ modules|join(' ')|q }}
+  #   input_schema:
+  #     additionalProperties: false
+  #     type: object
+  #     properties:
+  #       modules:
+  #         type: array
+  #         description: List of module numbers to analyse
+  #         items:
+  #           type: string
 destinations:
   local:
     scheduler:

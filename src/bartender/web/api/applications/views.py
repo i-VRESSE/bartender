@@ -5,7 +5,7 @@ from starlette.background import BackgroundTask
 
 from bartender.context import Context, CurrentContext
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.filesystem import has_config_file
+from bartender.filesystem import has_needed_files
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.web.api.applications.submit import submit
@@ -18,7 +18,7 @@ router = APIRouter()
     "/{application}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
 )
-async def upload_job(  # noqa: WPS211
+async def upload_job(  # noqa: WPS210, WPS211
     application: str,
     request: Request,
     job_dao: CurrentJobDAO,
@@ -65,17 +65,23 @@ async def upload_job(  # noqa: WPS211
     # as request could timeout on consumer side.
     # Move to background task or have dedicated routes for preparing input files.
     await stage_job_input(job_dir, upload)
-    has_config_file(context.applications[application], job_dir)
+    has_needed_files(context.applications[application], job_dir)
 
-    task = BackgroundTask(
-        submit,
-        job_id,
-        job_dir,
-        application,
-        submitter,
-        job_dao,
-        context,
-    )
+    async with request.form() as form:
+        # payload is form without files
+        payload = {
+            formk: formv for formk, formv in form.items() if isinstance(formv, str)
+        }
+        task = BackgroundTask(
+            submit,
+            job_id,
+            job_dir,
+            application,
+            submitter,
+            payload,
+            job_dao,
+            context,
+        )
 
     url = request.url_for("retrieve_job", jobid=job_id)
     return RedirectResponse(
