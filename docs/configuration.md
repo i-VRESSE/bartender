@@ -131,8 +131,7 @@ applications:
   can be sent in a multipart/form-data request to
   the `PUT /api/application/{name of application}` endpoint.
 * The `command_template` value is a [Jinja template](https://palletsprojects.com/p/jinja/)
-  and is used to render the validated non file form fields
-  and `upload_needs` placeholders into a command string.
+  and is used to render the validated non file form fields into a command string.
 * Optionally, the `upload_needs` is a list of file names that
   must be present inside the uploaded archive.
 * Optionally, the non file form fields are validated against the JSON schema
