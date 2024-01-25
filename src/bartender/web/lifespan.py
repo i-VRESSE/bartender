@@ -4,11 +4,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from bartender.config import (
-    build_config,
-    unroll_application_routes,
-    unroll_interactive_app_routes,
-)
+from bartender.config import build_config
 from bartender.context import build_context, close_context
 from bartender.db.session import make_engine, make_session_factory
 from bartender.filesystems.queue import (
@@ -17,6 +13,7 @@ from bartender.filesystems.queue import (
 )
 from bartender.settings import settings
 from bartender.user import JwtDecoder
+from bartender.web.unroll import unroll_openapi
 
 logger = logging.getLogger(__name__)
 
@@ -101,26 +98,3 @@ def setup_jwt_decoder(app: FastAPI) -> None:
     else:
         logger.warning("JWT public key not found, authentication will not work")
         app.state.jwt_decoder = None
-
-
-def unroll_openapi(app: FastAPI) -> None:
-    """Convert dynamic application routes to static routes.
-
-    Args:
-        app: FastAPI app
-
-    Raises:
-        RuntimeError: If OpenAPI schema is not generated.
-    """
-    # If the schema has already been generated, don't do it again
-    if not app.openapi_schema:
-        app.openapi()
-        if app.openapi_schema is None:
-            raise RuntimeError(
-                "OpenAPI schema should be generated at this point",
-            )
-        unroll_application_routes(app.openapi_schema, app.state.config.applications)
-        unroll_interactive_app_routes(
-            app.openapi_schema,
-            app.state.config.interactive_applications,
-        )

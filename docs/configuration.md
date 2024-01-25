@@ -91,31 +91,65 @@ For example
 
 ```yaml
 applications:
-  app1:
-    command: wc $config
-    config: README.md
-  haddock3:
-    command: haddock3 $config
-    config: workflow.cfg
-  adminapp:
-    command: some-admin-application $config
-    config: config.yaml
+  wc:
+    command_template: wc README.md
+    upload_needs:
+      file: README.md
+  size:
+    command_template: >
+      {% set flag = {
+        'bytes': '-b',
+        'kilobytes': '-k',
+        'megabytes': '-m',
+        'human': '-h',
+      }[format] -%}
+      du -s {{ flag|q }} .
+    summary: Estimate file space usage.
+    description: Determines the size of the unzipped files and prints it to the stdout.
+    input_schema:
+      additionalProperties: false
+      properties:
+        format:
+          enum:
+            - bytes
+            - kilobytes
+            - megabytes
+            - human
+          type: string
+          description: The format of the output.
+          default: bytes
+  shutdown:
+    # for demonstration purposes only, do not use in production
+    command: shutdown -h now
     allowed_roles:
       - admin  # Only users with admin role can submit jobs for this application
 ```
 
 * The key is the name of the application
-* The `config` key is the config file that must be present in the uploaded
-  archive.
-* The `command` key is the command executed in the directory of the unpacked
-  archive that the consumer uploaded. The `$config` in command string will be
-  replaced with value of the config key.
+* The zip archive file as value of the `upload` field name
+  and optional fields defined in `input_schema`
+  can be sent in a multipart/form-data request to
+  the `PUT /api/application/{name of application}` endpoint.
+* The `command_template` value is a [Jinja template](https://palletsprojects.com/p/jinja/)
+  and is used to render the validated non file form fields into a command string.
+* Optionally, the `upload_needs` is a list of file names that
+  must be present inside the uploaded archive.
+* Optionally, the non file form fields are validated against the JSON schema
+  (version 2020-12) defined under the `input_schema` key.
+  Input schema should be of type object and
+  all its properties should be of type string.
 * Optionally, the `allowed_roles` key holds an array of role names,
   one of which a submitter should have.
   When key is not set or list is empty then any authorized user
   is allowed. See [Authentication](#authentication) how to set roles on users.
-* The application command should not overwrite files uploaded during submission
-  as these might not be downloaded from location where application is run.
+* Optionally, the application can be annotated with a `summary` and `description`.
+  These will be shown in the OpenAPI specification and
+  the interactive API documentation at <http://localhost:8000/api/docs>.
+
+In the command template make sure to use the `|q` filter so the
+user supplied values are [shell-escaped](https://docs.python.org/3/library/shlex.html#shlex.quote).
+Also to prevent [unintended newlines](https://yaml.org/spec/1.2.2/#65-line-folding)
+in the rendered command use `>` in YAML.
 
 ## Job destinations
 

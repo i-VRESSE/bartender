@@ -6,9 +6,17 @@ from zipfile import ZipFile
 
 import pytest
 from fastapi import FastAPI
+from fastapi.datastructures import FormData
 from httpx import AsyncClient
 from httpx._types import RequestFiles
 from starlette import status
+
+from bartender.config import ApplicatonConfiguration
+from bartender.web.api.applications.submit import build_description
+from bartender.web.api.applications.views import (
+    extract_payload_from_form,
+    validate_input,
+)
 
 
 @pytest.mark.anyio
@@ -33,6 +41,29 @@ async def test_upload(
     assert job["state"] == "ok"
 
     assert_job_dir(job_root_dir, str(job["id"]), current_user_token)
+
+
+@pytest.mark.anyio
+async def test_upload_with_input_schema(
+    app_with_input_schema: FastAPI,
+    client: AsyncClient,
+    job_root_dir: Path,
+    tmp_path: Path,
+    auth_headers: Dict[str, str],
+) -> None:
+    url = app_with_input_schema.url_path_for("upload_job", application="app1")
+    data = {"message": "hello"}
+    with prepare_form_data(tmp_path) as files:
+        response = await client.put(url, files=files, data=data, headers=auth_headers)
+
+    jurl = response.headers["location"]
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    job = await wait_for_job_completion(client, jurl, auth_headers)
+
+    assert job["state"] == "ok"
+    job_dir = job_root_dir / str(job["id"])
+    assert (job_dir / "stdout.txt").read_text() == "hello\n"
 
 
 @pytest.mark.anyio
@@ -140,3 +171,41 @@ def prepare_form_data(
                 "application/zip",
             ),
         }
+
+
+@pytest.mark.skip(reason="Cannot handle non-string types")
+def test_complex_nested_schema(
+    tmp_path: Path,
+) -> None:
+    cmd = "tar {% if auto %}-a{% endif %} --level {{ level }} "
+    cmd += "-cf {{ output }} {{ input|join(' ')|q }}"  # noqa: WPS336
+    config = ApplicatonConfiguration(
+        command_template=cmd,
+        input_schema={
+            "type": "object",
+            "properties": {
+                "level": {"type": "integer", "default": 6},
+                "input": {"type": "array", "items": {"type": "string"}},
+                "output": {"type": "string"},
+                "auto": {"type": "boolean", "default": False},
+            },
+            "required": ["output"],
+        },
+    )
+    data = FormData(
+        {
+            "level": "9",
+            "input": '["foo.txt", "bar.txt"]',
+            "output": "archive.tar",
+            "auto": "true",
+        },
+    )
+    payload = extract_payload_from_form(data)
+    validate_input(config, payload)
+    description = build_description(
+        tmp_path,
+        payload,
+        config,
+    )
+
+    assert description.command == "tar -a --level 9 -cf archive.tar foo.txt bar.txt"

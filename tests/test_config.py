@@ -14,26 +14,13 @@ from bartender.config import (
     InteractiveApplicationConfiguration,
     build_config,
     get_config,
-    unroll_application_routes,
-    unroll_interactive_app_routes,
 )
 from bartender.destinations import DestinationConfig
 from bartender.filesystems.local import LocalFileSystemConfig
 from bartender.filesystems.sftp import SftpFileSystemConfig
-from bartender.schedulers.abstract import JobDescription
 from bartender.schedulers.memory import MemorySchedulerConfig
 from bartender.schedulers.slurm import SlurmSchedulerConfig
 from bartender.shared.ssh import SshConnectConfig
-
-
-class TestApplicatonConfiguration:
-    def test_description_with_config(self, tmp_path: Path) -> None:
-        conf = ApplicatonConfiguration(command="wc $config", config="foo.bar")
-
-        description = conf.description(tmp_path)
-
-        expected = JobDescription(job_dir=tmp_path, command="wc foo.bar")
-        assert description == expected
 
 
 class TestConfig:
@@ -48,7 +35,7 @@ class TestConfig:
     def test_minimal(self, tmp_path: Path) -> None:
         raw_config: Any = {
             "job_root_dir": str(tmp_path),
-            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "applications": {"app1": {"command_template": "uptime"}},
         }
         config = Config(**raw_config)
 
@@ -56,7 +43,7 @@ class TestConfig:
             destination_picker="bartender.picker:pick_first",
             job_root_dir=tmp_path,
             applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+                "app1": ApplicatonConfiguration(command_template="uptime"),
             },
             destinations={
                 "": DestinationConfig(
@@ -69,7 +56,7 @@ class TestConfig:
 
     def test_no_defaults(self, tmp_path: Path) -> None:
         raw_config: Any = {
-            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "applications": {"app1": {"command_template": "uptime"}},
             "destinations": {
                 "dest1": {
                     "scheduler": {"type": "slurm", "partition": "normal"},
@@ -89,7 +76,7 @@ class TestConfig:
             destination_picker="bartender.picker:pick_round",
             job_root_dir=tmp_path,
             applications={
-                "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+                "app1": ApplicatonConfiguration(command_template="uptime"),
             },
             destinations={
                 "dest1": DestinationConfig(
@@ -106,7 +93,7 @@ class TestConfig:
     def test_job_application_valid(self, tmp_path: Path) -> None:
         raw_config: Any = {
             "job_root_dir": str(tmp_path),
-            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "applications": {"app1": {"command_template": "uptime"}},
             "interactive_applications": {
                 "app2": {
                     "command_template": "hostname",
@@ -126,7 +113,7 @@ class TestConfig:
     def test_job_application_invalid(self, tmp_path: Path) -> None:
         config: Any = {
             "job_root_dir": str(tmp_path),
-            "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+            "applications": {"app1": {"command_template": "uptime"}},
             "interactive_applications": {
                 "app2": {
                     "command_template": "hostname",
@@ -141,13 +128,44 @@ class TestConfig:
         ):
             Config(**config)
 
+    def test_check_input_schema_valid_schema(self) -> None:
+        input_schema = {
+            "type": "object",
+            "properties": {"message": {"type": "string"}},
+            "required": ["message"],
+        }
+        config = ApplicatonConfiguration(
+            command_template="echo {{ message }}",
+            input_schema=input_schema,
+        )
+        assert config.input_schema == input_schema
+
+    def test_check_input_schema_invalid_schema(self) -> None:
+        input_schema = {"type": "incorrect"}
+        with pytest.raises(
+            SchemaError,
+            match="is not valid under any of the given schemas",
+        ):
+            ApplicatonConfiguration(
+                command_template="hostname",
+                input_schema=input_schema,
+            )
+
+    def test_check_input_schema_not_a_object(self) -> None:
+        input_schema = {"type": "string"}
+        with pytest.raises(ValueError, match="input_schema should have type=object"):
+            ApplicatonConfiguration(
+                command_template="hostname",
+                input_schema=input_schema,
+            )
+
 
 @pytest.mark.anyio
 async def test_build_config_minimal(tmp_path: Path) -> None:
     file = tmp_path / "config.yaml"
     config: Any = {
         "job_root_dir": str(tmp_path),
-        "applications": {"app1": {"command": "echo", "config": "/etc/passwd"}},
+        "applications": {"app1": {"command_template": "uptime"}},
     }
     with file.open("w") as handle:
         yaml_dump(config, handle)
@@ -158,7 +176,7 @@ async def test_build_config_minimal(tmp_path: Path) -> None:
         destination_picker="bartender.picker:pick_first",
         job_root_dir=tmp_path,
         applications={
-            "app1": ApplicatonConfiguration(command="echo", config="/etc/passwd"),
+            "app1": ApplicatonConfiguration(command_template="uptime"),
         },
         destinations={
             "": DestinationConfig(
@@ -229,137 +247,3 @@ class TestInteractiveApplicationConfiguration:
                 command_template=command_template,
                 input_schema=input_schema,
             )
-
-
-def test_unroll_application_routes() -> None:
-    openapi_schema = {
-        "paths": {
-            "/api/application/{application}": {
-                "put": {
-                    "responses": "mock responses",
-                    "security": "mock security",
-                    "requestBody": {
-                        "content": {
-                            "multipart/form-data": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JobDescription",
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        "components": {
-            "schemas": {
-                "JobDescription": "mock JobDescription",
-            },
-        },
-    }
-    applications = {
-        "app1": ApplicatonConfiguration(command="echo", config="somefile"),
-    }
-
-    unroll_application_routes(openapi_schema, applications)
-
-    expected_request_body = {
-        "content": {
-            "multipart/form-data": {
-                "schema": {
-                    "properties": {
-                        "upload": {
-                            "type": "string",
-                            "format": "binary",
-                            "title": "Upload",
-                            "description": "Archive containing somefile file.",
-                        },
-                    },
-                    "type": "object",
-                    "required": ["upload"],
-                    "title": "Upload app1",
-                },
-                "encoding": {
-                    "upload": {
-                        "contentType": "application/zip, application/x-zip-compressed",
-                    },
-                },
-            },
-        },
-        "required": True,
-    }
-    expected = {
-        "paths": {
-            "/api/application/app1": {
-                "put": {
-                    "tags": ["application"],
-                    "operationId": "application_app1",
-                    "summary": "Upload job to app1",
-                    "requestBody": expected_request_body,
-                    "responses": "mock responses",
-                    "security": "mock security",
-                },
-            },
-        },
-        "components": {
-            "schemas": {},
-        },
-    }
-    assert openapi_schema == expected
-
-
-def test_unroll_interactive_app_routes() -> None:
-    openapi_schema = {
-        "paths": {
-            "/api/job/{jobid}/interactive/{application}": {
-                "post": {
-                    "responses": "mock responses",
-                    "security": "mock security",
-                },
-            },
-        },
-    }
-    input_schema = {
-        "type": "object",
-        "properties": {"message": {"type": "string"}},
-        "required": ["message"],
-    }
-
-    interactive_applications = {
-        "iapp1": InteractiveApplicationConfiguration(
-            command_template="echo {{ message }}",
-            input_schema=input_schema,
-        ),
-    }
-
-    unroll_interactive_app_routes(openapi_schema, interactive_applications)
-
-    expected = {
-        "paths": {
-            "/api/job/{jobid}/interactive/iapp1": {
-                "post": {
-                    "tags": ["interactive"],
-                    "operationId": "interactive_application_iapp1",
-                    "summary": "Run iapp1 interactive application",
-                    "parameters": [
-                        {
-                            "name": "jobid",
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "number"},
-                        },
-                    ],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": input_schema,
-                            },
-                        },
-                    },
-                    "responses": "mock responses",
-                    "security": "mock security",
-                },
-            },
-        },
-    }
-    assert openapi_schema == expected
