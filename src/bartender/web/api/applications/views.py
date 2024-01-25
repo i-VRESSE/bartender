@@ -134,18 +134,32 @@ async def _validate_form(
         return {}
     max_fields = len(config.input_schema.get("properties", {})) + 1
     async with request.form(max_files=1, max_fields=max_fields) as form:
-        payload = _extract_payload_from_form(form)
-        validator = Draft202012Validator(config.input_schema)
-        # payload values are strings, while the input_schema might expect other types
-        # TODO convert strings to numbers or booleans where needed.
-        # use https://jschon.readthedocs.io evaluate().output()?
-        # now throws an error if schema expects non-string
-        validator.validate(payload)
+        payload = extract_payload_from_form(form)
+        validate_input(config, payload)
 
     return payload
 
 
-def _extract_payload_from_form(form: FormData) -> dict[str, str]:
+def validate_input(config: ApplicatonConfiguration, payload: dict[str, str]) -> None:
+    """
+    Validates the input payload against the provided configuration.
+
+    If invalid an exception is raised.
+
+    Args:
+        config (ApplicatonConfiguration): The application configuration.
+        payload (dict[str, str]): The input payload to be validated.
+    """
+    validator = Draft202012Validator(config.input_schema)
+    # payload values are strings, while the input_schema might expect other types
+    # TODO convert strings to numbers or booleans where needed.
+    # use https://jschon.readthedocs.io evaluate().output()?
+    # now throws an error if schema expects non-string
+    # https://swagger.io/docs/specification/describing-request-body/multipart-requests/
+    validator.validate(payload)
+
+
+def extract_payload_from_form(form: FormData) -> dict[str, str]:
     """Extracts the payload from the form request.
 
     Args:
@@ -155,4 +169,4 @@ def _extract_payload_from_form(form: FormData) -> dict[str, str]:
         The payload extracted from the form request.
         Without any files or duplicate keys.
     """
-    return {formk: formv for formk, formv in form.items() if isinstance(formv, str)}
+    return {key: value for key, value in form.items() if isinstance(value, str)}
