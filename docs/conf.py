@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "bartender"
-release = "0.3.0"  # TODO have version only in one place pyproject.toml
+release = "0.4.0"  # TODO have version only in one place pyproject.toml
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
