@@ -121,8 +121,8 @@ def job_root_dir(tmp_path: Path) -> Path:
 def demo_applications() -> dict[str, ApplicatonConfiguration]:
     return {
         "app1": ApplicatonConfiguration(
-            command="wc $config",
-            config="job.ini",
+            command_template="wc job.ini",
+            upload_needs=["job.ini"],
             allowed_roles=[],
         ),
     }
@@ -315,4 +315,23 @@ def app_with_roles(
     demo_applications: dict[str, ApplicatonConfiguration],
 ) -> FastAPI:
     demo_applications["app1"].allowed_roles = ["role1"]
+    return fastapi_app
+
+
+@pytest.fixture
+def app_with_input_schema(
+    fastapi_app: FastAPI,
+    demo_applications: dict[str, ApplicatonConfiguration],
+) -> FastAPI:
+    demo_applications["app1"] = ApplicatonConfiguration(
+        command_template="echo {{ message|q }}",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "message": {"type": "string"},
+            },
+            "additionalProperties": False,
+            "required": ["message"],
+        },
+    )
     return fastapi_app

@@ -2,8 +2,33 @@ job_root_dir: /tmp/jobs
 destination_picker: bartender.picker:pick_first
 applications:
   wc:
-    command: wc $config
-    config: README.md
+    command_template: wc README.md
+    upload_needs:
+    - README.md
+  count:
+    command_template: >
+      {% set flag = {
+        'lines': '-l',
+        'words': '-w',
+        'chars': '-m',
+        'bytes': '-c',
+      }[what] -%}
+      wc {{ flag|q }} README.md >  count.txt
+    upload_needs:
+    - README.md
+    summary: Count in README.md
+    description: Count the number of lines, words, chars or bytes in a file called README.md in a uploaded zip file.
+    input_schema:
+      additionalProperties: false
+      type: object
+      properties:
+        what:
+          type: string
+          enum: [lines, words, chars, bytes]
+          description: What to count
+          default: lines
+  du:
+    command_template: du -hs . > du.txt
 destinations:
   local:
     scheduler:
@@ -11,3 +36,23 @@ destinations:
       slots: 1
     filesystem:
       type: local
+interactive_applications:
+  count:
+    command_template: >
+      {% set flag = {
+        'lines': '-l',
+        'words': '-w',
+        'chars': '-m',
+        'bytes': '-c',
+      }[what] -%}
+      cat README.md | wc {{ flag|q }} > README.md.count
+    description: Count the number of lines, words, chars or bytes in README.md file.
+    job_application: wc
+    input_schema:
+      additionalProperties: false
+      type: object
+      properties:
+        what:
+          type: string
+          enum: [lines, words, chars, bytes]
+          default: lines

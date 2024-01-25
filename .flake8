@@ -77,6 +77,8 @@ ignore =
   WPS332,
   ; Found protected module import: _runner
   WPS436,
+  ; Found `noqa` comments overuse
+  WPS402,
 
 per-file-ignores =
   ; all tests

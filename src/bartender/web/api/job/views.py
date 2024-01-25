@@ -1,23 +1,27 @@
+from os import getloadavg, sched_getaffinity
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from fs.copy import copy_fs
 from fs.osfs import OSFS
 from fs.tarfs import TarFS
 from fs.walk import Walker
 from fs.zipfs import ZipFS
+from jsonschema import ValidationError
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
 
 from bartender.async_utils import async_wrap
+from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import CompletedStates, Job
 from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
+from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
 from bartender.web.users import CurrentUser
@@ -158,7 +162,17 @@ def get_dir_of_completed_job(
 CurrentCompletedJobDir = Annotated[Path, Depends(get_dir_of_completed_job)]
 
 
-@router.get("/{jobid}/files/{path:path}")
+@router.get(
+    "/{jobid}/files/{path:path}",
+    responses={
+        200: {
+            "content": {
+                "application/octet-stream": {},
+            },
+        },
+    },
+    response_class=FileResponse,
+)
 def retrieve_job_files(
     path: str,
     job_dir: CurrentCompletedJobDir,
@@ -313,7 +327,14 @@ ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
 
 @router.get(
     "/{jobid}/archive",
-    responses={200: {"content": {"application/octet-stream": {}}}},
+    responses={
+        200: {
+            "content": {
+                "application/octet-stream": {},
+            },
+        },
+    },
+    response_class=FileResponse,
 )
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
@@ -415,3 +436,85 @@ def _parse_subdirectory(path: str, job_dir: Path) -> Path:
         ) from exc
 
     return subdirectory
+
+
+def get_interactive_app(
+    application: str,
+    config: CurrentConfig,
+) -> InteractiveApplicationConfiguration:
+    """Get interactive app configuration.
+
+    Args:
+        application: The interactive application.
+        config: The bartender configuration.
+
+    Returns:
+        The interactive application configuration.
+
+    """
+    return config.interactive_applications[application]
+
+
+CurrentInteractiveAppConf = Annotated[
+    InteractiveApplicationConfiguration,
+    Depends(get_interactive_app),
+]
+
+
+def check_load(max_load: float = 1.0) -> None:
+    """Check if machine load is too high.
+
+    Args:
+        max_load: Maximum load allowed.
+
+    Raises:
+        HTTPException: When machine load is too high.
+    """
+    nr_cpus = len(sched_getaffinity(0))
+    load_avg_last_minute = getloadavg()[0] / nr_cpus
+    if load_avg_last_minute > max_load:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Machine load is too high, please try again later.",
+        )
+
+
+@router.post(
+    "/{jobid}/interactive/{application}",
+)
+async def run_interactive_app(
+    request: Request,
+    job_dir: CurrentCompletedJobDir,
+    job: CurrentJob,
+    application: CurrentInteractiveAppConf,
+) -> InteractiveAppResult:
+    """Run interactive app on a completed job.
+
+    Args:
+        request: The request.
+        job_dir: The job directory.
+        job: The job.
+        application: The interactive application.
+
+    Returns:
+        The result of running the interactive application.
+
+    Raises:
+        HTTPException: When job was not run with
+            the required application or the payload is invalid
+            or the load on the machine is too high.
+    """
+    check_load()
+    if application.job_application and application.job_application != job.application:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f'Job was not run with application "{job.application}"',
+        )
+    payload = await request.json()
+    try:
+        return await run(job_dir, payload, application)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.message,
+        ) from exc

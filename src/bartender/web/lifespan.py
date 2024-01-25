@@ -13,6 +13,7 @@ from bartender.filesystems.queue import (
 )
 from bartender.settings import settings
 from bartender.user import JwtDecoder
+from bartender.web.unroll import unroll_openapi
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         Nothing.
     """
+    startup(app)
+
+    yield
+
+    await shutdown(app)
+
+
+def startup(app: FastAPI) -> None:
+    """Logic which runs on application's startup.
+
+    Args:
+        app: The FastAPI application instance.
+    """
     _setup_db(app)
     _parse_context(app)
     setup_file_staging_queue(app)
     setup_jwt_decoder(app)
-    yield
+    unroll_openapi(app)
+
+
+async def shutdown(app: FastAPI) -> None:
+    """Logic which runs on application's shutdown.
+
+    Args:
+        app: fastAPI application.
+    """
     await app.state.db_engine.dispose()
     await close_context(app.state.context)
     await teardown_file_staging_queue(app)

@@ -23,6 +23,9 @@ moving the input and output files to the right place. To pick where an
 application should be run you can choose from a list of existing Python
 functions or supply your own.
 
+Bartender can run quick interactive applications on completed jobs.
+This is handy if you want to run a quick analysis on the output of a job.
+
 Bartender can be used as the computational backend for a web application, the
 web application should guide visitors into the submission and show the results.
 See <https://github.com/i-VRESSE/haddock3-webapp> for an example.
@@ -44,7 +47,7 @@ at <https://i-vresse-bartender.readthedocs.io> .
     curl -o config.yaml https://raw.githubusercontent.com/i-VRESSE/bartender/main/config-example.yaml
     ```
 
-1. In another terminal, start up a database for storing users and jobs.
+1. In another terminal, start up a database for storing jobs.
 
     ```bash
     docker run \
@@ -52,8 +55,11 @@ at <https://i-vresse-bartender.readthedocs.io> .
         -e "POSTGRES_PASSWORD=bartender" \
         -e "POSTGRES_USER=bartender" \
         -e "POSTGRES_DB=bartender" \
+        --mount type=volume,source=bartender-db,target=/var/lib/postgresql/data \
         postgres:15.2-bullseye
     ```
+
+    (Use `docker volume rm bartender-db` to clear the database storage`)
 
 1. Create tables in the database
 
@@ -115,11 +121,10 @@ following steps to run a job:
     4. Use authorize button on top of page to login with username
        `user@example.com` and password `string`.
 4. Submit archive.
-    1. Try out the `POST /api/application/{application}/job` route.
-    2. Use `wc` as application parameter
-    3. Upload the `README.zip` as request body.
-    4. Press execute button
-    5. The response contains a job identifier (`id` property) that can be used
+    1. Try out the `PUT /api/application/wc/job` route.
+    2. Upload the `README.zip` as request body.
+    3. Press execute button
+    4. The response contains a job identifier (`id` property) that can be used
        to fetch the job state.
 5. Fetch job state
     1. Try out the `GET /api/job/{jobid}`

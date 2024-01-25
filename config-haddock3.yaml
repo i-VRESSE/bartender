@@ -1,24 +1,27 @@
-destination_picker: bartender.config:pick_first
+# Example configuration file for haddock3 and haddock3-re.
+# Expects executables to be in PATH,
+# if not edit this file to use absolute path to executables
+job_root_dir: jobs
+destination_picker: bartender.picker:pick_first
 applications:
   haddock3:
-    command: haddock3 $config
-    config: workflow.cfg
+    command_template: haddock3 workflow.cfg
+    upload_needs:
+    - workflow.cfg
   # Below are other haddock3 commands,
   # that could be hosted by bartender web service.
-  # TODO add support for label and parameters keys
-  haddock3-pp:
-    label: HADDOCK3 preprocess PDB files
-    command: haddock3-pp --output-directory . *.pdb
-  haddock3-analyse:
-    command: haddock3-analyse --run-dir . --modules $modules
-    parameters:
-      modules:
-        type: array
-        items:
-          type: int
-  haddock3-score:
-    command: haddock3-score --outputpdb --outputpsf $config
-    config: complex.pdb
+  # haddock3-pp:
+  #   summary: HADDOCK3 preprocess PDB files
+  #   command_template: haddock3-pp --output-directory . *.pdb
+  # haddock3-analyse:
+  #   command_template: haddock3-analyse --run-dir . -m {{ modules|q }}
+  #   input_schema:
+  #     additionalProperties: false
+  #     type: object
+  #     properties:
+  #       modules:
+  #         type: string
+  #         description: List of module numbers to analyse. Space separated.
 destinations:
   local:
     scheduler:
@@ -26,3 +29,105 @@ destinations:
       slots: 1
     filesystem:
       type: local
+interactive_applications:
+  rescore:
+    command_template: >
+      haddock3-re score
+      --w_elec {{w_elec|q}} --w_vdw {{w_vdw|q}} --w_desolv {{w_desolv|q}} --w_bsa {{w_bsa|q}} --w_air {{w_air|q}}
+      {{ capri_dir|q }}
+      &&
+      haddock3-analyse  --is_cleaned True --inter True -m {{ module_nr|q }} -r output/
+    description: Rescore a HADDOCK run with different weights.
+    job_application: haddock3
+    input_schema:
+      additionalProperties: false
+      properties:
+        module_nr:
+          type: number
+        capri_dir:
+          type: string
+        w_air:
+          type: number
+        w_bsa:
+          type: number
+        w_desolv:
+          type: number
+        w_elec:
+          type: number
+        w_vdw:
+          type: number
+      required:
+      - module_nr
+      - capri_dir
+      - w_elec
+      - w_vdw
+      - w_desolv
+      - w_bsa
+      - w_air
+      type: object
+  reclustrmsd:
+    command_template: >
+      haddock3-re clustrmsd
+      {% if criterion == 'maxclust' -%}
+      --n_clusters {{n_clusters|q}}
+      {% else -%}
+      --clust_cutoff {{clust_cutoff|q}}
+      {% endif -%}
+      {% if min_population -%}
+      --min_population {{min_population|q}}
+      {% endif -%}
+      {{clustrmsd_dir|q}}
+      &&
+      haddock3-analyse --is_cleaned True --inter True -m {{ module_nr|q }} -r output/
+    description: Recluster a HADDOCK run with RSMD and different parameters.
+    job_application: haddock3
+    input_schema:
+      additionalProperties: false
+      properties:
+        module_nr:
+          type: number
+        clustrmsd_dir:
+          type: string
+        criterion:
+          type: string
+          enum: [maxclust, distance]
+        clust_cutoff:
+          type: number
+        n_clusters:
+          type: number
+        min_population:
+          type: number
+      required:
+      - module_nr
+      - criterion
+      - clustrmsd_dir
+      type: object
+  reclustfcc:
+    command_template: >
+      haddock3-re clustfcc
+      --clust_cutoff {{clust_cutoff|q}} --strictness {{strictness|q}} --min_population {{min_population|q}}
+      {{clustfcc_dir|q}}
+      &&
+      haddock3-analyse --is_cleaned True --inter True -m {{ module_nr|q }} -r output/
+    description: Recluster a HADDOCK run with FCC and different parameters.
+    job_application: haddock3
+    input_schema:
+      additionalProperties: false
+      properties:
+        module_nr:
+          type: number
+        clustfcc_dir:
+          type: string
+        clust_cutoff:
+          type: number
+        strictness:
+          type: number
+        min_population:
+          type: number
+      required:
+      - module_nr
+      - clustfcc_dir
+      - clust_cutoff
+      - strictness
+      - min_population
+      type: object

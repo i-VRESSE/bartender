@@ -1,12 +1,14 @@
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.datastructures import FormData
 from fastapi.responses import RedirectResponse
+from jsonschema import Draft202012Validator
 from starlette import status
 from starlette.background import BackgroundTask
 
-from bartender.config import ApplicatonConfiguration, CurrentConfig
+from bartender.config import ApplicatonConfiguration
 from bartender.context import Context, CurrentContext
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.filesystem import has_config_file
+from bartender.filesystem import has_needed_files
 from bartender.filesystem.assemble_job import assemble_job
 from bartender.filesystem.stage_job_input import stage_job_input
 from bartender.web.api.applications.submit import submit
@@ -15,59 +17,17 @@ from bartender.web.users import CurrentUser, User
 router = APIRouter()
 
 
-@router.get("/")
-def list_applications(config: CurrentConfig) -> list[str]:
-    """List application names.
-
-    Args:
-        config: Config with applications.
-
-    Returns:
-        The list.
-    """
-    return list(config.applications.keys())
-
-
-@router.get("/{application}")
-def get_application(
-    application: str,
-    config: CurrentConfig,
-) -> ApplicatonConfiguration:
-    """Retrieve application configuration.
-
-    Args:
-        application: Name of application
-        config: Config with applications.
-
-    Returns:
-        The application config.
-    """
-    return config.applications[application]
-
-
 @router.put(
-    "/{application}/job",
+    "/{application}",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
-    openapi_extra={
-        # Enfore uploaded file is a certain content type
-        # See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object  # noqa: E501
-        # does not seem supported by Swagger UI or FastAPI
-        "requestBody": {
-            "content": {
-                "multipart/form-data": {
-                    "encoding": {"upload": {"contentType": "application/zip"}},
-                },
-            },
-        },
-    },
 )
-async def upload_job(  # noqa: WPS211
+async def upload_job(  # noqa: WPS210, WPS211
     application: str,
     request: Request,
     job_dao: CurrentJobDAO,
     submitter: CurrentUser,
     context: CurrentContext,
-    upload: UploadFile = File(description="Archive with config file for application"),
+    upload: UploadFile = File(description="Archive with files needed for application"),
 ) -> RedirectResponse:
     """Creates job model in the database, stage archive locally and submit to scheduler.
 
@@ -82,14 +42,17 @@ async def upload_job(  # noqa: WPS211
     Raises:
         IndexError: When job could not created inside database or when config
             file was not found.
-        KeyError: Application is invalid.
+        HTTPException: Application is invalid.
 
     Returns:
-        redirect response.
+        redirect response to created job.
     """
     if application not in context.applications:
         valid = context.applications.keys()
-        raise KeyError(f"Invalid application. Valid applications: {valid}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid application. Valid applications: {valid}",
+        )
     _check_role(application, submitter, context)
     job_id = await job_dao.create_job(upload.filename, application, submitter.username)
     if job_id is None:
@@ -105,7 +68,8 @@ async def upload_job(  # noqa: WPS211
     # as request could timeout on consumer side.
     # Move to background task or have dedicated routes for preparing input files.
     await stage_job_input(job_dir, upload)
-    has_config_file(context.applications[application], job_dir)
+    has_needed_files(context.applications[application], job_dir)
+    payload = await _validate_form(request, context.applications[application])
 
     task = BackgroundTask(
         submit,
@@ -113,6 +77,7 @@ async def upload_job(  # noqa: WPS211
         job_dir,
         application,
         submitter,
+        payload,
         job_dao,
         context,
     )
@@ -148,3 +113,60 @@ def _check_role(application: str, submitter: User, context: Context) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Missing role.",
         )
+
+
+async def _validate_form(
+    request: Request,
+    config: ApplicatonConfiguration,
+) -> dict[str, str]:
+    """
+    Validates the form request against the config.input_schema if it is defined.
+
+    Args:
+        request: The request object.
+        config: The configuration for the application.
+
+    Returns:
+        The payload extracted from the form request.
+        Without any files or duplicate keys.
+    """
+    if config.input_schema is None:
+        return {}
+    max_fields = len(config.input_schema.get("properties", {})) + 1
+    async with request.form(max_files=1, max_fields=max_fields) as form:
+        payload = extract_payload_from_form(form)
+        validate_input(config, payload)
+
+    return payload
+
+
+def validate_input(config: ApplicatonConfiguration, payload: dict[str, str]) -> None:
+    """
+    Validates the input payload against the provided configuration.
+
+    If invalid an exception is raised.
+
+    Args:
+        config (ApplicatonConfiguration): The application configuration.
+        payload (dict[str, str]): The input payload to be validated.
+    """
+    validator = Draft202012Validator(config.input_schema)
+    # payload values are strings, while the input_schema might expect other types
+    # TODO convert strings to numbers or booleans where needed.
+    # use https://jschon.readthedocs.io evaluate().output()?
+    # now throws an error if schema expects non-string
+    # https://swagger.io/docs/specification/describing-request-body/multipart-requests/
+    validator.validate(payload)
+
+
+def extract_payload_from_form(form: FormData) -> dict[str, str]:
+    """Extracts the payload from the form request.
+
+    Args:
+        form: The form request.
+
+    Returns:
+        The payload extracted from the form request.
+        Without any files or duplicate keys.
+    """
+    return {key: value for key, value in form.items() if isinstance(value, str)}

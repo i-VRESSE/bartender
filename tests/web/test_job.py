@@ -12,6 +12,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from bartender.config import Config, InteractiveApplicationConfiguration
 from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.db.models.job_model import State
@@ -682,3 +683,84 @@ async def test_job_subdirectory_as_archive(
             stdout = archive.readtext("readme.txt")
 
     assert stdout == "hi from output dir"
+
+
+@pytest.fixture
+def demo_interactive_application(
+    demo_config: Config,
+) -> InteractiveApplicationConfiguration:
+    config = InteractiveApplicationConfiguration(
+        command_template="echo hello",
+        input_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        },
+        timeout=10.0,
+    )
+    demo_config.interactive_applications["wcm"] = config
+    return config
+
+
+@pytest.mark.anyio
+async def test_run_interactive_app_invalid_jobapp(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    demo_config: Config,
+) -> None:
+    config = InteractiveApplicationConfiguration(
+        command_template="echo hello",
+        input_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        },
+        timeout=10.0,
+        job_application="app2",  # mock_ok_job has app1
+    )
+    demo_config.interactive_applications["wcm"] = config
+    job_id = str(mock_ok_job)
+
+    url = fastapi_app.url_path_for(
+        "run_interactive_app",
+        jobid=job_id,
+        application="wcm",
+    )
+    response = await client.post(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.json() == {"detail": 'Job was not run with application "app1"'}
+
+
+@pytest.mark.anyio
+async def test_run_interactive_app_invalid_requestbody(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    demo_config: Config,
+) -> None:
+    config = InteractiveApplicationConfiguration(
+        command_template="echo hello",
+        input_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": False,
+        },
+        timeout=10.0,
+        job_application="app1",  # mock_ok_job has app1
+    )
+    demo_config.interactive_applications["wcm"] = config
+    job_id = str(mock_ok_job)
+
+    url = fastapi_app.url_path_for(
+        "run_interactive_app",
+        jobid=job_id,
+        application="wcm",
+    )
+    response = await client.post(url, headers=auth_headers, json={"foo": "bar"})
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.json() == {
+        "detail": "Additional properties are not allowed ('foo' was unexpected)",
+    }
