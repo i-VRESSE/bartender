@@ -28,7 +28,7 @@ applications:
           description: What to count
           default: lines
   du:
-    command_template: du -hs > du.txt
+    command_template: du -hs . > du.txt
 destinations:
   local:
     scheduler:

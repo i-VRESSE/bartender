@@ -136,14 +136,13 @@ applications:
   must be present inside the uploaded archive.
 * Optionally, the non file form fields are validated against the JSON schema
   (version 2020-12) defined under the `input_schema` key.
-  Input schema should be of type object and with non nested string properties.
+  Input schema should be of type object and
+  all its properties should be of type string.
 * Optionally, the `allowed_roles` key holds an array of role names,
   one of which a submitter should have.
   When key is not set or list is empty then any authorized user
   is allowed. See [Authentication](#authentication) how to set roles on users.
-* The application command should not overwrite files uploaded during submission
-  as these might not be downloaded from location where application is run.
-* Optionally, the application can be annotated with a `summary` and `description`.****
+* Optionally, the application can be annotated with a `summary` and `description`.
   These will be shown in the OpenAPI specification and
   the interactive API documentation at <http://localhost:8000/api/docs>.
 

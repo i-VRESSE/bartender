@@ -14,16 +14,14 @@ applications:
   #   summary: HADDOCK3 preprocess PDB files
   #   command_template: haddock3-pp --output-directory . *.pdb
   # haddock3-analyse:
-  #   command_template: haddock3-analyse --run-dir . -m {{ modules|join(' ') }}
+  #   command_template: haddock3-analyse --run-dir . -m {{ modules|q }}
   #   input_schema:
   #     additionalProperties: false
   #     type: object
   #     properties:
   #       modules:
-  #         type: array
-  #         description: List of module numbers to analyse
-  #         items:
-  #           type: string
+  #         type: string
+  #         description: List of module numbers to analyse. Space separated.
 destinations:
   local:
     scheduler:
