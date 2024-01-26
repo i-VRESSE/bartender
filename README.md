@@ -113,13 +113,15 @@ following steps to run a job:
    README.zip README.md`.
 2. Start [bartender web service and postgresql
    server](https://i-vresse-bartender.readthedocs.io/en/latest/index.html#quickstart)
-3. Register & login account by
-    1. Goto `http://127.0.0.1:8000/api/docs` and
-    2. Try out the `POST /auth/register` route.
-    3. Use default request body and press execute button. This will create an
-       account with email `user@example.com` and password `string`.
-    4. Use authorize button on top of page to login with username
-       `user@example.com` and password `string`.
+3. Generate token & authorize
+    1. Run `bartender generate-token` and copy output to clipboard.
+       (Make sure to not to have any newlines in the token)
+    2. Goto `http://127.0.0.1:8000/api/docs` and
+    3. Open authorize dialog by pressing authorize button on top of page
+        1. Paste token from clipboard in any Value input text box
+        2. Press Authorize button and close button.
+    4. Try out the `GET /api/whoami` route.
+       It should return JSON document with `someone` as username.
 4. Submit archive.
     1. Try out the `PUT /api/application/wc/job` route.
     2. Upload the `README.zip` as request body.
