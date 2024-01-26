@@ -424,7 +424,7 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
 
 def _parse_subdirectory(path: str, job_dir: Path) -> Path:
     try:
-        subdirectory = (job_dir / path).expanduser().resolve(strict=True)
+        subdirectory = (job_dir / path).resolve(strict=True)
         if not subdirectory.is_relative_to(job_dir):
             raise FileNotFoundError()
         if not subdirectory.is_dir():

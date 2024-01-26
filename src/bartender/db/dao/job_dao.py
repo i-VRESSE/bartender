@@ -62,6 +62,7 @@ class JobDAO:
 
         stmt = select(Job).where(Job.submitter == user)
         stmt = stmt.limit(limit).offset(offset)
+        stmt = stmt.order_by(Job.id.desc())
         raw_jobs = await self.session.scalars(stmt)
         return list(raw_jobs.all())
 

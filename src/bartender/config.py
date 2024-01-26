@@ -195,6 +195,22 @@ class Config(BaseModel):
     class Config:
         validate_all = True
 
+    @validator("job_root_dir")
+    def validate_job_root_dir(
+        cls,  # noqa: N805 following pydantic docs
+        v: DirectoryPath,  # noqa: WPS111 following pydantic docs
+    ) -> DirectoryPath:
+        """
+        Resolves the job root directory path to an absolute path.
+
+        Args:
+            v: The directory path to validate.
+
+        Returns:
+            The resolved directory path.
+        """
+        return v.expanduser().resolve(strict=True)
+
     @validator("applications")
     def applications_non_empty(
         cls,  # noqa: N805 following pydantic docs
