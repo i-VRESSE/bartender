@@ -518,3 +518,30 @@ async def run_interactive_app(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=exc.message,
         ) from exc
+
+
+@router.post("/{jobid}/name")
+async def rename_job_name(
+    jobid: int,
+    job_dao: CurrentJobDAO,
+    user: CurrentUser,
+    name: str,
+) -> None:
+    """Rename the name of a job.
+
+    Args:
+        jobid: The job identifier.
+        job_dao: The job DAO.
+        user: The current user.
+        name: The new name of the job.
+
+    Raises:
+        HTTPException: When job is not found. Or when user is not owner of job.
+    """
+    try:
+        await job_dao.set_job_name(jobid, user.username, name)
+    except IndexError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        ) from exc

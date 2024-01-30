@@ -118,5 +118,22 @@ class JobDAO:
         job.destination = destination
         await self.session.commit()
 
+    async def set_job_name(self, jobid: int, user: str, name: str) -> None:
+        """Set name of a job.
+
+        Args:
+            jobid: name of job instance.
+            user: Which user to get jobs from.
+            name: new name of job instance.
+
+        Raises:
+            IndexError: if job was not found or user is not the owner.
+        """
+        job = await self.session.get(Job, jobid)
+        if job is None or job.submitter != user:
+            raise IndexError("Job not found")
+        job.name = name
+        await self.session.commit()
+
 
 CurrentJobDAO = Annotated[JobDAO, Depends()]
