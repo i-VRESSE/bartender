@@ -790,3 +790,46 @@ async def test_rename_job_name(
 
     renamed_job = response2.json()
     assert renamed_job["name"] == "newname"
+
+
+@pytest.mark.anyio
+async def test_rename_job_name_too_short(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    jobid = str(mock_ok_job)
+    name = ""
+    url = fastapi_app.url_path_for("rename_job_name", jobid=jobid)
+    response = await client.post(url, headers=auth_headers, json=name)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    expected = {
+        "detail": [
+            {
+                "ctx": {"limit_value": 1},
+                "loc": ["body"],
+                "msg": "ensure this value has at least 1 characters",
+                "type": "value_error.any_str.min_length",
+            },
+        ],
+    }
+    assert response.json() == expected
+
+
+@pytest.mark.anyio
+async def test_rename_job_name_wrong_user(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    second_user_token: str,
+    mock_ok_job: int,
+) -> None:
+    jobid = str(mock_ok_job)
+    name = "newname"
+    url = fastapi_app.url_path_for("rename_job_name", jobid=jobid)
+    headers = {"Authorization": f"Bearer {second_user_token}"}
+    response = await client.post(url, headers=headers, json=name)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Job not found"}

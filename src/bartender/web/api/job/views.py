@@ -533,7 +533,7 @@ async def rename_job_name(
     jobid: int,
     job_dao: CurrentJobDAO,
     user: CurrentUser,
-    name: Annotated[str, Body(max_length=MAX_LENGTH_NAME)],
+    name: Annotated[str, Body(max_length=MAX_LENGTH_NAME, min_length=1)],
 ) -> None:
     """Rename the name of a job.
 
