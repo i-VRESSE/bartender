@@ -2,7 +2,15 @@ from os import getloadavg, sched_getaffinity
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+)
 from fastapi.responses import FileResponse, PlainTextResponse
 from fs.copy import copy_fs
 from fs.osfs import OSFS
@@ -18,7 +26,7 @@ from bartender.async_utils import async_wrap
 from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.db.models.job_model import CompletedStates, Job
+from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job
 from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
@@ -517,4 +525,31 @@ async def run_interactive_app(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=exc.message,
+        ) from exc
+
+
+@router.post("/{jobid}/name")
+async def rename_job_name(
+    jobid: int,
+    job_dao: CurrentJobDAO,
+    user: CurrentUser,
+    name: Annotated[str, Body(max_length=MAX_LENGTH_NAME, min_length=1)],
+) -> None:
+    """Rename the name of a job.
+
+    Args:
+        jobid: The job identifier.
+        job_dao: The job DAO.
+        user: The current user.
+        name: The new name of the job.
+
+    Raises:
+        HTTPException: When job is not found. Or when user is not owner of job.
+    """
+    try:
+        await job_dao.set_job_name(jobid, user.username, name)
+    except IndexError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
         ) from exc

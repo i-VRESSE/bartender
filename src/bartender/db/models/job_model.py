@@ -32,6 +32,8 @@ State = Literal[
 
 CompletedStates: set[State] = {"ok", "error"}
 
+MAX_LENGTH_NAME = 200
+
 
 class Job(Base):
     """Model for the Job."""
@@ -39,9 +41,9 @@ class Job(Base):
     __tablename__ = "job"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(length=200))  # noqa: WPS432
+    name: Mapped[str] = mapped_column(String(length=MAX_LENGTH_NAME))
     application: Mapped[str] = mapped_column(
-        String(length=200),  # noqa: WPS432
+        String(length=MAX_LENGTH_NAME),
     )
     state: Mapped[State] = mapped_column(
         String(length=20),  # noqa: WPS432
@@ -50,10 +52,10 @@ class Job(Base):
     submitter: Mapped[str] = mapped_column(String(length=254))  # noqa: WPS432
     # Identifier for job used by the scheduler
     internal_id: Mapped[Optional[str]] = mapped_column(
-        String(length=200),  # noqa: WPS432
+        String(length=MAX_LENGTH_NAME),
     )
     destination: Mapped[Optional[str]] = mapped_column(
-        String(length=200),  # noqa: WPS432
+        String(length=MAX_LENGTH_NAME),
     )
     created_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

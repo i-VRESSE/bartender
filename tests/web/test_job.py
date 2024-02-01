@@ -170,6 +170,7 @@ async def test_retrieve_job_new(
     assert job == expected
 
 
+@pytest.mark.anyio
 async def test_retrieve_job_unknown(
     fastapi_app: FastAPI,
     client: AsyncClient,
@@ -192,6 +193,7 @@ async def test_retrieve_job_stdout_unknown(
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+@pytest.mark.anyio
 async def test_retrieve_job_queued2running(
     dbsession: AsyncSession,
     current_user: User,
@@ -219,6 +221,7 @@ async def test_retrieve_job_queued2running(
     download_mock.assert_not_called()
 
 
+@pytest.mark.anyio
 async def test_retrieve_job_completed(
     dbsession: AsyncSession,
     current_user: User,
@@ -246,6 +249,7 @@ async def test_retrieve_job_completed(
     download_mock.assert_not_called()
 
 
+@pytest.mark.anyio
 async def test_retrieve_job_running2ok(
     dbsession: AsyncSession,
     current_user: User,
@@ -287,6 +291,7 @@ async def test_retrieve_job_running2ok(
     download_mock.assert_called_once()
 
 
+@pytest.mark.anyio
 async def test_retrieve_jobs_queued2running(
     dbsession: AsyncSession,
     current_user: User,
@@ -316,6 +321,7 @@ async def test_retrieve_jobs_queued2running(
     download_mock.assert_not_called()
 
 
+@pytest.mark.anyio
 async def test_retrieve_jobs_running2staging_out(
     dbsession: AsyncSession,
     current_user: User,
@@ -764,3 +770,66 @@ async def test_run_interactive_app_invalid_requestbody(
     assert response.json() == {
         "detail": "Additional properties are not allowed ('foo' was unexpected)",
     }
+
+
+@pytest.mark.anyio
+async def test_rename_job_name(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    url = fastapi_app.url_path_for("rename_job_name", jobid=str(mock_ok_job))
+    response = await client.post(url, headers=auth_headers, json="newname")
+
+    assert response.status_code == status.HTTP_200_OK
+
+    url = fastapi_app.url_path_for("retrieve_job", jobid=str(mock_ok_job))
+    response2 = await client.get(url, headers=auth_headers)
+    assert response2.status_code == status.HTTP_200_OK
+
+    renamed_job = response2.json()
+    assert renamed_job["name"] == "newname"
+
+
+@pytest.mark.anyio
+async def test_rename_job_name_too_short(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    jobid = str(mock_ok_job)
+    name = ""
+    url = fastapi_app.url_path_for("rename_job_name", jobid=jobid)
+    response = await client.post(url, headers=auth_headers, json=name)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    expected = {
+        "detail": [
+            {
+                "ctx": {"limit_value": 1},
+                "loc": ["body"],
+                "msg": "ensure this value has at least 1 characters",
+                "type": "value_error.any_str.min_length",
+            },
+        ],
+    }
+    assert response.json() == expected
+
+
+@pytest.mark.anyio
+async def test_rename_job_name_wrong_user(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    second_user_token: str,
+    mock_ok_job: int,
+) -> None:
+    jobid = str(mock_ok_job)
+    name = "newname"
+    url = fastapi_app.url_path_for("rename_job_name", jobid=jobid)
+    headers = {"Authorization": f"Bearer {second_user_token}"}
+    response = await client.post(url, headers=headers, json=name)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Job not found"}
