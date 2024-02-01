@@ -2,7 +2,15 @@ from os import getloadavg, sched_getaffinity
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+)
 from fastapi.responses import FileResponse, PlainTextResponse
 from fs.copy import copy_fs
 from fs.osfs import OSFS
@@ -18,7 +26,7 @@ from bartender.async_utils import async_wrap
 from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.db.models.job_model import CompletedStates, Job
+from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job
 from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
@@ -525,7 +533,7 @@ async def rename_job_name(
     jobid: int,
     job_dao: CurrentJobDAO,
     user: CurrentUser,
-    name: str,
+    name: Annotated[str, Body(max_length=MAX_LENGTH_NAME)],
 ) -> None:
     """Rename the name of a job.
 
