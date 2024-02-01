@@ -780,7 +780,7 @@ async def test_rename_job_name(
     mock_ok_job: int,
 ) -> None:
     url = fastapi_app.url_path_for("rename_job_name", jobid=str(mock_ok_job))
-    response = await client.post(url, headers=auth_headers, params={"name": "newname"})
+    response = await client.post(url, headers=auth_headers, json="newname")
 
     assert response.status_code == status.HTTP_200_OK
 
