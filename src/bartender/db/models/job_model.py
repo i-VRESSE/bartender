@@ -52,10 +52,10 @@ class Job(Base):
     submitter: Mapped[str] = mapped_column(String(length=254))  # noqa: WPS432
     # Identifier for job used by the scheduler
     internal_id: Mapped[Optional[str]] = mapped_column(
-        String(length=200),  # noqa: WPS432
+        String(length=MAX_LENGTH_NAME),
     )
     destination: Mapped[Optional[str]] = mapped_column(
-        String(length=200),  # noqa: WPS432
+        String(length=MAX_LENGTH_NAME),
     )
     created_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
