@@ -8,9 +8,7 @@ from starlette.background import BackgroundTask
 from bartender.config import ApplicatonConfiguration
 from bartender.context import Context, CurrentContext
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.filesystem import has_needed_files
-from bartender.filesystem.assemble_job import assemble_job
-from bartender.filesystem.stage_job_input import stage_job_input
+from bartender.staging import create_job_dir, has_needed_files, unpack_upload
 from bartender.web.api.applications.submit import submit
 from bartender.web.users import CurrentUser, User
 
@@ -58,16 +56,15 @@ async def upload_job(  # noqa: WPS210, WPS211
     if job_id is None:
         raise IndexError("Failed to create database entry for job")
 
-    job_dir = assemble_job(
+    job_dir = await create_job_dir(
         job_id,
-        submitter.apikey,
         context.job_root_dir,
     )
     # TODO uploaded file can be big, and thus take long time to unpack,
     # not nice to do it in request/response handling,
     # as request could timeout on consumer side.
     # Move to background task or have dedicated routes for preparing input files.
-    await stage_job_input(job_dir, upload)
+    await unpack_upload(job_dir, upload)
     has_needed_files(context.applications[application], job_dir)
     payload = await _validate_form(request, context.applications[application])
 

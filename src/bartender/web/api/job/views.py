@@ -27,8 +27,8 @@ from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job
-from bartender.filesystem.walk_dir import DirectoryItem, walk_dir
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
+from bartender.walk_dir import DirectoryItem, walk_dir
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
