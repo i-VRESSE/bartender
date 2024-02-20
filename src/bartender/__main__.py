@@ -13,6 +13,7 @@ from typing import Any, Optional
 import uvicorn
 
 from bartender.config import build_config
+from bartender.link import link_job
 from bartender.schedulers.arq import ArqSchedulerConfig, run_workers
 from bartender.settings import settings
 from bartender.user import generate_token_subcommand
@@ -92,6 +93,7 @@ def build_parser() -> ArgumentParser:
     perform_sp.set_defaults(func=perform)
 
     add_generate_token_subcommand(subparsers)
+    add_link_job_subcommand(subparsers)
 
     return parser
 
@@ -173,6 +175,69 @@ def add_generate_token_subcommand(
         help="Format of output",
     )
     generate_token_sp.set_defaults(func=generate_token_subcommand)
+
+
+def add_link_job_subcommand(subparsers: Any) -> None:
+    """
+    Add the 'link' subcommand to the given subparsers.
+
+    Args:
+        subparsers (Any): The subparsers object to add the 'link' subcommand to.
+    """
+    link_job_sp = subparsers.add_parser(
+        "link",
+        help="Link external directory as job",
+        formatter_class=Formatter,
+        description=dedent(  # noqa: WPS462 -- docs
+            """\
+            Link external directory as job.
+
+            The external directory should have same shape
+            as a completed job for the selected application.
+
+            For haddock3 application, the directory should have:
+            output/ directory and workflow.cfg, stderr.txt,
+            stdout.txt, returncode files.
+
+            Example:
+                ```shell
+                # Link a directory as job
+                bartender link-job \\
+                    --submitter someone \\
+                    --application haddock3 \\
+                    /path/to/myjob
+                # Prints job identifier
+                # The job in db has
+                # - name=internal_id=myjob
+                # - destination=local
+                # - state=ok
+                # - created_on=updated_on=now
+                ```
+            """,
+        ),
+    )
+    link_job_sp.add_argument(
+        "directory",
+        type=Path,
+        help="Directory to link as job",
+    )
+    link_job_sp.add_argument(
+        "--submitter",
+        default="someone",
+        help="Submitter of job",
+    )
+    link_job_sp.add_argument(
+        "--application",
+        default="ln",
+        help="Application of job.",
+    )
+    link_job_sp.add_argument(
+        "--config",
+        default=Path("config.yaml"),
+        type=Path,
+        help="Configuration with schedulers that need arq workers",
+    )
+    link_job_sp.set_defaults(func=link_job)
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
