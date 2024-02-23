@@ -20,3 +20,13 @@ If you want to generate a token with the
 `docker compose -f deploy/docker-compose.yml exec api bartender generate-token` command
 you should uncomment the private key volume bind in `deploy/docker-compose.yml`.
 See [configuration.md#authentication](configuration.md#authentication).
+
+## Link external directory as job
+
+If you have a directory outside the bartender job root directory
+that is the output of one the configured applications in bartender
+then you might want to make it available as a job in bartender.
+
+To do this you can create a symlink to the external directory
+in the bartender job root directory,
+by running the `bartender link` command.
