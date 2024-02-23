@@ -30,3 +30,4 @@ then you might want to make it available as a job in bartender.
 To do this you can create a symlink to the external directory
 in the bartender job root directory,
 by running the `bartender link` command.
+See `bartender link --help` for more information.
