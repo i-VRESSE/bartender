@@ -137,3 +137,27 @@ class TestWalkDir:
             ],
         )
         assert result == expected
+
+    @pytest.mark.anyio
+    async def test_given_symlink_as_job_dir(self, tmp_path: Path) -> None:
+        (tmp_path / "somedir").mkdir()
+        (tmp_path / "somedir" / "somefile").write_text("sometext")
+        (tmp_path / "symlink").symlink_to(tmp_path / "somedir")
+
+        result = await walk_dir(tmp_path / "symlink", tmp_path, max_depth=2)
+
+        expected = DirectoryItem(
+            name="symlink",
+            path=Path("symlink"),
+            is_dir=True,
+            is_file=False,
+            children=[
+                DirectoryItem(
+                    name="somefile",
+                    path=Path("symlink/somefile"),
+                    is_dir=False,
+                    is_file=True,
+                ),
+            ],
+        )
+        assert result == expected

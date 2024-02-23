@@ -198,9 +198,7 @@ def retrieve_job_files(
         The file content.
     """
     try:
-        full_path = (job_dir / path).expanduser().resolve(strict=True)
-        if not full_path.is_relative_to(job_dir):
-            raise FileNotFoundError()
+        full_path = _resolve_path(path, job_dir)
         if not full_path.is_file():
             raise FileNotFoundError()
     except FileNotFoundError as exc:
@@ -437,11 +435,17 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
     )
 
 
+def _resolve_path(path: str, job_dir: Path) -> Path:
+    resolved_job_dir = job_dir.resolve(strict=True)
+    subdirectory = (resolved_job_dir / path).resolve(strict=True)
+    if not subdirectory.is_relative_to(resolved_job_dir):
+        raise FileNotFoundError()
+    return subdirectory
+
+
 def _parse_subdirectory(path: str, job_dir: Path) -> Path:
     try:
-        subdirectory = (job_dir / path).resolve(strict=True)
-        if not subdirectory.is_relative_to(job_dir):
-            raise FileNotFoundError()
+        subdirectory = _resolve_path(path, job_dir)
         if not subdirectory.is_dir():
             raise FileNotFoundError()
     except FileNotFoundError as exc:
@@ -450,7 +454,7 @@ def _parse_subdirectory(path: str, job_dir: Path) -> Path:
             detail="File not found",
         ) from exc
 
-    return subdirectory
+    return job_dir / path
 
 
 def get_interactive_app(

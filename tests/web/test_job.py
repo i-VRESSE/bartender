@@ -477,6 +477,23 @@ async def test_files_given_path_is_dir(
     assert response.json() == {"detail": "File not found"}
 
 
+@pytest.mark.anyio
+async def test_files_given_jobdir_is_symlink(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    job_root_dir: Path,
+) -> None:
+    job_id = create_symlinked_job_dir(mock_ok_job, job_root_dir)
+
+    path = "somefile.txt"
+    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=path)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+
 @pytest.mark.parametrize(
     "test_input",
     [
@@ -640,6 +657,53 @@ async def test_directories_from_path(
         ],
     }
     assert response.json() == expected
+
+
+@pytest.mark.anyio
+async def test_directories_from_path_linkedjob(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    job_root_dir: Path,
+) -> None:
+    job_id = create_symlinked_job_dir(mock_ok_job, job_root_dir)
+
+    url = fastapi_app.url_path_for(
+        "retrieve_job_directories_from_path",
+        jobid=job_id,
+        path="somedir",
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    expected = {
+        "name": "somedir",
+        "path": "somedir",
+        "is_dir": True,
+        "is_file": False,
+        "children": [
+            {
+                "is_dir": False,
+                "is_file": True,
+                "name": "somefile1.txt",
+                "path": "somedir/somefile1.txt",
+            },
+        ],
+    }
+    assert response.json() == expected
+
+
+def create_symlinked_job_dir(mock_ok_job: int, job_root_dir: Path) -> str:
+    job_id = str(mock_ok_job)
+    job_dir = job_root_dir / str(job_id)
+    orig_job_dir = job_root_dir / "orig"
+    job_dir.rename(orig_job_dir)
+    dir1 = orig_job_dir / "somedir"
+    dir1.mkdir()
+    (dir1 / "somefile1.txt").write_text("some text")
+    job_dir.symlink_to(orig_job_dir)
+    return job_id
 
 
 @pytest.mark.anyio
