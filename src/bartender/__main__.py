@@ -182,7 +182,7 @@ def add_link_job_subcommand(subparsers: Any) -> None:
     Add the 'link' subcommand to the given subparsers.
 
     Args:
-        subparsers (Any): The subparsers object to add the 'link' subcommand to.
+        subparsers: The subparsers object to add the 'link' subcommand to.
     """
     link_job_sp = subparsers.add_parser(
         "link",
