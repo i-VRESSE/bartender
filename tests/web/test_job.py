@@ -538,6 +538,25 @@ async def test_stderr(
 
 
 @pytest.mark.anyio
+async def test_stderr_missing(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    job_root_dir: Path,
+) -> None:
+    job_id = str(mock_ok_job)
+    fn = job_root_dir / str(job_id) / "stderr.txt"
+    fn.unlink()
+
+    url = fastapi_app.url_path_for("retrieve_job_stderr", jobid=job_id)
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "File not found"}
+
+
+@pytest.mark.anyio
 async def test_directories(
     fastapi_app: FastAPI,
     client: AsyncClient,

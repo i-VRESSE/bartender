@@ -234,6 +234,7 @@ async def get_completed_logs(
 
     Raises:
         ValueError: When job has no destination.
+        HTTPException: When a log file is not found.
 
     Returns:
         The standard output and error.
@@ -241,7 +242,13 @@ async def get_completed_logs(
     if not job.destination or not job.internal_id:
         raise ValueError("Job has no destination")
     destination = context.destinations[job.destination]
-    return await destination.scheduler.logs(job.internal_id, job_dir)
+    try:
+        return await destination.scheduler.logs(job.internal_id, job_dir)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        ) from exc
 
 
 CurrentLogs = Annotated[Tuple[str, str], Depends(get_completed_logs)]
