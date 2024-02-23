@@ -433,7 +433,7 @@ async def test_files_of_noncomplete_job(
 ) -> None:
     # mock_db_of_job has state==new
     url = fastapi_app.url_path_for(
-        "retrieve_job_files",
+        "retrieve_job_file",
         jobid=str(mock_db_of_job),
         path="README.md",
     )
@@ -452,7 +452,7 @@ async def test_files_of_completed_job(
 ) -> None:
     path = "somefile.txt"
     job_id = str(mock_ok_job)
-    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=path)
+    url = fastapi_app.url_path_for("retrieve_job_file", jobid=job_id, path=path)
     response = await client.get(url, headers=auth_headers)
 
     assert response.status_code == status.HTTP_200_OK
@@ -470,7 +470,7 @@ async def test_files_given_path_is_dir(
 ) -> None:
     path = ""
     job_id = str(mock_ok_job)
-    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=path)
+    url = fastapi_app.url_path_for("retrieve_job_file", jobid=job_id, path=path)
     response = await client.get(url, headers=auth_headers)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -488,7 +488,7 @@ async def test_files_given_jobdir_is_symlink(
     job_id = create_symlinked_job_dir(mock_ok_job, job_root_dir)
 
     path = "somefile.txt"
-    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=path)
+    url = fastapi_app.url_path_for("retrieve_job_file", jobid=job_id, path=path)
     response = await client.get(url, headers=auth_headers)
 
     assert response.status_code == status.HTTP_200_OK
@@ -515,7 +515,7 @@ async def test_files_given_bad_paths(
     test_input: str,
 ) -> None:
     job_id = str(mock_ok_job)
-    url = fastapi_app.url_path_for("retrieve_job_files", jobid=job_id, path=test_input)
+    url = fastapi_app.url_path_for("retrieve_job_file", jobid=job_id, path=test_input)
     response = await client.get(url, headers=auth_headers)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND

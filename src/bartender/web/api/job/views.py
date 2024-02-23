@@ -181,21 +181,22 @@ CurrentCompletedJobDir = Annotated[Path, Depends(get_dir_of_completed_job)]
     },
     response_class=FileResponse,
 )
-def retrieve_job_files(
+def retrieve_job_file(
     path: str,
     job_dir: CurrentCompletedJobDir,
 ) -> FileResponse:
-    """Retrieve files from a completed job.
+    """Retrieve file from a completed job.
 
     Args:
         path: Path to file that job has produced.
         job_dir: Directory with job output files.
 
     Raises:
-        HTTPException: When file is not found or is outside job directory.
+        HTTPException: When file is not found or is not a file
+            or is outside job directory.
 
     Returns:
-        The file content.
+        The file contents.
     """
     try:
         full_path = _resolve_path(path, job_dir)
@@ -437,10 +438,10 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
 
 def _resolve_path(path: str, job_dir: Path) -> Path:
     resolved_job_dir = job_dir.resolve(strict=True)
-    subdirectory = (resolved_job_dir / path).resolve(strict=True)
-    if not subdirectory.is_relative_to(resolved_job_dir):
+    resolved = (resolved_job_dir / path).resolve(strict=True)
+    if not resolved.is_relative_to(resolved_job_dir):
         raise FileNotFoundError()
-    return subdirectory
+    return resolved
 
 
 def _parse_subdirectory(path: str, job_dir: Path) -> Path:
