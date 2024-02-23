@@ -8,6 +8,13 @@ applications:
     command_template: haddock3 workflow.cfg
     upload_needs:
     - workflow.cfg
+  runimport:
+    summary: Import a HADDOCK3 run.
+    description: >
+      Upload an archive of haddock3 output.
+      The archive should have run dir as root.
+      The run should have haddock3-clean and haddock3-analyse executed on it.
+    command_template: mkdir -p output && mv * output || true
   # Below are other haddock3 commands,
   # that could be hosted by bartender web service.
   # haddock3-pp:

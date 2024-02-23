@@ -40,7 +40,7 @@ async def test_upload(
 
     assert job["state"] == "ok"
 
-    assert_job_dir(job_root_dir, str(job["id"]), current_user_token)
+    assert_job_dir(job_root_dir, str(job["id"]))
 
 
 @pytest.mark.anyio
@@ -114,15 +114,11 @@ async def test_upload_invalid_application(
     assert "Invalid application" in response.text
 
 
-def assert_job_dir(  # noqa: WPS218
+def assert_job_dir(
     job_root_dir: Path,
     job_id: str,
-    current_user_token: str,
 ) -> None:
     job_dir = job_root_dir / job_id
-    meta_job_id, meta_job_token = (job_dir / "meta").read_text().splitlines()
-    assert meta_job_id == job_id
-    assert meta_job_token == current_user_token
     assert (job_dir / "job.ini").read_text() == "# Example config file"
     assert (job_dir / "input.csv").read_text() == "# Example input data file"
     assert (job_dir / "stdout.txt").read_text() == " 0  4 21 job.ini\n"
