@@ -34,7 +34,7 @@ def link_job(
 
     # Sym link directory to job directory
     job_dir = job_root_dir / str(job_id)
-    symlink(directory, job_dir)
+    symlink(directory.absolute(), job_dir)
     print(job_id)  # noqa: WPS421 -- user feedback
 
 
