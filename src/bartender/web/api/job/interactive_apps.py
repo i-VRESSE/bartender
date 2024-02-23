@@ -5,7 +5,7 @@ from base64 import b64decode
 from contextlib import asynccontextmanager
 from os.path import join
 from pathlib import Path
-from typing import Any, AsyncGenerator, Literal
+from typing import Any, AsyncGenerator, Literal, Union
 
 from aiofiles import open
 from aiofiles.tempfile import TemporaryDirectory
@@ -75,10 +75,10 @@ def build_command(
     return template.render(**payload)
 
 
-MediaEncoding = Literal["base64"] | Literal["utf-8"]  # -- 3.10>= union type
+MediaEncoding = Union[Literal["base64"], Literal["utf-8"]]
 
 
-def encoding_of_prop(prop: dict[Any, Any]) -> MediaEncoding | None:
+def encoding_of_prop(prop: dict[Any, Any]) -> Union[MediaEncoding, None]:
     """
     Determines the encoding of a property.
 
@@ -147,7 +147,7 @@ async def write_file(encoded_data: str, encoding: MediaEncoding, fn: str) -> Non
         await fh.write(decoded_data)
 
 
-def get_path_in_payload(data: dict[Any, Any], path: str) -> Any | None:
+def get_path_in_payload(data: dict[Any, Any], path: str) -> Union[Any, None]:
     """
     Get the value at the specified path in the given dictionary.
 

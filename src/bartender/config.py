@@ -3,7 +3,7 @@
 
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Annotated, Any
+from typing import Annotated, Any, Union
 
 from fastapi import Depends, Request
 from jsonschema import Draft202012Validator
@@ -41,17 +41,17 @@ class ApplicatonConfiguration(BaseModel):
     """
 
     command_template: str
-    input_schema: dict[Any, Any] | None = None
-    summary: str | None = None
-    description: str | None = None
+    input_schema: Union[dict[Any, Any], None] = None
+    summary: Union[str, None] = None
+    description: Union[str, None] = None
     upload_needs: list[str] = []
     allowed_roles: list[str] = []
 
     @validator("input_schema")
     def check_input_schema(
         cls,  # noqa: N805
-        v: dict[Any, Any] | None,  # noqa: WPS111
-    ) -> dict[Any, Any] | None:
+        v: Union[dict[Any, Any], None],  # noqa: WPS111
+    ) -> Union[dict[Any, Any], None]:
         """Validate input schema.
 
         Args:
@@ -128,10 +128,10 @@ class InteractiveApplicationConfiguration(BaseModel):
 
     command_template: str
     input_schema: dict[Any, Any]
-    summary: str | None = None
-    description: str | None = None
+    summary: Union[str, None] = None
+    description: Union[str, None] = None
     timeout: confloat(gt=0, le=60) = 30.0  # type: ignore
-    job_application: str | None = None
+    job_application: Union[str, None] = None
 
     @validator("input_schema")
     def check_input_schema(
