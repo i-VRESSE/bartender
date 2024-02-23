@@ -219,7 +219,13 @@ def add_link_job_subcommand(subparsers: Any) -> None:
     link_job_sp.add_argument(
         "directory",
         type=Path,
-        help="Directory to link as job",
+        help=dedent(  # noqa: WPS462 -- docs
+            """Directory to link as job.
+            Its content should be readable by the user running bartender serve.
+            To run an interactive application on the linked job,
+            the directory should be writable by the user running bartender serve.
+            """,
+        ),
     )
     link_job_sp.add_argument(
         "--submitter",
@@ -229,7 +235,13 @@ def add_link_job_subcommand(subparsers: Any) -> None:
     link_job_sp.add_argument(
         "--application",
         default="ln",
-        help="Application of job.",
+        help=dedent(  # noqa: WPS462 -- docs
+            """Application of job.
+            To run interative application on the linked job,
+            the application of the job should match the name of
+            the `job_application` of the interactive application.
+            """,
+        ),
     )
     link_job_sp.add_argument(
         "--config",
