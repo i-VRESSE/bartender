@@ -122,7 +122,7 @@ class TestCompletedJob:
 
 
 @pytest.mark.anyio
-async def test_cancelling_queued_job(
+async def test_cancelling_queued_job(  # noqa: WPS217
     scheduler: ArqScheduler,
     tmp_path: Path,
     config: ArqSchedulerConfig,
@@ -135,9 +135,12 @@ async def test_cancelling_queued_job(
 
     await scheduler.cancel(submitted_job_id)
 
-    # Run worker as it does aborting
-    worker = arq_worker(config, burst=True)
-    await worker.main()
+    try:
+        # Run worker as it does aborting
+        worker = arq_worker(config, burst=True)
+        await worker.main()
 
-    state = await scheduler.state(submitted_job_id)
-    assert state == "error"
+        state = await scheduler.state(submitted_job_id)
+        assert state == "error"
+    finally:
+        await worker.close()
