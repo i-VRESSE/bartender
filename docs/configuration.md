@@ -400,8 +400,10 @@ specify to which destination a job should be submitted. A Python function can be
 used to pick a destination. By default jobs are submitted to the first
 destination.
 
-To use a custom picker function set `destination_picker`. The value should be
-formatted as `<module>:<function>`. The picker function should have type
+To use a custom picker function set `destination_picker`.
+The value should be formatted as `<module>:<function>` or
+`<path to python file>:<function>`.
+The picker function should have type
 [bartender.picker.DestinationPicker](
 https://github.com/i-VRESSE/bartender/blob/bdbef5176e05c498b37f4ada2bf7c09ad0e7b853/src/bartender/picker.py#L8
 ). For example to rotate over each

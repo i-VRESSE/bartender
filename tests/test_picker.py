@@ -1,10 +1,11 @@
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
 from bartender.context import ApplicatonConfiguration, Context
 from bartender.destinations import Destination
-from bartender.picker import PickRound, pick_first
+from bartender.picker import PickRound, import_picker, pick_first
 from bartender.user import User
 
 
@@ -105,3 +106,30 @@ class TestPickRoundWith2Destinations:
 
         expected = "d1"
         assert actual == expected
+
+
+def test_import_picker_module() -> None:
+    fn = import_picker("bartender.picker:pick_first")
+    assert fn.__name__ == "pick_first"
+
+
+def test_import_picker_file(
+    tmp_path: Path,
+    user: User,
+) -> None:
+    code = """\
+        def mypicker(job_dir, application_name, submitter, context):
+            return "mydestination"
+    """
+    path = tmp_path / "mymodule.py"
+    path.write_text(dedent(code))
+
+    fn = import_picker(f"{path}:mypicker")
+    context = Context(
+        destination_picker=fn,
+        applications={},
+        destinations={},
+        job_root_dir=tmp_path,
+    )
+    result = fn(tmp_path, "someapp", user, context)
+    assert result == "mydestination"
