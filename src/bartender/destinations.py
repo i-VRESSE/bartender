@@ -20,7 +20,8 @@ class DestinationConfig(BaseModel):
 
     # TODO validate that some combinations of scheduler and file system
     # are not possible like
-    # * MemoryScheduler + SftpFileSystem
+    # * MemoryScheduler + remote fs
+    # * EagerScheduler + remote fs
     # In future possible combos
     # * AWSBatchScheduler + S3FileSystem
     # * DiracScheduler + SrmFileSystem

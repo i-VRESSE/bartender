@@ -166,6 +166,7 @@ schedulers
 * **arq**, Scheduler which uses a Redis server as a job queue and
   1 or more workers (`bartender perform` command) to run the jobs.
 * **dirac**, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/).
+* **eager**, Scheduler which runs the job immediately on submission.
 
 Supported file systems
 
@@ -391,6 +392,25 @@ destinations:
       storage_element: StorageElementOne
       proxy:
         log_level: DEBUG
+```
+
+### Example of running jobs direct on submission
+
+For applications that can be run within request/response cycle time window.
+For example to alter the uploaded zip contents to mimic another applications output.
+
+```yaml
+destinations:
+  atonce:
+    scheduler:
+      type: eager
+    filesystem:
+      type: local
+applications:
+  runimport:
+    command_template: mkdir -p output && mv * output || true
+    # `|| true` is there to swallow eror
+    # that output dir itself can not be moved
 ```
 
 ## Destination picker

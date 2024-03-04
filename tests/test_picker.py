@@ -5,7 +5,13 @@ import pytest
 
 from bartender.context import ApplicatonConfiguration, Context
 from bartender.destinations import Destination
-from bartender.picker import PickRound, import_picker, pick_first
+from bartender.picker import (
+    PickRound,
+    import_picker,
+    pick_byindex,
+    pick_byname,
+    pick_first,
+)
 from bartender.user import User
 
 
@@ -54,6 +60,94 @@ class TestPickFirst:
 
         with pytest.raises(IndexError):
             pick_first(context.job_root_dir / "job1", "app1", user, context)
+
+
+class TestPickByName:
+    def test_found(
+        self,
+        demo_destination: Destination,
+        user: User,
+    ) -> None:
+        context = Context(
+            destination_picker=pick_first,
+            applications={
+                "app1": ApplicatonConfiguration(command_template="uptime"),
+            },
+            destinations={
+                "app1": demo_destination,
+            },
+            job_root_dir=Path("/jobs"),
+        )
+
+        actual = pick_byname(context.job_root_dir / "job1", "app1", user, context)
+
+        expected = "app1"
+        assert actual == expected
+
+    def test_notfound(
+        self,
+        demo_destination: Destination,
+        user: User,
+    ) -> None:
+        context = Context(
+            destination_picker=pick_first,
+            applications={
+                "app1": ApplicatonConfiguration(command_template="uptime"),
+            },
+            destinations={
+                "app2": demo_destination,
+            },
+            job_root_dir=Path("/jobs"),
+        )
+
+        with pytest.raises(KeyError):
+            pick_byname(context.job_root_dir / "job1", "app1", user, context)
+
+
+class TestPickByIndex:
+    def test_found(
+        self,
+        demo_destination: Destination,
+        user: User,
+    ) -> None:
+        context = Context(
+            destination_picker=pick_first,
+            applications={
+                "app1": ApplicatonConfiguration(command_template="uptime"),
+                "app2": ApplicatonConfiguration(command_template="uptime"),
+            },
+            destinations={
+                "d1": demo_destination,
+                "d2": demo_destination,
+            },
+            job_root_dir=Path("/jobs"),
+        )
+
+        actual = pick_byindex(context.job_root_dir / "job1", "app2", user, context)
+
+        expected = "d2"
+        assert actual == expected
+
+    def test_notfound(
+        self,
+        demo_destination: Destination,
+        user: User,
+    ) -> None:
+        context = Context(
+            destination_picker=pick_first,
+            applications={
+                "app1": ApplicatonConfiguration(command_template="uptime"),
+                "app2": ApplicatonConfiguration(command_template="uptime"),
+            },
+            destinations={
+                "d1": demo_destination,
+                # no destination for app2
+            },
+            job_root_dir=Path("/jobs"),
+        )
+
+        with pytest.raises(IndexError):
+            pick_byindex(context.job_root_dir / "job1", "app2", user, context)
 
 
 class TestPickRoundWith2Destinations:
