@@ -1,3 +1,4 @@
+import logging
 from textwrap import dedent
 from typing import Literal, Optional
 
@@ -11,6 +12,8 @@ from bartender.schedulers.runner import (
     SshCommandRunner,
 )
 from bartender.shared.ssh import SshConnectConfig
+
+logger = logging.getLogger(__name__)
 
 
 def _map_slurm_state(slurm_state: str) -> State:
@@ -32,6 +35,7 @@ def _map_slurm_state(slurm_state: str) -> State:
     try:
         return status_map[slurm_state]
     except KeyError:
+        logger.error(f"Unmapped slurm state code: {slurm_state}")
         # fallback to error when slurm state code is unmapped.
         return "error"
 
@@ -155,7 +159,7 @@ class SlurmScheduler(AbstractScheduler):
 
     async def _state_from_accounting(self, job_id: str) -> str:
         command = "sacct"
-        args = ["-j", job_id, "--noheader", "--format=state"]
+        args = ["-j", job_id, "--noheader", "--format=state", "--allocations"]
         (returncode, stdout, stderr) = await self.runner.run(command, args)
         if returncode != 0:
             raise RuntimeError(
