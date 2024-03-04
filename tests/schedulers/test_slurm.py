@@ -16,8 +16,8 @@ from tests.schedulers.helpers import assert_output, prepare_input, wait_for_job
 
 
 class SlurmContainer(DockerContainer):
-    def __init__(self, image: str = "xenonmiddleware/slurm:20"):
-        super().__init__(image=image)
+    def __init__(self, image: str = "ghcr.io/xenon-middleware/slurm:23"):
+        super().__init__(image=image, cgroupns="private", privileged=True)
         self.port_to_expose = 22
         self.with_exposed_ports(self.port_to_expose)
 
@@ -46,7 +46,9 @@ class SlurmContainer(DockerContainer):
 
     async def _ping(self) -> None:
         with SshCommandRunner(self.get_config()) as conn:
-            await conn.run("echo", [])
+            result = await conn.run("scontrol", ["ping"])
+            if result[0] != 0:
+                raise ConnectionError("scontrol ping failed")
 
     @wait_container_is_ready(ConnectionLost)
     def _connect(self) -> None:
