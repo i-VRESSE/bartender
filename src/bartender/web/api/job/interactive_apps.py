@@ -37,6 +37,7 @@ async def _shell(job_dir: Path, command: str, timeout: float) -> InteractiveAppR
         job_dir: The path to the job directory.
         command: The shell command to execute.
         timeout: The maximum time to wait for the command to finish.
+            In seconds.
 
     Returns:
         The result of running the shell command.

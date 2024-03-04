@@ -4,7 +4,7 @@ from bartender.config import ApplicatonConfiguration
 from bartender.context import Context
 from bartender.db.dao.job_dao import JobDAO
 from bartender.filesystems.abstract import AbstractFileSystem
-from bartender.schedulers.abstract import JobDescription
+from bartender.schedulers.abstract import JobDescription, JobSubmissionError
 from bartender.template_environment import template_environment
 from bartender.web.users import User
 
@@ -71,13 +71,16 @@ async def submit(  # noqa: WPS211
         localized_description,
     )
 
-    internal_job_id = await destination.scheduler.submit(localized_description)
+    try:
+        internal_job_id = await destination.scheduler.submit(localized_description)
 
-    await job_dao.update_internal_job_id(
-        external_job_id,
-        internal_job_id,
-        destination_name,
-    )
+        await job_dao.update_internal_job_id(
+            external_job_id,
+            internal_job_id,
+            destination_name,
+        )
+    except JobSubmissionError:
+        await job_dao.update_job_state(external_job_id, "error")
 
 
 async def _upload_input_files(

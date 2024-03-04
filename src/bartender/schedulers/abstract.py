@@ -18,6 +18,10 @@ class JobDescription(BaseModel):
     command: str
 
 
+class JobSubmissionError(Exception):
+    """Error during job submission."""
+
+
 class AbstractScheduler(ABC):
     """Abstract scheduler."""
 
@@ -34,6 +38,9 @@ class AbstractScheduler(ABC):
 
         Returns:
             Identifier that can be used later to interact with job.
+
+        Raises:
+            JobSubmissionError: If job submission failed.
         """
 
     @abstractmethod

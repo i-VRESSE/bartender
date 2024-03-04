@@ -12,6 +12,10 @@ from httpx._types import RequestFiles
 from starlette import status
 
 from bartender.config import ApplicatonConfiguration
+from bartender.context import Context, get_context
+from bartender.destinations import Destination
+from bartender.filesystems.local import LocalFileSystem
+from bartender.schedulers.eager import EagerScheduler, EagerSchedulerConfig
 from bartender.web.api.applications.submit import build_description
 from bartender.web.api.applications.views import (
     extract_payload_from_form,
@@ -112,6 +116,44 @@ async def test_upload_invalid_application(
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "Invalid application" in response.text
+
+
+@pytest.mark.anyio
+async def test_upload_submission_error(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    tmp_path: Path,
+    auth_headers: Dict[str, str],
+) -> None:
+    context = Context(
+        job_root_dir=tmp_path,
+        destination_picker=lambda _, _1, _2, _3: "eager",  # noqa: WPS111
+        applications={
+            "app1": ApplicatonConfiguration(
+                command_template="exit 42",
+            ),
+        },
+        destinations={
+            "eager": Destination(
+                scheduler=EagerScheduler(EagerSchedulerConfig(max_load=100)),
+                filesystem=LocalFileSystem(),
+            ),
+        },
+    )
+
+    fastapi_app.dependency_overrides[get_context] = lambda: context
+    url = fastapi_app.url_path_for("upload_job", application="app1")
+    with prepare_form_data(tmp_path) as files:
+        response = await client.put(url, files=files, headers=auth_headers)
+
+    # Submission to scheduler is done in background task,
+    # so direct response is OK, but job state will be error
+    jurl = response.headers["location"]
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    job = await wait_for_job_completion(client, jurl, auth_headers)
+    assert job["state"] == "error"
+    assert (tmp_path / str(job["id"]) / "returncode").read_text() == "42"
 
 
 def assert_job_dir(
