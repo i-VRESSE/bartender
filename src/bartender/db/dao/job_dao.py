@@ -135,5 +135,20 @@ class JobDAO:
         job.name = name
         await self.session.commit()
 
+    async def delete_job(self, jobid: int, user: str) -> None:
+        """Delete job from database.
+
+        Args:
+            jobid: name of job instance.
+            user: Which user wants to delete the job.
+        Raises:
+            IndexError: if job was not found or user is not the owner.
+        """
+        job = await self.session.get(Job, jobid)
+        if job is None or job.submitter != user:
+            raise IndexError("Job not found")
+        await self.session.delete(job)
+        await self.session.commit()
+
 
 CurrentJobDAO = Annotated[JobDAO, Depends()]

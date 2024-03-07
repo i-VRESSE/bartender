@@ -1,7 +1,9 @@
 from os import getloadavg, sched_getaffinity
 from pathlib import Path
+from shutil import rmtree
 from typing import Annotated, Literal, Optional, Tuple, Type, Union
 
+from aiofiles.os import unlink
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -27,6 +29,7 @@ from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
 from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job
+from bartender.destinations import Destination
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.walk_dir import DirectoryItem, walk_dir
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
@@ -218,11 +221,20 @@ def retrieve_job_file(
 
 CurrentJob = Annotated[Job, Depends(retrieve_job)]
 
+def get_destination(
+        job: CurrentJob,
+        context: CurrentContext,
+):
+    if not job.destination or not job.internal_id:
+        raise ValueError("Job has no destination")
+    return context.destinations[job.destination]
+
+CurrentDestination = Annotated[Destination, Depends(get_destination)]
 
 async def get_completed_logs(
     job_dir: CurrentCompletedJobDir,
     job: CurrentJob,
-    context: CurrentContext,
+    destination: CurrentDestination,
 ) -> Tuple[str, str]:
     """Get the standard output and error of a completed job.
 
@@ -238,9 +250,6 @@ async def get_completed_logs(
     Returns:
         The standard output and error.
     """
-    if not job.destination or not job.internal_id:
-        raise ValueError("Job has no destination")
-    destination = context.destinations[job.destination]
     try:
         return await destination.scheduler.logs(job.internal_id, job_dir)
     except FileNotFoundError as exc:
@@ -565,3 +574,25 @@ async def rename_job_name(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Job not found",
         ) from exc
+
+@router.delete("/{jobid}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(
+    jobid: int,
+    job_dao: CurrentJobDAO,
+    job: Annotated[Job, Depends(retrieve_job)],
+    user: CurrentUser,
+    job_dir: Annotated[Path, Depends(get_job_dir)],
+    destination: CurrentDestination,
+) -> None:
+    CancelableStates = { "queued", "running" }
+    if job.state in CancelableStates:
+        await destination.scheduler.cancel(job.internal_id)
+        # TODO cleanup remote job directory
+
+    if job_dir.is_symlink():
+        # We want to remove the symlink not its target
+        await unlink(job_dir)
+    else:
+        await async_wrap(rmtree)(job_dir)
+
+    await job_dao.delete_job(jobid, user.username)
