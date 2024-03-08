@@ -63,6 +63,5 @@ class Job(Base):
     )
     updated_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        onupdate=now,
         default=now,
     )

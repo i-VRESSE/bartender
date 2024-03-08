@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from bartender.db.dependencies import CurrentSession
 from bartender.db.models.job_model import Job, State
+from bartender.db.utils import now
 
 
 class JobDAO:
@@ -96,6 +97,7 @@ class JobDAO:
         if job is None:
             return
         job.state = state
+        job.updated_on = now()
         await self.session.commit()
 
     async def update_internal_job_id(
