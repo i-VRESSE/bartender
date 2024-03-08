@@ -42,14 +42,13 @@ class AbstractFileSystem(Protocol):
             target: Local directory to copy to.
         """
 
-
     async def delete(self, description: JobDescription) -> None:
         """Delete job directory of description.
 
         Args:
             description: Remote directory to delete.
         """
-        # after download or cancellation you might want to 
+        # after download or cancellation you might want to
         # delete the remote job directory
 
     async def close(self) -> None:

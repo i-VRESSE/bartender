@@ -391,6 +391,9 @@ class FakeFileSystem(AbstractFileSystem):
     async def upload(self, src: JobDescription, target: JobDescription) -> None:
         raise NotImplementedError()
 
+    async def delete(self, target: JobDescription) -> None:
+        raise NotImplementedError()
+
     async def close(self) -> None:
         raise NotImplementedError()
 
@@ -917,6 +920,7 @@ async def test_rename_job_name_wrong_user(
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Job not found"}
 
+
 @pytest.mark.anyio
 async def test_delete_completed_job(
     fastapi_app: FastAPI,
@@ -924,7 +928,7 @@ async def test_delete_completed_job(
     auth_headers: Dict[str, str],
     mock_ok_job: int,
     job_root_dir: Path,
-):
+) -> None:
     job_id = str(mock_ok_job)
     url = fastapi_app.url_path_for("delete_job", jobid=job_id)
     response = await client.delete(url, headers=auth_headers)
@@ -936,39 +940,3 @@ async def test_delete_completed_job(
 
     response2 = await client.delete(url, headers=auth_headers)
     assert response2.status_code == status.HTTP_404_NOT_FOUND
-
-@pytest.mark.anyio
-async def test_delete_queued_job(
-    dbsession: AsyncSession,
-    current_user: User,
-    demo_context: Context,
-) -> None:
-    cancel_mock = Mock()
-
-    class FakeScheduler(AbstractScheduler):
-        async def state(self, job_id: str) -> State:
-            return "queued"
-
-        async def states(self, job_ids: list[str]) -> list[State]:
-            return ["queued"]
-
-        async def submit(self, description: JobDescription) -> str:
-            raise NotImplementedError()
-
-        async def cancel(self, job_id: str) -> None:
-            cancel_mock(job_id)
-
-        async def close(self) -> None:
-            raise NotImplementedError()
-
-    demo_context.destinations["dest1"].scheduler = FakeScheduler()
-
-
-    dao = JobDAO(dbsession)
-    job_id, download_mock = await prepare_job(
-        db_state="queued",
-        scheduler_state="queued",
-        dao=dao,
-        current_user=current_user,
-        demo_context=demo_context,
-    )
