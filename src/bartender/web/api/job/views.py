@@ -1,7 +1,7 @@
 from os import getloadavg, sched_getaffinity
 from pathlib import Path
 from shutil import rmtree
-from typing import Annotated, Literal, Optional, Tuple, Type, Union
+from typing import Annotated, Optional, Set, Tuple
 
 from aiofiles.os import unlink
 from fastapi import (
@@ -14,11 +14,6 @@ from fastapi import (
     Request,
 )
 from fastapi.responses import FileResponse, PlainTextResponse
-from fs.copy import copy_fs
-from fs.osfs import OSFS
-from fs.tarfs import TarFS
-from fs.walk import Walker
-from fs.zipfs import ZipFS
 from jsonschema import ValidationError
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
@@ -28,11 +23,12 @@ from bartender.async_utils import async_wrap
 from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job
+from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job, State
 from bartender.destinations import Destination
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.schedulers.abstract import JobDescription
 from bartender.walk_dir import DirectoryItem, walk_dir
+from bartender.web.api.job.archive import ArchiveFormat, create_archive
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
@@ -363,9 +359,6 @@ def _remove_archive(filename: str) -> None:
     Path(filename).unlink()
 
 
-ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
-
-
 @router.get(
     "/{jobid}/archive",
     responses={
@@ -380,7 +373,7 @@ ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_format: ArchiveFormats = ".zip",
+    archive_format: ArchiveFormat = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
     # Note: also tried to with include (filter & filter_dirs) but that can be
@@ -403,17 +396,8 @@ async def retrieve_job_directory_as_archive(
         FileResponse: Archive containing the content of job_dir
 
     """
-    dst_fs = _parse_archive_format(archive_format)
     archive_fn = str(job_dir.with_suffix(archive_format))
-    with (  # noqa: WPS316
-        OSFS(str(job_dir)) as src,
-        dst_fs(archive_fn, write=True) as dst,
-    ):
-        await async_wrap(copy_fs)(
-            src,
-            dst,
-            walker=Walker(exclude=exclude, exclude_dirs=exclude_dirs),
-        )
+    await create_archive(job_dir, exclude, exclude_dirs, archive_format, archive_fn)
 
     background_tasks.add_task(_remove_archive, archive_fn)
 
@@ -421,20 +405,12 @@ async def retrieve_job_directory_as_archive(
     return FileResponse(archive_fn, filename=return_fn)
 
 
-def _parse_archive_format(
-    archive_format: ArchiveFormats,
-) -> Union[Type[ZipFS], Type[TarFS]]:
-    if archive_format == ".zip":
-        return ZipFS
-    return TarFS
-
-
 @router.get("/{jobid}/archive/{path:path}")
 async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
     path: str,
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_format: ArchiveFormats = ".zip",
+    archive_format: ArchiveFormat = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
 ) -> FileResponse:
@@ -620,8 +596,13 @@ async def delete_job(  # noqa: WPS211
         destination: The destination of the job.
         job_root_dir: The root directory of all jobs.
 
+    Raises:
+        HTTPException: When job is not found.
+            Or when user is not owner of job.
+            Or when job is in state that cannot be deleted.
+
     """
-    cancelable_states = {"queued", "running"}
+    cancelable_states: Set[State] = {"queued", "running"}
     if job.state in cancelable_states and job.internal_id is not None:
         await destination.scheduler.cancel(job.internal_id)
         description = JobDescription(job_dir=job_dir, command="echo")
@@ -630,6 +611,13 @@ async def delete_job(  # noqa: WPS211
             job_root_dir,
         )
         await destination.filesystem.delete(localized_description)
+
+    undeletable_states: Set[State] = {"new", "staging_out"}
+    if job.state in undeletable_states:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Job cannot be deleted in its current state",
+        )
 
     if job_dir.is_symlink():
         # We want to remove the symlink not its target
