@@ -141,6 +141,7 @@ class JobDAO:
         Args:
             jobid: name of job instance.
             user: Which user wants to delete the job.
+
         Raises:
             IndexError: if job was not found or user is not the owner.
         """
