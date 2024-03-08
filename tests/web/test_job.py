@@ -201,7 +201,7 @@ async def test_retrieve_job_queued2running(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock = await prepare_job(
+    job_id, download_mock, delete_mock = await prepare_job(
         db_state="queued",
         scheduler_state="running",
         dao=dao,
@@ -219,6 +219,7 @@ async def test_retrieve_job_queued2running(
 
     assert job.state == "running"
     download_mock.assert_not_called()
+    delete_mock.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -229,7 +230,7 @@ async def test_retrieve_job_completed(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock = await prepare_job(
+    job_id, download_mock, delete_mock = await prepare_job(
         db_state="ok",
         scheduler_state="ok",
         dao=dao,
@@ -247,6 +248,7 @@ async def test_retrieve_job_completed(
 
     assert job.state == "ok"
     download_mock.assert_not_called()
+    delete_mock.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -257,7 +259,7 @@ async def test_retrieve_job_running2ok(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock = await prepare_job(
+    job_id, download_mock, delete_mock = await prepare_job(
         db_state="running",
         scheduler_state="ok",
         dao=dao,
@@ -289,6 +291,7 @@ async def test_retrieve_job_running2ok(
     assert job2.state == "ok"
 
     download_mock.assert_called_once()
+    delete_mock.assert_called_once()
 
 
 @pytest.mark.anyio
@@ -299,7 +302,7 @@ async def test_retrieve_jobs_queued2running(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock = await prepare_job(
+    job_id, download_mock, delete_mock = await prepare_job(
         db_state="queued",
         scheduler_state="running",
         dao=dao,
@@ -319,6 +322,7 @@ async def test_retrieve_jobs_queued2running(
     assert jobs[0].state == "running"
 
     download_mock.assert_not_called()
+    delete_mock.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -329,7 +333,7 @@ async def test_retrieve_jobs_running2staging_out(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock = await prepare_job(
+    job_id, download_mock, delete_mock = await prepare_job(
         db_state="running",
         scheduler_state="ok",
         dao=dao,
@@ -352,6 +356,7 @@ async def test_retrieve_jobs_running2staging_out(
     await demo_file_staging_queue.join()
 
     download_mock.assert_called_once()
+    delete_mock.assert_called_once()
 
 
 class FakeScheduler(AbstractScheduler):
@@ -375,8 +380,9 @@ class FakeScheduler(AbstractScheduler):
 
 
 class FakeFileSystem(AbstractFileSystem):
-    def __init__(self, download_mock: Mock) -> None:
+    def __init__(self, download_mock: Mock, delete_mock: Mock) -> None:
         self.download_mock = download_mock
+        self.delete_mock = delete_mock
 
     def localize_description(
         self,
@@ -392,7 +398,7 @@ class FakeFileSystem(AbstractFileSystem):
         raise NotImplementedError()
 
     async def delete(self, target: JobDescription) -> None:
-        raise NotImplementedError()
+        self.delete_mock(target)
 
     async def close(self) -> None:
         raise NotImplementedError()
@@ -404,7 +410,7 @@ async def prepare_job(
     dao: JobDAO,
     current_user: User,
     demo_context: Context,
-) -> tuple[int, Mock]:
+) -> tuple[int, Mock, Mock]:
     job_id = await dao.create_job(
         name="testjob1",
         application="app1",
@@ -418,13 +424,14 @@ async def prepare_job(
     await dao.update_job_state(job_id, db_state)
 
     download_mock = Mock()
+    delete_mock = Mock()
 
     destination = Destination(
         scheduler=FakeScheduler(scheduler_state),
-        filesystem=FakeFileSystem(download_mock),
+        filesystem=FakeFileSystem(download_mock, delete_mock),
     )
     demo_context.destinations["dest1"] = destination
-    return job_id, download_mock
+    return job_id, download_mock, delete_mock
 
 
 @pytest.mark.anyio
