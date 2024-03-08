@@ -48,7 +48,7 @@ async def perform_download(
 
     await filesystem.download(localized_description, description)
 
-    # TODO for non-local file system should also remove remote files?
+    await filesystem.delete(localized_description)
 
     if job_id is not None:
         await job_dao.update_job_state(job_id, state)

@@ -48,8 +48,6 @@ class AbstractFileSystem(Protocol):
         Args:
             description: Remote directory to delete.
         """
-        # after download or cancellation you might want to
-        # delete the remote job directory
 
     async def close(self) -> None:
         """Close filesystem."""
