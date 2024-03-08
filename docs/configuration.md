@@ -166,6 +166,7 @@ schedulers
 * **arq**, Scheduler which uses a Redis server as a job queue and
   1 or more workers (`bartender perform` command) to run the jobs.
 * **dirac**, Scheduler which submits job to grid using [DIRAC](http://diracgrid.org/).
+* **eager**, Scheduler which runs the job immediately on submission.
 
 Supported file systems
 
@@ -393,6 +394,25 @@ destinations:
         log_level: DEBUG
 ```
 
+### Example of running jobs direct on submission
+
+For applications that can be run within request/response cycle time window.
+For example to alter the uploaded zip contents to mimic another applications output.
+
+```yaml
+destinations:
+  atonce:
+    scheduler:
+      type: eager
+    filesystem:
+      type: local
+applications:
+  runimport:
+    command_template: mkdir -p output && mv * output || true
+    # `|| true` is there to swallow eror
+    # that output dir itself can not be moved
+```
+
 ## Destination picker
 
 If you have multiple applications and job destinations you need some way to
@@ -400,8 +420,10 @@ specify to which destination a job should be submitted. A Python function can be
 used to pick a destination. By default jobs are submitted to the first
 destination.
 
-To use a custom picker function set `destination_picker`. The value should be
-formatted as `<module>:<function>`. The picker function should have type
+To use a custom picker function set `destination_picker`.
+The value should be formatted as `<module>:<function>` or
+`<path to python file>:<function>`.
+The picker function should have type
 [bartender.picker.DestinationPicker](
 https://github.com/i-VRESSE/bartender/blob/bdbef5176e05c498b37f4ada2bf7c09ad0e7b853/src/bartender/picker.py#L8
 ). For example to rotate over each
