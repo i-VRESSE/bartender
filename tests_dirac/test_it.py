@@ -251,3 +251,55 @@ async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
         await fs.delete(gdescription)
         await fs.close()
         await scheduler.close()
+
+
+@pytest.mark.anyio
+async def test_filesystem_delete(
+    tmp_path: Path,
+) -> None:
+    fs_config = DiracFileSystemConfig(
+        lfn_root="/tutoVO/user/c/ciuser/bartenderjobs",
+        storage_element="StorageElementOne",
+    )
+    fs = DiracFileSystem(fs_config)
+
+    job_dir = tmp_path / "job1"
+    job_dir.mkdir()
+    (job_dir / "input.tar").write_text("the input files")
+    (job_dir / "output.tar").write_text("the ouput files")
+    description = JobDescription(
+        job_dir=job_dir,
+        command="uptime",
+    )
+    gdescription = fs.localize_description(description, tmp_path)
+
+    try:
+        # A completed job will have a input.tar and output.tar on grid storage.
+        # need to use dirac data manager
+        # as DiracFileSystem does not allow uploading random files
+        input_put_result = fs.dm.putAndRegister(
+            lfn=str(gdescription.job_dir / "input.tar"),
+            fileName=str(description.job_dir / "input.tar"),
+            diracSE=fs.storage_element,
+        )
+        assert input_put_result["OK"] and not input_put_result["Value"]["Failed"]
+        output_put_result = fs.dm.putAndRegister(
+            lfn=str(gdescription.job_dir / "output.tar"),
+            fileName=str(description.job_dir / "output.tar"),
+            diracSE=fs.storage_element,
+        )
+        assert output_put_result["OK"] and not input_put_result["Value"]["Failed"]
+
+        await fs.delete(gdescription)
+
+        # Unable to get files after deletion of job dir on grid storage.
+        input_get_result = fs.dm.getFile(
+            str(gdescription.job_dir / "input.tar"),
+            tmp_path,
+        )
+        input_get_error = list(input_get_result["Value"]["Failed"].values()).pop()
+        assert input_get_error == "No such file or directory"
+        with pytest.raises(RuntimeError, match="No such file or directory"):
+            await fs.download(gdescription, description)
+    finally:
+        await fs.close()
