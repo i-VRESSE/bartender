@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from shutil import make_archive, unpack_archive
+from typing import Any
 
 from aiofiles.tempfile import TemporaryDirectory
 from DIRAC.DataManagementSystem.Client.DataManager import DataManager
@@ -63,9 +64,6 @@ class DiracFileSystem(AbstractFileSystem):
         Args:
             src: Local directory to copy from.
             target: Remote directory to copy to.
-
-        Raises:
-            RuntimeError: When upload failed.
         """
         put = async_wrap(self.dm.putAndRegister)
         async with TemporaryDirectory(prefix="bartender-upload") as tmpdirname:
@@ -80,9 +78,7 @@ class DiracFileSystem(AbstractFileSystem):
                 fileName=str(archive_fn),
                 diracSE=self.storage_element,
             )
-            if not result["OK"]:
-                logger.warning(result)
-                raise RuntimeError(result["Message"])
+            _check_for_failure(result)
 
     async def download(self, src: JobDescription, target: JobDescription) -> None:
         """Download job directory of source description to job directory of target.
@@ -93,9 +89,6 @@ class DiracFileSystem(AbstractFileSystem):
         Args:
             src: Remote directory to copy from.
             target: Local directory to copy to.
-
-        Raises:
-            RuntimeError: When download failed.
         """
         archive_base_fn = "output.tar"
         archive_fn_on_grid = Path(src.job_dir) / archive_base_fn
@@ -105,12 +98,8 @@ class DiracFileSystem(AbstractFileSystem):
                 str(archive_fn_on_grid),
                 tmpdirname,
             )
-            if not result["OK"]:
-                raise RuntimeError(result["Message"])
+            _check_for_failure(result)
             archive_fn_in_tmpdir = Path(tmpdirname) / archive_base_fn
-            if not archive_fn_in_tmpdir.exists():
-                # Failed job does not have a output.tar
-                return
             # TODO what happens if file in job_dir already exists?
             logger.warning(f"Unpacking {archive_fn_in_tmpdir} to {target.job_dir}")
             await async_wrap(unpack_archive)(archive_fn_in_tmpdir, target.job_dir)
@@ -124,15 +113,11 @@ class DiracFileSystem(AbstractFileSystem):
 
         Args:
             description: The job description.
-
-        Raises:
-            RuntimeError: When deletion failed.
         """
         result = await async_wrap(self.dm.cleanLogicalDirectory)(
             str(description.job_dir),
         )
-        if not result["OK"]:
-            raise RuntimeError(result["Message"])
+        _check_for_failure(result)
 
     async def _pack(self, root_dir: Path, container_dir: Path) -> Path:
         archive_base_fn = container_dir / "input"
@@ -143,3 +128,17 @@ class DiracFileSystem(AbstractFileSystem):
             root_dir,
         )
         return Path(archive_fn)
+
+
+def _check_for_failure(result: Any) -> None:
+    if not result["OK"]:
+        raise RuntimeError(result["Message"])
+    if result["Value"]["Failed"]:
+        # All dm method are for single lfn,
+        # but failed is a dict with lfn as key
+        # so pick the last value as the error message
+        failures = result["Value"]["Failed"]
+        fn, msg = list(failures.items()).pop()
+        if "No such file or directory" in msg:
+            raise FileNotFoundError(fn)
+        raise RuntimeError(msg + fn)

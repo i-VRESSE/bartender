@@ -1,6 +1,6 @@
 FROM ghcr.io/xenon-middleware/diracclient:8.0.18
 
-RUN pip install poetry==1.5.1 && \
+RUN pip install poetry==1.8.2 && \
     pip install --upgrade pip wheel setuptools
 
 # Configuring poetry
@@ -12,4 +12,4 @@ WORKDIR /workspace
 COPY pyproject.toml poetry.lock ./
 
 # Installing requirements
-RUN poetry install --no-root --no-interaction --no-ansi
+RUN poetry install --no-root --no-interaction --no-ansi && pip3 install pyOpenSSL --upgrade

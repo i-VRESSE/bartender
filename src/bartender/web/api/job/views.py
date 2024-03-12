@@ -1,6 +1,8 @@
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Tuple, Type, Union
+from shutil import rmtree
+from typing import Annotated, Optional, Set, Tuple
 
+from aiofiles.os import unlink
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -11,11 +13,6 @@ from fastapi import (
     Request,
 )
 from fastapi.responses import FileResponse, PlainTextResponse
-from fs.copy import copy_fs
-from fs.osfs import OSFS
-from fs.tarfs import TarFS
-from fs.walk import Walker
-from fs.zipfs import ZipFS
 from jsonschema import ValidationError
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
@@ -26,9 +23,12 @@ from bartender.check_load import check_load
 from bartender.config import CurrentConfig, InteractiveApplicationConfiguration
 from bartender.context import CurrentContext, get_job_root_dir
 from bartender.db.dao.job_dao import CurrentJobDAO
-from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job
+from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job, State
+from bartender.destinations import Destination
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
+from bartender.schedulers.abstract import JobDescription
 from bartender.walk_dir import DirectoryItem, walk_dir
+from bartender.web.api.job.archive import ArchiveFormat, create_archive
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
@@ -219,17 +219,41 @@ def retrieve_job_file(
 CurrentJob = Annotated[Job, Depends(retrieve_job)]
 
 
+def get_destination(
+    job: CurrentJob,
+    context: CurrentContext,
+) -> Destination:
+    """Get the destination of a job.
+
+    Args:
+        job: The job.
+        context: Context with destinations.
+
+    Raises:
+        ValueError: When job has no destination.
+
+    Returns:
+        The destination of the job.
+    """
+    if not job.destination or not job.internal_id:
+        raise ValueError("Job has no destination")
+    return context.destinations[job.destination]
+
+
+CurrentDestination = Annotated[Destination, Depends(get_destination)]
+
+
 async def get_completed_logs(
     job_dir: CurrentCompletedJobDir,
     job: CurrentJob,
-    context: CurrentContext,
+    destination: CurrentDestination,
 ) -> Tuple[str, str]:
     """Get the standard output and error of a completed job.
 
     Args:
         job_dir: Directory with job output files.
         job: The job.
-        context: Context with destinations.
+        destination: The destination of the job.
 
     Raises:
         ValueError: When job has no destination.
@@ -238,10 +262,9 @@ async def get_completed_logs(
     Returns:
         The standard output and error.
     """
-    if not job.destination or not job.internal_id:
-        raise ValueError("Job has no destination")
-    destination = context.destinations[job.destination]
     try:
+        if not job.internal_id:
+            raise ValueError("Job has no internal_id")
         return await destination.scheduler.logs(job.internal_id, job_dir)
     except FileNotFoundError as exc:
         raise HTTPException(
@@ -336,9 +359,6 @@ def _remove_archive(filename: str) -> None:
     Path(filename).unlink()
 
 
-ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
-
-
 @router.get(
     "/{jobid}/archive",
     responses={
@@ -353,7 +373,7 @@ ArchiveFormats = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
 async def retrieve_job_directory_as_archive(
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_format: ArchiveFormats = ".zip",
+    archive_format: ArchiveFormat = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
     # Note: also tried to with include (filter & filter_dirs) but that can be
@@ -376,17 +396,8 @@ async def retrieve_job_directory_as_archive(
         FileResponse: Archive containing the content of job_dir
 
     """
-    dst_fs = _parse_archive_format(archive_format)
     archive_fn = str(job_dir.with_suffix(archive_format))
-    with (  # noqa: WPS316
-        OSFS(str(job_dir)) as src,
-        dst_fs(archive_fn, write=True) as dst,
-    ):
-        await async_wrap(copy_fs)(
-            src,
-            dst,
-            walker=Walker(exclude=exclude, exclude_dirs=exclude_dirs),
-        )
+    await create_archive(job_dir, exclude, exclude_dirs, archive_format, archive_fn)
 
     background_tasks.add_task(_remove_archive, archive_fn)
 
@@ -394,20 +405,12 @@ async def retrieve_job_directory_as_archive(
     return FileResponse(archive_fn, filename=return_fn)
 
 
-def _parse_archive_format(
-    archive_format: ArchiveFormats,
-) -> Union[Type[ZipFS], Type[TarFS]]:
-    if archive_format == ".zip":
-        return ZipFS
-    return TarFS
-
-
 @router.get("/{jobid}/archive/{path:path}")
 async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
     path: str,
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
-    archive_format: ArchiveFormats = ".zip",
+    archive_format: ArchiveFormat = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
 ) -> FileResponse:
@@ -547,3 +550,61 @@ async def rename_job_name(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Job not found",
         ) from exc
+
+
+@router.delete("/{jobid}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(  # noqa: WPS211
+    jobid: int,
+    job_dao: CurrentJobDAO,
+    job: Annotated[Job, Depends(retrieve_job)],
+    user: CurrentUser,
+    job_dir: Annotated[Path, Depends(get_job_dir)],
+    destination: CurrentDestination,
+    job_root_dir: Annotated[Path, Depends(get_job_root_dir)],
+) -> None:
+    """Delete a job.
+
+    Deletes job from database and filesystem.
+
+    When job is queued or running it will be canceled
+    and removed from the filesystem where the job is located.
+
+    Args:
+        jobid: The job identifier.
+        job_dao: The job DAO.
+        job: The job.
+        user: The current user.
+        job_dir: The job directory.
+        destination: The destination of the job.
+        job_root_dir: The root directory of all jobs.
+
+    Raises:
+        HTTPException: When job is not found.
+            Or when user is not owner of job.
+            Or when job is in state that cannot be deleted.
+
+    """
+    cancelable_states: Set[State] = {"queued", "running"}
+    if job.state in cancelable_states and job.internal_id is not None:
+        await destination.scheduler.cancel(job.internal_id)
+        description = JobDescription(job_dir=job_dir, command="echo")
+        localized_description = destination.filesystem.localize_description(
+            description,
+            job_root_dir,
+        )
+        await destination.filesystem.delete(localized_description)
+
+    undeletable_states: Set[State] = {"new", "staging_out"}
+    if job.state in undeletable_states:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Job cannot be deleted in its current state",
+        )
+
+    if job_dir.is_symlink():
+        # We want to remove the symlink not its target
+        await unlink(job_dir)
+    else:
+        await async_wrap(rmtree)(job_dir)
+
+    await job_dao.delete_job(jobid, user.username)

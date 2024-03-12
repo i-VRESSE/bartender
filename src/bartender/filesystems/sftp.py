@@ -93,13 +93,21 @@ class SftpFileSystem(AbstractFileSystem):
             remotepath = str(target.job_dir.parent)
             await sftp.get(localpaths, remotepath, recurse=True)
 
+    async def delete(self, description: JobDescription) -> None:
+        """Delete job directory of description.
+
+        Args:
+            description: Remote directory to delete.
+        """
+        if self.conn is None:
+            self.conn = await ssh_connect(self.ssh_config)
+        async with self.conn.start_sftp_client() as sftp:
+            await sftp.rmtree(str(description.job_dir))
+
     async def close(self) -> None:
         """Close SSH connection."""
         if self.conn:
             self.conn.close()
-
-    # TODO add delete(description),
-    # after download you might want to delete the remote job dir
 
     def __eq__(self, other: object) -> bool:
         return (

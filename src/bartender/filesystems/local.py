@@ -61,6 +61,13 @@ class LocalFileSystem(AbstractFileSystem):
             target: Local directory to copy to.
         """
 
+    async def delete(self, description: JobDescription) -> None:
+        """Delete job directory of description.
+
+        Args:
+            description: Remote directory to delete.
+        """
+
     async def close(self) -> None:
         """Close filesystem."""
 

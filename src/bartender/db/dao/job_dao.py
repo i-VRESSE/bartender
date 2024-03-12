@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from bartender.db.dependencies import CurrentSession
 from bartender.db.models.job_model import Job, State
+from bartender.db.utils import now
 
 
 class JobDAO:
@@ -96,6 +97,7 @@ class JobDAO:
         if job is None:
             return
         job.state = state
+        job.updated_on = now()
         await self.session.commit()
 
     async def update_internal_job_id(
@@ -133,6 +135,22 @@ class JobDAO:
         if job is None or job.submitter != user:
             raise IndexError("Job not found")
         job.name = name
+        await self.session.commit()
+
+    async def delete_job(self, jobid: int, user: str) -> None:
+        """Delete job from database.
+
+        Args:
+            jobid: name of job instance.
+            user: Which user wants to delete the job.
+
+        Raises:
+            IndexError: if job was not found or user is not the owner.
+        """
+        job = await self.session.get(Job, jobid)
+        if job is None or job.submitter != user:
+            raise IndexError("Job not found")
+        await self.session.delete(job)
         await self.session.commit()
 
 
