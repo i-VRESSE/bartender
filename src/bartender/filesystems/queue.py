@@ -37,6 +37,9 @@ async def perform_download(
         job_dao: Object to update jobs in database.
         state: The new state, most likely retrieved from a
             scheduler.
+
+    Raises:
+        FileNotFoundError: If the job directory does not exist in supplied filesystem.
     """
     job_dir: Path = job_root_dir / str(job_id)
     # Command does not matter for downloading so use dummy command echo.
@@ -46,7 +49,13 @@ async def perform_download(
         job_root_dir,
     )
 
-    await filesystem.download(localized_description, description)
+    try:
+        await filesystem.download(localized_description, description)
+    except FileNotFoundError as err:
+        # a failed dirac job has nothing to download
+        # so we can ignore the error
+        if state != "error":
+            raise err
 
     await filesystem.delete(localized_description)
 

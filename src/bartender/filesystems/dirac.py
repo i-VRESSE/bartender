@@ -100,9 +100,6 @@ class DiracFileSystem(AbstractFileSystem):
             )
             _check_for_failure(result)
             archive_fn_in_tmpdir = Path(tmpdirname) / archive_base_fn
-            if not archive_fn_in_tmpdir.exists():
-                # Failed job does not have a output.tar
-                return
             # TODO what happens if file in job_dir already exists?
             logger.warning(f"Unpacking {archive_fn_in_tmpdir} to {target.job_dir}")
             await async_wrap(unpack_archive)(archive_fn_in_tmpdir, target.job_dir)
@@ -140,5 +137,8 @@ def _check_for_failure(result: Any) -> None:
         # All dm method are for single lfn,
         # but failed is a dict with lfn as key
         # so pick the last value as the error message
-        msg = list(result["Value"]["Failed"].values()).pop()
-        raise RuntimeError(msg)
+        failures = result["Value"]["Failed"]
+        fn, msg = list(failures.items()).pop()
+        if "No such file or directory" in msg:
+            raise FileNotFoundError(fn)
+        raise RuntimeError(msg + fn)

@@ -242,7 +242,7 @@ async def test_failing_job(  # noqa: WPS217 single piece of code for readablilty
         assert "icannotwork" in stdout
         assert "idonotexist" in stderr
 
-        with pytest.raises(RuntimeError, match="No such file or directory"):
+        with pytest.raises(FileNotFoundError, match="output.tar"):
             # a failed job does to get its output.tar uploaded to grid storage
             await fs.download(gdescription, description)
 
@@ -302,7 +302,7 @@ async def test_filesystem_delete(
         )
         input_get_error = list(input_get_result["Value"]["Failed"].values()).pop()
         assert input_get_error == "No such file or directory"
-        with pytest.raises(RuntimeError, match="No such file or directory"):
+        with pytest.raises(FileNotFoundError, match="output.tar"):
             await fs.download(gdescription, description)
     finally:
         await fs.close()
