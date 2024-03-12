@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from unittest.mock import Mock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fs.tarfs import TarFS
 from fs.zipfs import ZipFS
 from httpx import AsyncClient
@@ -21,7 +21,7 @@ from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.filesystems.queue import FileStagingQueue
 from bartender.schedulers.abstract import AbstractScheduler, JobDescription
 from bartender.user import User
-from bartender.web.api.job.views import retrieve_job, retrieve_jobs
+from bartender.web.api.job.views import delete_job, retrieve_job, retrieve_jobs
 
 somedt = datetime(2022, 1, 1, tzinfo=timezone.utc)
 
@@ -201,7 +201,7 @@ async def test_retrieve_job_queued2running(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock, delete_mock = await prepare_job(
+    job_id, filesystem, scheduler = await prepare_job(
         db_state="queued",
         scheduler_state="running",
         dao=dao,
@@ -218,8 +218,9 @@ async def test_retrieve_job_queued2running(
     )
 
     assert job.state == "running"
-    download_mock.assert_not_called()
-    delete_mock.assert_not_called()
+
+    filesystem.download_mock.assert_not_called()
+    filesystem.delete_mock.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -230,7 +231,7 @@ async def test_retrieve_job_completed(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock, delete_mock = await prepare_job(
+    job_id, filesystem, scheduler = await prepare_job(
         db_state="ok",
         scheduler_state="ok",
         dao=dao,
@@ -247,8 +248,8 @@ async def test_retrieve_job_completed(
     )
 
     assert job.state == "ok"
-    download_mock.assert_not_called()
-    delete_mock.assert_not_called()
+    filesystem.download_mock.assert_not_called()
+    filesystem.delete_mock.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -259,7 +260,7 @@ async def test_retrieve_job_running2ok(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock, delete_mock = await prepare_job(
+    job_id, filesystem, scheduler = await prepare_job(
         db_state="running",
         scheduler_state="ok",
         dao=dao,
@@ -290,8 +291,8 @@ async def test_retrieve_job_running2ok(
 
     assert job2.state == "ok"
 
-    download_mock.assert_called_once()
-    delete_mock.assert_called_once()
+    filesystem.download_mock.assert_called_once()
+    filesystem.delete_mock.assert_called_once()
 
 
 @pytest.mark.anyio
@@ -302,7 +303,7 @@ async def test_retrieve_jobs_queued2running(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock, delete_mock = await prepare_job(
+    job_id, filesystem, scheduler = await prepare_job(
         db_state="queued",
         scheduler_state="running",
         dao=dao,
@@ -321,8 +322,8 @@ async def test_retrieve_jobs_queued2running(
     assert jobs[0].id == job_id
     assert jobs[0].state == "running"
 
-    download_mock.assert_not_called()
-    delete_mock.assert_not_called()
+    filesystem.download_mock.assert_not_called()
+    filesystem.delete_mock.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -333,7 +334,7 @@ async def test_retrieve_jobs_running2staging_out(
     demo_context: Context,
 ) -> None:
     dao = JobDAO(dbsession)
-    job_id, download_mock, delete_mock = await prepare_job(
+    job_id, filesystem, scheduler = await prepare_job(
         db_state="running",
         scheduler_state="ok",
         dao=dao,
@@ -355,13 +356,14 @@ async def test_retrieve_jobs_running2staging_out(
     # wait for download task to complete
     await demo_file_staging_queue.join()
 
-    download_mock.assert_called_once()
-    delete_mock.assert_called_once()
+    filesystem.download_mock.assert_called_once()
+    filesystem.delete_mock.assert_called_once()
 
 
 class FakeScheduler(AbstractScheduler):
     def __init__(self, scheduler_state: State) -> None:
         self.scheduler_state = scheduler_state
+        self.cancel_mock = Mock()
 
     async def state(self, job_id: str) -> State:
         return self.scheduler_state
@@ -373,16 +375,16 @@ class FakeScheduler(AbstractScheduler):
         raise NotImplementedError()
 
     async def cancel(self, job_id: str) -> None:
-        raise NotImplementedError()
+        self.cancel_mock(job_id)
 
     async def close(self) -> None:
         raise NotImplementedError()
 
 
 class FakeFileSystem(AbstractFileSystem):
-    def __init__(self, download_mock: Mock, delete_mock: Mock) -> None:
-        self.download_mock = download_mock
-        self.delete_mock = delete_mock
+    def __init__(self) -> None:
+        self.download_mock = Mock()
+        self.delete_mock = Mock()
 
     def localize_description(
         self,
@@ -410,7 +412,7 @@ async def prepare_job(
     dao: JobDAO,
     current_user: User,
     demo_context: Context,
-) -> tuple[int, Mock, Mock]:
+) -> tuple[int, FakeFileSystem, FakeScheduler]:
     job_id = await dao.create_job(
         name="testjob1",
         application="app1",
@@ -423,15 +425,14 @@ async def prepare_job(
     await dao.update_internal_job_id(job_id, "fake-internal-job-id", "dest1")
     await dao.update_job_state(job_id, db_state)
 
-    download_mock = Mock()
-    delete_mock = Mock()
-
+    scheduler = FakeScheduler(scheduler_state)
+    filesystem = FakeFileSystem()
     destination = Destination(
-        scheduler=FakeScheduler(scheduler_state),
-        filesystem=FakeFileSystem(download_mock, delete_mock),
+        scheduler=scheduler,
+        filesystem=filesystem,
     )
     demo_context.destinations["dest1"] = destination
-    return job_id, download_mock, delete_mock
+    return job_id, filesystem, scheduler
 
 
 @pytest.mark.anyio
@@ -947,3 +948,103 @@ async def test_delete_completed_job(
 
     response2 = await client.delete(url, headers=auth_headers)
     assert response2.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.anyio
+async def test_delete_running_job(
+    dbsession: AsyncSession,
+    current_user: User,
+    demo_file_staging_queue: FileStagingQueue,
+    demo_context: Context,
+) -> None:
+    dao = JobDAO(dbsession)
+    job_id, filesystem, scheduler = await prepare_job(
+        db_state="running",
+        scheduler_state="running",
+        dao=dao,
+        current_user=current_user,
+        demo_context=demo_context,
+    )
+    job = await retrieve_job(
+        job_id,
+        dao,
+        current_user,
+        demo_context,
+        file_staging_queue=demo_file_staging_queue,
+    )
+    job_dir = demo_context.job_root_dir / str(job_id)
+    job_dir.mkdir()
+
+    await delete_job(
+        job_id,
+        dao,
+        job,
+        user=current_user,
+        job_dir=job_dir,
+        destination=demo_context.destinations["dest1"],
+        job_root_dir=demo_context.job_root_dir,
+    )
+
+    scheduler.cancel_mock.assert_called_once_with("fake-internal-job-id")
+    filesystem.delete_mock.assert_called_once()
+
+
+@pytest.mark.anyio
+async def test_delete_staging_out_job(
+    dbsession: AsyncSession,
+    current_user: User,
+    demo_file_staging_queue: FileStagingQueue,
+    demo_context: Context,
+) -> None:
+    dao = JobDAO(dbsession)
+    job_id, filesystem, scheduler = await prepare_job(
+        db_state="staging_out",
+        scheduler_state="ok",
+        dao=dao,
+        current_user=current_user,
+        demo_context=demo_context,
+    )
+    job = await retrieve_job(
+        job_id,
+        dao,
+        current_user,
+        demo_context,
+        file_staging_queue=demo_file_staging_queue,
+    )
+    job_dir = demo_context.job_root_dir / str(job_id)
+    job_dir.mkdir()
+
+    with pytest.raises(HTTPException) as e_info:
+        await delete_job(
+            job_id,
+            dao,
+            job,
+            user=current_user,
+            job_dir=job_dir,
+            destination=demo_context.destinations["dest1"],
+            job_root_dir=demo_context.job_root_dir,
+        )
+
+    assert e_info.value.status_code == status.HTTP_409_CONFLICT  # noqa: WPS441
+
+
+@pytest.mark.anyio
+async def test_delete_linkedjob(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    job_root_dir: Path,
+) -> None:
+    job_id = create_symlinked_job_dir(mock_ok_job, job_root_dir)
+
+    url = fastapi_app.url_path_for(
+        "delete_job",
+        jobid=job_id,
+    )
+    response = await client.delete(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not (job_root_dir / job_id).exists()
+    # target dir should not be deleted
+    assert (job_root_dir / "orig").exists()
