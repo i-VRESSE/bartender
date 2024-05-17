@@ -125,6 +125,10 @@ class ArqScheduler(AbstractScheduler):
         return self.connection
 
 
+class JobFailureError(Exception):
+    """Error during job running."""
+
+
 async def _exec(  # noqa: WPS210
     ctx: dict[Any, Any],
     description: JobDescription,
@@ -142,7 +146,10 @@ async def _exec(  # noqa: WPS210
             )
             returncode = await proc.wait()
             (description.job_dir / "returncode").write_text(str(returncode))
-            # TODO raise exception when returncode != 0 ?
+            if returncode != 0:
+                raise JobFailureError(
+                    f"Job failed with return code {returncode}",
+                )
 
 
 def arq_worker(config: ArqSchedulerConfig, burst: bool = False) -> Worker:
