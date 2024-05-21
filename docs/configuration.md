@@ -33,7 +33,7 @@ You can read more about BaseSettings class here:
 
 The bartender web service uses [JWT tokens](https://jwt.io/) for authentication.
 
-The tokens should use the RS256 algorithm,
+The tokens use the RS256 algorithm for signing and validating,
 which requires a public and private RSA key pair.
 A key pair can be generated with
 
@@ -42,13 +42,13 @@ openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:204
 openssl rsa -pubout -in private_key.pem -out public_key.pem
 ```
 
-The private key of the RSA key pair is used to sign a token in
-an another web application or with the `bartender generate-token` command.
+The consumer (usually another web application) uses the private key to
+generate a token. Bartender then uses the corresponding public key to
+verify that the token comes from the trusted source.
 
-The public key of the RSA key pair is used to verify that the token comes
-from a trusted source.
-The public key file location is `public_key.pem`
-or value of `BARTENDER_PUBLIC_KEY` environment variable.
+The public key file is located by the value
+of `BARTENDER_PUBLIC_KEY` environment variable or
+falls back to 'public_key.pem` file name.
 
 The token payload should contain the following claims:
 
@@ -57,6 +57,9 @@ The token payload should contain the following claims:
 * `iss`: The issuer of the token. Used to track from where jobs are submitted.
 * `roles`: Optionally. The roles of the user.
   See [Applications](#applications) how roles are used.
+
+Bartender can also generate its own tokens using the
+`bartender generate-token --private-key private_key.pem` command.
 
 ## Configuration file
 
