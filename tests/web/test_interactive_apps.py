@@ -8,6 +8,7 @@ from jsonschema import ValidationError
 
 from bartender.web.api.job.interactive_apps import (
     InteractiveApplicationConfiguration,
+    InteractiveAppResult,
     build_command,
     run,
 )
@@ -56,6 +57,22 @@ async def test_run_invalid_payload(
     payload: dict[Any, Any] = {}
     with pytest.raises(ValidationError, match="'input_file' is a required property"):
         await run(job_dir, payload, app_config)
+
+
+@pytest.mark.anyio
+async def test_run_exit42(
+    job_dir: Path,
+    app_config: InteractiveApplicationConfiguration,
+) -> None:
+    payload = {"input_file": "input.txt", "output_file": "output.txt"}
+    app_config.command_template = "echo -n hi && exit 42 && echo bye"
+    result = await run(job_dir, payload, app_config)
+    expected = InteractiveAppResult(
+        returncode=42,
+        stdout="hi",
+        stderr="",
+    )
+    assert result == expected
 
 
 @pytest.mark.parametrize(
