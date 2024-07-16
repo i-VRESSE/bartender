@@ -2,7 +2,11 @@ import asyncio
 import logging
 import shutil
 from pathlib import Path
-from subprocess import CalledProcessError  # noqa: S404 security implications OK
+from subprocess import (  # noqa: S404 security implications OK
+    PIPE,
+    CalledProcessError,
+    run,
+)
 from typing import Optional, Tuple
 
 from DIRAC import gLogger, initialize
@@ -57,6 +61,26 @@ async def proxy_init(config: ProxyConfig) -> None:
     )
     if process.returncode:
         raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
+
+
+def sync_proxy_init(config: ProxyConfig) -> None:
+    """Create or renew DIRAC proxy.
+
+    Args:
+        config: How to create a new proxy.
+    """
+    # Would be nice to use Python to init proxy instead of a subprocess call
+    # but dirac-proxy-init script is too long to copy here
+    # and password would be unpassable so decided to keep calling subprocess.
+    cmd = _proxy_init_command(config)
+    logger.warning(f"Running command: {cmd}")
+    run(  # noqa: S603 subprocess call OK
+        cmd,
+        input=config.password.encode() if config.password else None,
+        stdout=PIPE,
+        stderr=PIPE,
+        check=True,
+    )
 
 
 def _proxy_init_command(config: ProxyConfig) -> list[str]:
@@ -125,7 +149,7 @@ def setup_proxy_renewer(config: ProxyConfig) -> None:
             initialize()
         except DIRACInitError:
             logger.warning("DIRAC proxy not initialized, initializing")
-            asyncio.run(proxy_init(config))
+            sync_proxy_init(config)
             initialize()
         gLogger.setLevel(config.log_level)
         task = asyncio.create_task(renew_proxy_task(config))
@@ -227,6 +251,7 @@ async def proxy_upload(proxy: Path) -> None:
     Returns:
         None
     """
+    # TODO use Python library to upload proxy
     cmd = ["dirac-admin-proxy-upload", "-d", "-P", str(proxy)]
     process = await asyncio.create_subprocess_exec(
         *cmd,
