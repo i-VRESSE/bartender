@@ -1,7 +1,8 @@
 import pkgutil
+from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, FilePath
 
 DIRAC_INSTALLED = (
     pkgutil.find_loader("DIRAC") is not None
@@ -21,6 +22,27 @@ LogLevel = Literal[
     "ALWAYS",
     "FATAL",
 ]
+
+
+class MyProxyConfig(BaseModel):
+    """Configuration for MyProxy server.
+
+    Args:
+        pshost: The hostname of the MyProxy server.
+        username: Username for the delegated proxy
+        proxy_lifetime: Lifetime of proxies delegated by the server
+        password_file: The path to the file containing the password for the proxy.
+        proxy_rfc: The path to the generated RFC proxy file.
+        proxy: The path to the generated proxy file.
+            This proxy file should be used submit and manage jobs.
+    """
+
+    pshost: str = "px.grid.sara.nl"
+    username: str
+    password_file: FilePath
+    proxy_lifetime: str = "167:59"  # 7 days
+    proxy_rfc: Path
+    proxy: Path
 
 
 class ProxyConfig(BaseModel):
@@ -45,3 +67,4 @@ class ProxyConfig(BaseModel):
     password: Optional[str] = None
     min_life: int = 1800
     log_level: LogLevel = "INFO"
+    myproxy: Optional[MyProxyConfig] = None

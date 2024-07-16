@@ -1,17 +1,15 @@
 import asyncio
 import logging
-from subprocess import (  # noqa: S404 security implications OK
-    PIPE,
-    CalledProcessError,
-    run,
-)
+import shutil
+from pathlib import Path
+from subprocess import CalledProcessError  # noqa: S404 security implications OK
 from typing import Optional, Tuple
 
 from DIRAC import gLogger, initialize
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC.Core.Utilities.exceptions import DIRACInitError
 
-from bartender.shared.dirac_config import ProxyConfig
+from bartender.shared.dirac_config import MyProxyConfig, ProxyConfig
 
 logger = logging.getLogger(__file__)
 
@@ -40,7 +38,12 @@ async def proxy_init(config: ProxyConfig) -> None:
 
     Raises:
         CalledProcessError: If failed to create proxy.
+
+    Returns:
+        Nothing
     """
+    if config.myproxy:
+        return await myproxy_init(config)
     cmd = _proxy_init_command(config)
     logger.warning(f"Running command: {cmd}")
     process = await asyncio.create_subprocess_exec(
@@ -54,26 +57,6 @@ async def proxy_init(config: ProxyConfig) -> None:
     )
     if process.returncode:
         raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
-
-
-def sync_proxy_init(config: ProxyConfig) -> None:
-    """Create or renew DIRAC proxy.
-
-    Args:
-        config: How to create a new proxy.
-    """
-    # Would be nice to use Python to init proxy instead of a subprocess call
-    # but dirac-proxy-init script is too long to copy here
-    # and password would be unpassable so decided to keep calling subprocess.
-    cmd = _proxy_init_command(config)
-    logger.warning(f"Running command: {cmd}")
-    run(  # noqa: S603 subprocess call OK
-        cmd,
-        input=config.password.encode() if config.password else None,
-        stdout=PIPE,
-        stderr=PIPE,
-        check=True,
-    )
 
 
 def _proxy_init_command(config: ProxyConfig) -> list[str]:
@@ -142,7 +125,7 @@ def setup_proxy_renewer(config: ProxyConfig) -> None:
             initialize()
         except DIRACInitError:
             logger.warning("DIRAC proxy not initialized, initializing")
-            sync_proxy_init(config)
+            asyncio.run(proxy_init(config))
             initialize()
         gLogger.setLevel(config.log_level)
         task = asyncio.create_task(renew_proxy_task(config))
@@ -162,3 +145,94 @@ async def teardown_proxy_renewer() -> None:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
         renewer = None  # noqa: WPS442 simpler then singleton
+
+
+async def myproxy_init(config: ProxyConfig) -> None:
+    """
+    Create or renew proxy using MyProxy server.
+
+    Args:
+        config: The MyProxy configuration.
+
+    Raises:
+        ValueError: If no MyProxy configuration is provided.
+    """
+    if config.myproxy is None:
+        raise ValueError("No myproxy configuration")
+
+    # myproxy-logon \
+    # --pshost config.pshost \
+    # --proxy_lifetime config.proxy_lifetime \
+    # --username config.username \
+    # --out tmprfcfile \
+    # --stdin_pass \
+    # < config.password_file
+    await myproxy_logon(config.myproxy)
+    # cp tmprfcfile proxyfile
+    await shutil.copy(config.myproxy.proxy_rfc, config.myproxy.proxy)
+    # dirac-admin-proxy-upload -d -P tmprfcfile
+    await proxy_upload(config.myproxy.proxy)
+    # then check that proxy is valid and has time left
+    get_time_left_on_proxy()
+
+
+async def myproxy_logon(config: MyProxyConfig) -> None:
+    """
+    Log in to MyProxy server using the provided configuration.
+
+    Args:
+        config: The configuration object containing the necessary parameters.
+
+    Raises:
+        CalledProcessError: If the MyProxy logon process returns a non-zero exit code.
+
+    Returns:
+        None
+    """
+    password = config.password_file.read_bytes()
+    cmd = [
+        "myproxy-logon",
+        "--pshost",
+        config.pshost,
+        "--proxy_lifetime",
+        config.proxy_lifetime,
+        "--username",
+        config.username,
+        "--out",
+        str(config.proxy_rfc),
+        "--stdin_pass",
+    ]
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate(
+        password,
+    )
+    if process.returncode:
+        raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
+
+
+async def proxy_upload(proxy: Path) -> None:
+    """
+    Uploads the given proxy file using dirac-admin-proxy-upload command.
+
+    Args:
+        proxy: The path to the proxy file.
+
+    Raises:
+        CalledProcessError: If the subprocess returns a non-zero exit code.
+
+    Returns:
+        None
+    """
+    cmd = ["dirac-admin-proxy-upload", "-d", "-P", str(proxy)]
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    if process.returncode:
+        raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
