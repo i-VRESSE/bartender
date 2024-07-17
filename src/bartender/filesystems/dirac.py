@@ -71,7 +71,7 @@ class DiracFileSystem(AbstractFileSystem):
             input_tar_on_grid = target.job_dir / archive_fn.name
             logger.warning(
                 f"Uploading {archive_fn} to {input_tar_on_grid}"
-                f"on {self.storage_element}",
+                f" on {self.storage_element}",
             )
             result = await put(
                 lfn=str(input_tar_on_grid),
