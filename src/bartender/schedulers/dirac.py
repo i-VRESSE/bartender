@@ -249,8 +249,14 @@ class DiracScheduler(AbstractScheduler):
 
     def _command_script(self, description: JobDescription) -> str:
         command = description.command
+        dl_image = ""
         if self.config.apptainer_image:
-            image = self.config.apptainer_image
+            image = str(self.config.apptainer_image)
+            if self.config.apptainer_image.is_relative_to(_lfn_user_home(description)):
+                image = self.config.apptainer_image.name
+                # Also exclude sif file from in output.tar
+                lfn_image = self.config.apptainer_image
+                dl_image = f"dirac-dms-get-file {lfn_image} && echo {image} >> .input_files.txt"  # noqa: E501
             # TODO if command is complex then qoutes are likely needed
             command = f"apptainer run {image} {description.command}"
         # added echo so DIRAC
@@ -265,6 +271,7 @@ class DiracScheduler(AbstractScheduler):
         return dedent(
             f"""\
             # Run command
+            {dl_image}
             echo 'Running command for {description.job_dir}'
             ({command}) > stdout.txt 2> stderr.txt
             echo -n $? > returncode
@@ -300,6 +307,19 @@ class DiracScheduler(AbstractScheduler):
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
             """,  # noqa: E501, WPS237
         )
+
+
+def _lfn_user_home(description: JobDescription) -> Path:
+    """Return user's home directory on grid storage.
+
+    Args:
+        description: Description of job.
+
+    Returns:
+        User's home directory on grid storage.
+    """
+    nr_home_dir_parts = 5
+    return Path(*description.job_dir.parts[:nr_home_dir_parts])
 
 
 def _relative_output_dir(description: JobDescription) -> Path:

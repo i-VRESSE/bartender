@@ -1,5 +1,6 @@
 from asyncio import sleep
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
@@ -306,3 +307,31 @@ async def test_filesystem_delete(
             await fs.download(gdescription, description)
     finally:
         await fs.close()
+
+
+@pytest.mark.anyio
+async def test_apptainer_image_on_lfn() -> None:
+    sched_config = DiracSchedulerConfig(
+        storage_element="StorageElementOne",
+        apptainer_image=Path("/tutoVO/user/c/ciuser/alpine.sif"),
+    )
+    scheduler = DiracScheduler(sched_config)
+
+    description = JobDescription(
+        command="echo hello",
+        job_dir=Path("/tutoVO/user/c/ciuser/bartenderjobs/job1"),
+    )
+    script = scheduler._command_script(description)  # noqa: WPS437
+
+    expected = dedent(
+        f"""\
+            # Run command
+            dirac-dms-get-file /tutoVO/user/c/ciuser/alpine.sif && echo alpine.sif >> .input_files.txt
+            echo 'Running command for {description.job_dir}'
+            (apptainer run alpine.sif echo hello) > stdout.txt 2> stderr.txt
+            echo -n $? > returncode
+            cat stdout.txt
+            cat stderr.txt >&2
+            """,  # noqa: E501
+    )
+    assert script == expected
