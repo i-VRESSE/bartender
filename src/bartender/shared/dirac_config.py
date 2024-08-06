@@ -55,6 +55,9 @@ class ProxyConfig(BaseModel):
         valid: How long proxy should be valid. Format HH:MM.
             By default is 24 hours.
         password: The password for the private key file.
+        password_file: The path to the file containing
+            the password for the private key file.
+            Should not end with a newline.
         min_life: If proxy has less than this many seconds left, renew it.
             Default 30 minutes.
         log_level: The log level for the DIRAC logger. Default INFO.
@@ -65,6 +68,7 @@ class ProxyConfig(BaseModel):
     group: Optional[str] = None
     valid: Optional[str] = None
     password: Optional[str] = None
+    password_file: Optional[FilePath] = None
     min_life: int = 1800
     log_level: LogLevel = "INFO"
     myproxy: Optional[MyProxyConfig] = None

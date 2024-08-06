@@ -388,13 +388,14 @@ destinations:
       type: dirac
       storage_element: StorageElementOne
       proxy:
-        log_level: DEBUG
+        # Passphrase for ~/.globus/userkey.pem
+        password_file: /path/to/passwordfile
     filesystem:
       type: dirac
       lfn_root: /tutoVO/user/c/ciuser/bartenderjobs
       storage_element: StorageElementOne
       proxy:
-        log_level: DEBUG
+        password_file: /path/to/passwordfile
 ```
 
 ### Example of running jobs on a DIRAC grid with myproxy

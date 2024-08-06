@@ -56,8 +56,13 @@ async def proxy_init(config: ProxyConfig) -> None:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+    password = None
+    if config.password:
+        password = config.password.encode()
+    elif config.password_file:
+        password = config.password_file.read_bytes()
     stdout, stderr = await process.communicate(
-        config.password.encode() if config.password else None,
+        password,
     )
     if process.returncode:
         raise CalledProcessError(process.returncode, cmd, stderr=stderr, output=stdout)
@@ -73,10 +78,16 @@ def sync_proxy_init(config: ProxyConfig) -> None:
     # but dirac-proxy-init script is too long to copy here
     # and password would be unpassable so decided to keep calling subprocess.
     cmd = _proxy_init_command(config)
+    password = None
+    if config.password:
+        password = config.password.encode()
+    elif config.password_file:
+        password = config.password_file.read_bytes()
+
     logger.warning(f"Running command: {cmd}")
     run(  # noqa: S603 subprocess call OK
         cmd,
-        input=config.password.encode() if config.password else None,
+        input=password,
         stdout=PIPE,
         stderr=PIPE,
         check=True,
@@ -93,7 +104,7 @@ def _proxy_init_command(config: ProxyConfig) -> list[str]:
         parts.extend(["-K", config.key])
     if config.group:
         parts.extend(["-g", config.group])
-    if config.password:
+    if config.password or config.password_file:
         parts.append("-p")
     return parts
 
