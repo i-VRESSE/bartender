@@ -388,13 +388,45 @@ destinations:
       type: dirac
       storage_element: StorageElementOne
       proxy:
+        # Passphrase for ~/.globus/userkey.pem
+        password_file: /path/to/passwordfile
+    filesystem:
+      type: dirac
+      lfn_root: /tutoVO/user/c/ciuser/bartenderjobs
+      storage_element: StorageElementOne
+      proxy:
+        password_file: /path/to/passwordfile
+```
+
+### Example of running jobs on a DIRAC grid with myproxy
+
+Requires [diracos](https://github.com/DIRACGrid/DIRACOS2) and dirac.cfg
+to be installed and configured.
+
+```yaml
+destinations:
+  grid:
+    scheduler:
+      type: dirac
+      storage_element: StorageElementOne
+      proxy:
         log_level: DEBUG
+        myproxy:
+          username: myusername
+          password_file: /path/to/passwordfile
+          proxy_rfc: /tmp/x509up_u1000-rfc
+          proxy: /tmp/x509up_u1000
     filesystem:
       type: dirac
       lfn_root: /tutoVO/user/c/ciuser/bartenderjobs
       storage_element: StorageElementOne
       proxy:
         log_level: DEBUG
+        myproxy:
+          username: myusername
+          password_file: /path/to/passwordfile
+          proxy_rfc: /tmp/x509up_u1000-rfc
+          proxy: /tmp/x509up_u1000
 ```
 
 ### Example of running jobs direct on submission
