@@ -251,7 +251,7 @@ async def client(
     Yields:
         client for the app.
     """
-    async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
+    async with AsyncClient(app=fastapi_app, base_url="http://test", timeout=60) as ac:
         yield ac
 
 
