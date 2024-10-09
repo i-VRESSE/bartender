@@ -35,17 +35,18 @@ class ArqSchedulerConfig(BaseModel):
     type: Literal["arq"] = "arq"
     redis_dsn: RedisDsn = parse_obj_as(RedisDsn, "redis://localhost:6379")
     queue: str = "arq:queue"
-    max_jobs: PositiveInt = 10
-    """Maximum number of jobs to run at a time inside a single worker."""
-    job_timeout: Union[PositiveInt, timedelta] = 3600
+    max_jobs: PositiveInt = 10  # noqa: WPS462
+    """Maximum number of jobs to run at a time inside a single worker."""  # noqa: E501, WPS322, WPS428
+    job_timeout: Union[PositiveInt, timedelta] = 3600  # noqa: WPS462
     """Maximum job run time.
 
     Default is one hour.
 
-    In seconds or string in `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
+    In seconds or string in
+    `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
 
     For example, "PT12H" represents a max runtime of "twelve hours".
-    """
+    """  # noqa: WPS428
 
     @property
     def redis_settings(self) -> RedisSettings:
@@ -72,11 +73,11 @@ class ArqScheduler(AbstractScheduler):
         self.config: ArqSchedulerConfig = config
         self.connection: Optional[ArqRedis] = None
 
-    async def close(self) -> None:
+    async def close(self) -> None:  # noqa: D102
         if self.connection is not None:
             await self.connection.close()
 
-    async def submit(self, description: JobDescription) -> str:
+    async def submit(self, description: JobDescription) -> str:  # noqa: D102
         pool = await self._pool()
         job = await pool.enqueue_job("_exec", description)
         if job is None:
@@ -84,7 +85,7 @@ class ArqScheduler(AbstractScheduler):
             raise RuntimeError("Job already exists")
         return job.job_id
 
-    async def state(self, job_id: str) -> State:
+    async def state(self, job_id: str) -> State:  # noqa: D102
         pool = await self._pool()
         job = Job(job_id, pool)
         arq_status = await job.status()
@@ -100,7 +101,7 @@ class ArqScheduler(AbstractScheduler):
             success = result.success
         return _map_arq_status(arq_status, success)
 
-    async def cancel(self, job_id: str) -> None:
+    async def cancel(self, job_id: str) -> None:  # noqa: D102
         pool = await self._pool()
         job = Job(job_id, pool)
         try:
@@ -129,7 +130,7 @@ class JobFailureError(Exception):
     """Error during job running."""
 
 
-async def _exec(
+async def _exec(  # noqa: WPS210
     ctx: dict[Any, Any],
     description: JobDescription,
 ) -> None:

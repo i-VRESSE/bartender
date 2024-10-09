@@ -298,7 +298,7 @@ class DiracScheduler(AbstractScheduler):
             StdOutput = "jobstdout.txt";
             StdError = "jobstderr.txt";
             OutputSandbox = {{ "jobstdout.txt", "jobstderr.txt" }};
-            """,  # noqa: E501, WPS237
+            """,  # noqa: E501, WPS237, WPS318
         )
 
 
