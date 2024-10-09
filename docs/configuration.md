@@ -340,7 +340,7 @@ If you need [DIRAC](http://diracgrid.org/) support create a conda environment
 instead of creating a virtual environment.
 
 ```bash
-mamba create --name bartender dirac-grid python=3.10 poetry=1.5.1
+mamba create --name bartender dirac-grid python=3.10 poetry=1.8.3
 conda activate bartender
 poetry install
 ```

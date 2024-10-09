@@ -100,5 +100,5 @@ env = [
 ]
 
 [build-system]
-requires = ["poetry-core>=1.5.2"]
+requires = ["poetry-core>=1.8.3"]
 build-backend = "poetry.core.masonry.api"

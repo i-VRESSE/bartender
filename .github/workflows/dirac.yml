@@ -5,6 +5,7 @@ on:
     # Run tests only if dirac code is changed or workflow is triggerd manually
     paths:
     - '**dirac**'
+    - .github/workflows/dirac.yml
   workflow_dispatch:
 
 jobs:
