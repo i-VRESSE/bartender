@@ -66,7 +66,6 @@ async def test_make_valid_dirac_proxy_given_bad_cert(tmp_path: Path) -> None:
 @pytest.mark.anyio
 async def test_renewer_setup_teardown() -> None:
     setup_proxy_renewer(ProxyConfig(valid="00:03", min_life=30))
-
     # Give renewer task time to run
     await asyncio.sleep(0.1)
 
