@@ -203,7 +203,7 @@ the `WorkloadManagement_SiteDirector` service starting a pilot.
 To look around inside the DIRAC server use
 
 ```shell
-docker-compose -f tests_dirac/docker-compose.yml exec dirac-tuto bash
+docker compose -f tests_dirac/docker-compose.yml exec dirac-tuto bash
 ```
 
 Sometimes the DIRAC server needs clearing of its state,

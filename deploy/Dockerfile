@@ -3,7 +3,7 @@ FROM python:3.10-slim-buster
 # Install healthcheck dependency
 RUN apt update && apt install -y curl unzip
 
-RUN pip install poetry==1.7.0
+RUN pip install poetry==1.8.3
 
 # Configuring poetry
 RUN poetry config virtualenvs.create false

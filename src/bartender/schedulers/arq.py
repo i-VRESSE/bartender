@@ -42,10 +42,11 @@ class ArqSchedulerConfig(BaseModel):
 
     Default is one hour.
 
-    In seconds or string in `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
+    In seconds or string in
+    `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
 
     For example, "PT12H" represents a max runtime of "twelve hours".
-    """  # noqa: E501, WPS428
+    """  # noqa: WPS428
 
     @property
     def redis_settings(self) -> RedisSettings:
@@ -73,8 +74,8 @@ class ArqScheduler(AbstractScheduler):
         self.connection: Optional[ArqRedis] = None
 
     async def close(self) -> None:  # noqa: D102
-        pool = await self._pool()
-        await pool.close()
+        if self.connection is not None:
+            await self.connection.close()
 
     async def submit(self, description: JobDescription) -> str:  # noqa: D102
         pool = await self._pool()

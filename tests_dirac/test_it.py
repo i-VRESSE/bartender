@@ -127,7 +127,20 @@ async def apptainer_image() -> Path:
     return image
 
 
+# Skip test
+# su - diracpilot
+# . /opt/dirac/bashrc
+# apptainer run docker://alpine cat /etc/os-release
+# Gives
+# ERROR   [U=65534,P=5871]   setup_userns_mappings()
+#        Could not write info to setgroups: Permission denied
+# ERROR   [U=65534,P=5892]   init()
+# Error while waiting event for user namespace mappings: no event received
+# image does not run bashrc or has apptainer suid installed
 @pytest.mark.anyio
+@pytest.mark.skip(
+    reason="diracpilot user in DIRAC server container does not have permission to run apptainer",  # noqa: E501
+)
 async def test_it_with_apptainer(  # noqa: WPS217 single piece of code for readablilty
     apptainer_image: Path,
     tmp_path: Path,

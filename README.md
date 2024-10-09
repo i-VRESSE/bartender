@@ -35,16 +35,18 @@ at <https://i-vresse-bartender.readthedocs.io> .
 
 ## Quickstart
 
-1. Install bartender via github:
+1. Install bartender via GitHub:
 
     ```bash
-    pip install git+https://github.com/i-VRESSE/bartender.git
+    # Inside an empty directory
+    git clone https://github.com/i-VRESSE/bartender.git .
+    pip install .
     ```
 
 1. Obtain a copy of the example configuration file
 
     ```bash
-    curl -o config.yaml https://raw.githubusercontent.com/i-VRESSE/bartender/main/config-example.yaml
+    cp config-example.yaml config.yaml
     ```
 
 1. In another terminal, start up a database for storing jobs.
@@ -109,8 +111,8 @@ Bartender is by default configured with a word count applicaton. Use the
 following steps to run a job:
 
 1. Create an archive to submit. The zip file should contain a file called
-   `README.md`. A zip file could be created in a clone of this repo with `zip
-   README.zip README.md`.
+   `README.md`. A zip file could be created in a clone of this repo with
+   `zip README.zip README.md`.
 2. Start [bartender web service and postgresql
    server](https://i-vresse-bartender.readthedocs.io/en/latest/index.html#quickstart)
 3. Generate token & authorize
@@ -123,7 +125,7 @@ following steps to run a job:
     4. Try out the `GET /api/whoami` route.
        It should return JSON document with `someone` as username.
 4. Submit archive.
-    1. Try out the `PUT /api/application/wc/job` route.
+    1. Try out the `PUT /api/application/wc` route.
     2. Upload the `README.zip` as request body.
     3. Press execute button
     4. The response contains a job identifier (`id` property) that can be used
