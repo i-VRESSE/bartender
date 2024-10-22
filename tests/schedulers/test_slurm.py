@@ -1,3 +1,4 @@
+import logging
 from asyncio import new_event_loop
 from pathlib import Path
 from typing import Generator
@@ -69,11 +70,15 @@ def slurm_server() -> Generator[SlurmContainer, None, None]:
 async def test_ok_running_job_with_input_and_output_file(
     tmp_path: Path,
     slurm_server: SlurmContainer,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.DEBUG, "bartender.schedulers.slurm")
     job_dir = tmp_path
     try:
         ssh_config = slurm_server.get_config()
-        scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
+        scheduler = SlurmScheduler(
+            SlurmSchedulerConfig(ssh_config=ssh_config, submitter_as_account=True),
+        )
         description = prepare_input(job_dir)
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)
@@ -87,6 +92,8 @@ async def test_ok_running_job_with_input_and_output_file(
         await fs.download(localized_description, description)
 
         assert_output(job_dir)
+        assert "--job-name=hellowc" in caplog.text
+        assert "--account=testsubmitter" in caplog.text
     finally:
         await scheduler.close()
 
@@ -113,6 +120,7 @@ async def test_ok_running_job_without_iofiles(
         await fs.download(localized_description, description)
 
         assert_output_without_iofiles(job_dir)
+
     finally:
         await scheduler.close()
 

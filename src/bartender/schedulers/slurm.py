@@ -89,6 +89,7 @@ class SlurmScheduler(AbstractScheduler):
         # must be on a shared filesystem or remote filesystem
         script = self._submit_script(description)
         command = "sbatch"
+        logger.debug(f"Submitting job with stdin: \n{script}")
         (returncode, stdout, stderr) = await self.runner.run(
             command,
             args=[],
