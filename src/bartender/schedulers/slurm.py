@@ -52,6 +52,7 @@ class SlurmSchedulerConfig(BaseModel):
         extra_options: Escape hatch to add extra options to job script.
             The string `#SBATCH {extra_options[i]}` will be appended to job
             script.
+        submitter_as_account: Use the submitter as the account to run the job.
     """
 
     type: Literal["slurm"] = "slurm"
@@ -59,6 +60,7 @@ class SlurmSchedulerConfig(BaseModel):
     partition: Optional[str] = None
     time: Optional[str] = None
     extra_options: Optional[list[str]] = None
+    submitter_as_account: Optional[bool] = False
 
 
 class SlurmScheduler(AbstractScheduler):
@@ -80,9 +82,10 @@ class SlurmScheduler(AbstractScheduler):
             self.extra_options = []
         else:
             self.extra_options = config.extra_options
+        self.submitter_as_account = config.submitter_as_account
 
     async def submit(self, description: JobDescription) -> str:  # noqa: D102):
-        # TODO if runner is a SSHCommandRunner then description.jobdir
+        # if runner is a SSHCommandRunner then description.jobdir
         # must be on a shared filesystem or remote filesystem
         script = self._submit_script(description)
         command = "sbatch"
@@ -167,14 +170,19 @@ class SlurmScheduler(AbstractScheduler):
             )
         return stdout
 
-    def _submit_script(self, description: JobDescription) -> str:
+    def _submit_script(self, description: JobDescription) -> str:  # noqa: WPS210
         partition_line = ""
         if self.partition:
             partition_line = f"#SBATCH --partition={self.partition}"
         time_line = ""
         if self.time:
             time_line = f"#SBATCH --time={self.time}"
-
+        account_line = ""
+        if description.submitter != "" and self.submitter_as_account:
+            account_line = f"#SBATCH --account={description.submitter}"
+        job_name_line = ""
+        if description.application != "":
+            job_name_line = f"#SBATCH --job-name={description.application}"
         # TODO filter out options already set
         extra_option_lines = "\n".join(
             [f"#SBATCH {extra}" for extra in self.extra_options],
@@ -184,9 +192,11 @@ class SlurmScheduler(AbstractScheduler):
             {extra_option_lines}
             {partition_line}
             {time_line}
+            {account_line}
+            {job_name_line}
             #SBATCH --output=stdout.txt
             #SBATCH --error=stderr.txt
             {description.command}
             echo -n $? > returncode
-        """
+        """  # noqa: WPS221
         return dedent(script)

@@ -16,6 +16,10 @@ class JobDescription(BaseModel):
     job_dir: Path
     # Command to run
     command: str
+    # Application name
+    application: str = ""
+    # User that submitted the job
+    submitter: str = ""
 
 
 class JobSubmissionError(Exception):
