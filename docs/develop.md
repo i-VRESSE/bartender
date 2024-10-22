@@ -232,3 +232,14 @@ dirac-dms-filecatalog-cli
 # pilot logs
 cat ~diracpilot/localsite/output/*
 ```
+
+## Creating a new release
+
+To create a new release, you should follow these steps:
+
+1. In `pyproject.toml` and `docs/conf.py` update the version number.
+2. Create a new GitHub release
+
+- set tag and title to new version number with `v` prefix.
+- with same first line of description as previous release.
+- append generated release notes to the description.
