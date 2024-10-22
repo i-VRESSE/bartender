@@ -70,14 +70,12 @@ def slurm_server() -> Generator[SlurmContainer, None, None]:
 async def test_ok_running_job_with_input_and_output_file(
     tmp_path: Path,
     slurm_server: SlurmContainer,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    caplog.set_level(logging.DEBUG, "bartender.schedulers.slurm")
     job_dir = tmp_path
     try:
         ssh_config = slurm_server.get_config()
         scheduler = SlurmScheduler(
-            SlurmSchedulerConfig(ssh_config=ssh_config, submitter_as_account=True),
+            SlurmSchedulerConfig(ssh_config=ssh_config),
         )
         description = prepare_input(job_dir)
         fs = slurm_server.get_filesystem()
@@ -92,9 +90,42 @@ async def test_ok_running_job_with_input_and_output_file(
         await fs.download(localized_description, description)
 
         assert_output(job_dir)
+    finally:
+        await scheduler.close()
+
+
+@pytest.mark.anyio
+async def test_submit_cancel_job_with_submitter_as_account(  # noqa: WPS231
+    tmp_path: Path,
+    slurm_server: SlurmContainer,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.DEBUG, "bartender.schedulers.slurm")
+    job_dir = tmp_path
+    try:
+        ssh_config = slurm_server.get_config()
+        scheduler = SlurmScheduler(
+            SlurmSchedulerConfig(
+                ssh_config=ssh_config,
+                submitter_as_account=True,
+            ),
+        )
+        description = prepare_input(job_dir)
+        description.submitter = "testsubmitter"
+        description.application = "hellowc"
+
+        fs = slurm_server.get_filesystem()
+        localized_description = fs.localize_description(description, job_dir.parent)
+
+        await fs.upload(description, localized_description)
+
+        jid = await scheduler.submit(localized_description)
+        await scheduler.cancel(jid)
+
         assert "--job-name=hellowc" in caplog.text
         assert "--account=testsubmitter" in caplog.text
     finally:
+        await fs.delete(localized_description)
         await scheduler.close()
 
 

@@ -10,8 +10,6 @@ def prepare_input(job_dir: Path) -> JobDescription:
     return JobDescription(
         command="echo -n hello && wc input > output",
         job_dir=job_dir,
-        submitter="testsubmitter",
-        application="hellowc",
     )
 
 
