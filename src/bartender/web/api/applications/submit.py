@@ -13,6 +13,8 @@ def build_description(
     job_dir: Path,
     payload: dict[str, str],
     config: ApplicatonConfiguration,
+    application: str = "",
+    submitter: str = "",
 ) -> JobDescription:
     """
     Builds a job description.
@@ -21,13 +23,20 @@ def build_description(
         job_dir: The directory where the job will be executed.
         payload: The payload containing the non-file input data for the job.
         config: The configuration for the application.
+        application: The name of the application.
+        submitter: The user who submitted the job.
 
     Returns:
         Job description containing the job directory and command.
     """
     template = template_environment.from_string(config.command_template)
     command = template.render(**payload)
-    return JobDescription(job_dir=job_dir, command=command)
+    return JobDescription(
+        job_dir=job_dir,
+        command=command,
+        application=application,
+        submitter=submitter,
+    )
 
 
 async def submit(  # noqa: WPS211
@@ -50,7 +59,13 @@ async def submit(  # noqa: WPS211
         job_dao: JobDAO object.
         context: Context with applications and destinations.
     """
-    description = build_description(job_dir, payload, context.applications[application])
+    description = build_description(
+        job_dir,
+        payload,
+        context.applications[application],
+        application=application,
+        submitter=submitter.username,
+    )
 
     destination_name = context.destination_picker(
         job_dir,

@@ -191,6 +191,8 @@ A destination has its own authentication mechanism.
 When a job is submitted by any user of the web service,
 it will be executed by the username/proxy that is configured in the destination.
 
+For allowed configuration options see the [API reference](https://i-vresse-bartender.readthedocs.io/en/latest/autoapi/bartender).
+
 ### Example of running jobs on the local system
 
 ```yaml

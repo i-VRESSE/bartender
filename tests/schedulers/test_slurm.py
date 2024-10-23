@@ -1,3 +1,4 @@
+import logging
 from asyncio import new_event_loop
 from pathlib import Path
 from typing import Generator
@@ -73,7 +74,9 @@ async def test_ok_running_job_with_input_and_output_file(
     job_dir = tmp_path
     try:
         ssh_config = slurm_server.get_config()
-        scheduler = SlurmScheduler(SlurmSchedulerConfig(ssh_config=ssh_config))
+        scheduler = SlurmScheduler(
+            SlurmSchedulerConfig(ssh_config=ssh_config),
+        )
         description = prepare_input(job_dir)
         fs = slurm_server.get_filesystem()
         localized_description = fs.localize_description(description, job_dir.parent)
@@ -88,6 +91,41 @@ async def test_ok_running_job_with_input_and_output_file(
 
         assert_output(job_dir)
     finally:
+        await scheduler.close()
+
+
+@pytest.mark.anyio
+async def test_submit_cancel_job_with_submitter_as_account(  # noqa: WPS231
+    tmp_path: Path,
+    slurm_server: SlurmContainer,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.DEBUG, "bartender.schedulers.slurm")
+    job_dir = tmp_path
+    try:
+        ssh_config = slurm_server.get_config()
+        scheduler = SlurmScheduler(
+            SlurmSchedulerConfig(
+                ssh_config=ssh_config,
+                submitter_as_account=True,
+            ),
+        )
+        description = prepare_input(job_dir)
+        description.submitter = "testsubmitter"
+        description.application = "hellowc"
+
+        fs = slurm_server.get_filesystem()
+        localized_description = fs.localize_description(description, job_dir.parent)
+
+        await fs.upload(description, localized_description)
+
+        jid = await scheduler.submit(localized_description)
+        await scheduler.cancel(jid)
+
+        assert "--job-name=hellowc" in caplog.text
+        assert "--account=testsubmitter" in caplog.text
+    finally:
+        await fs.delete(localized_description)
         await scheduler.close()
 
 
@@ -113,6 +151,7 @@ async def test_ok_running_job_without_iofiles(
         await fs.download(localized_description, description)
 
         assert_output_without_iofiles(job_dir)
+
     finally:
         await scheduler.close()
 
