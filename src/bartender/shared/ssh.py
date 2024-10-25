@@ -1,3 +1,5 @@
+from typing import Dict, Optional
+
 from asyncssh import SSHClientConnection, connect
 from asyncssh.misc import DefTuple
 from pydantic import BaseModel
@@ -14,7 +16,7 @@ class SshConnectConfig(BaseModel):
     hostname: str
     port: DefTuple[int] = ()
     username: DefTuple[str] = ()
-    password: DefTuple[str] = ()
+    password: Optional[str] = None
 
 
 async def ssh_connect(config: SshConnectConfig) -> SSHClientConnection:
@@ -26,18 +28,18 @@ async def ssh_connect(config: SshConnectConfig) -> SSHClientConnection:
     Returns:
         The connection.
     """
-    conn_vargs = {
+    conn_vargs: Dict[str, Optional[str]] = {
         # disable server host key validation
         "known_hosts": None,
     }
     if config.password:
         # Do not use SSH agent when password is supplied.
         conn_vargs["agent_path"] = None
+        conn_vargs["password"] = config.password
 
     return await connect(
         host=config.hostname,
         port=config.port,
         username=config.username,
-        password=config.password,
         **conn_vargs,
     )
