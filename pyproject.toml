@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bartender"
-version = "0.5.2"
+version = "0.5.3"
 description = "Job middleware for i-VRESSE"
 authors = [
 
