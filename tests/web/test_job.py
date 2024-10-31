@@ -759,6 +759,45 @@ async def test_job_directory_as_archive(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "archive_format",
+    [".zip"],
+)
+async def test_job_directory_as_named_archive(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+    archive_format: str,
+) -> None:
+    url = (
+        fastapi_app.url_path_for(
+            "retrieve_job_directory_as_archive",
+            jobid=mock_ok_job,
+        )
+        + f"?archive_format={archive_format}&filename=foo.zip"
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    expected_content_type = (
+        "application/zip" if archive_format == ".zip" else "application/x-tar"
+    )
+    expected_content_disposition = f'attachment; filename="foo{archive_format}"'
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == expected_content_type
+    assert response.headers["content-disposition"] == expected_content_disposition
+
+    fs = ZipFS if archive_format == ".zip" else TarFS
+
+    with io.BytesIO(response.content) as responsefile:
+        with fs(responsefile) as archive:
+            stdout = archive.readtext("stdout.txt")
+
+    assert stdout == "this is stdout"
+
+
+@pytest.mark.anyio
 async def test_job_subdirectory_as_archive(
     fastapi_app: FastAPI,
     client: AsyncClient,
@@ -777,6 +816,34 @@ async def test_job_subdirectory_as_archive(
     assert (
         response.headers["content-disposition"] == 'attachment; filename="output.zip"'
     )
+
+    with io.BytesIO(response.content) as responsefile:
+        with ZipFS(responsefile) as archive:
+            stdout = archive.readtext("readme.txt")
+
+    assert stdout == "hi from output dir"
+
+
+@pytest.mark.anyio
+async def test_job_subdirectory_as_named_archive(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    auth_headers: Dict[str, str],
+    mock_ok_job: int,
+) -> None:
+    url = (
+        fastapi_app.url_path_for(
+            "retrieve_job_subdirectory_as_archive",
+            jobid=mock_ok_job,
+            path="output",
+        )
+        + "?filename=bar.zip"
+    )
+    response = await client.get(url, headers=auth_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == "application/zip"
+    assert response.headers["content-disposition"] == 'attachment; filename="bar.zip"'
 
     with io.BytesIO(response.content) as responsefile:
         with ZipFS(responsefile) as archive:

@@ -370,12 +370,13 @@ def _remove_archive(filename: str) -> None:
     },
     response_class=FileResponse,
 )
-async def retrieve_job_directory_as_archive(
+async def retrieve_job_directory_as_archive(  # noqa: WPS211
     job_dir: CurrentCompletedJobDir,
     background_tasks: BackgroundTasks,
     archive_format: ArchiveFormat = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
+    filename: Optional[str] = Query(default=None),
     # Note: also tried to with include (filter & filter_dirs) but that can be
     # unintuitive. e.g. include_dirs=['output'] doesn't return subdirs of
     # /output that are not also called output. Might improve when globs will be
@@ -391,6 +392,8 @@ async def retrieve_job_directory_as_archive(
             '.tar.xz', '.tar.gz', '.tar.bz2'
         exclude: list of filename patterns that should be excluded from archive.
         exclude_dirs: list of directory patterns that should be excluded from archive.
+        filename: Name of the archive file to be returned.
+            If not provided, uses id of the job.
 
     Returns:
         FileResponse: Archive containing the content of job_dir
@@ -402,6 +405,8 @@ async def retrieve_job_directory_as_archive(
     background_tasks.add_task(_remove_archive, archive_fn)
 
     return_fn = Path(archive_fn).name
+    if filename:
+        return_fn = filename
     return FileResponse(archive_fn, filename=return_fn)
 
 
@@ -413,6 +418,7 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
     archive_format: ArchiveFormat = ".zip",
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
+    filename: Optional[str] = Query(default=None),
 ) -> FileResponse:
     """Download job output as archive.
 
@@ -424,6 +430,8 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
             '.tar', '.tar.xz', '.tar.gz', '.tar.bz2'
         exclude: list of filename patterns that should be excluded from archive.
         exclude_dirs: list of directory patterns that should be excluded from archive.
+        filename: Name of the archive file to be returned.
+            If not provided, uses id of the job.
 
     Returns:
         FileResponse: Archive containing the output of job_dir
@@ -436,6 +444,7 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
         archive_format=archive_format,
         exclude=exclude,
         exclude_dirs=exclude_dirs,
+        filename=filename,
     )
 
 
