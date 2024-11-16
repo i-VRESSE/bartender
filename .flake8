@@ -115,6 +115,10 @@ per-file-ignores =
   F403,
   ; Found wrong metadata variable
   WPS410,
+  ; Found too many variables used to unpack a tuple
+  WPS236,
+  ; Found too many `assert` statements
+  WPS218,
 
 
 exclude =
