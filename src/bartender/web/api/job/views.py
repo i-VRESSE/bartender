@@ -1,3 +1,4 @@
+import zlib
 from pathlib import Path
 from shutil import rmtree
 from typing import Annotated, Optional, Set, Tuple
@@ -12,11 +13,12 @@ from fastapi import (
     Query,
     Request,
 )
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from jsonschema import ValidationError
 from pydantic import PositiveInt
 from sqlalchemy.exc import NoResultFound
 from starlette import status
+from stream_zip import async_stream_zip
 
 from bartender.async_utils import async_wrap
 from bartender.check_load import check_load
@@ -27,8 +29,14 @@ from bartender.db.models.job_model import MAX_LENGTH_NAME, CompletedStates, Job,
 from bartender.destinations import Destination
 from bartender.filesystems.queue import CurrentFileOutStagingQueue
 from bartender.schedulers.abstract import JobDescription
-from bartender.walk_dir import DirectoryItem, walk_dir
-from bartender.web.api.job.archive import ArchiveFormat, create_archive
+from bartender.walk_dir import (
+    DirectoryItem,
+    chunk_size,
+    exclude_filter,
+    walk_dir,
+    walk_dir_generator,
+)
+from bartender.web.api.job.archive import ArchiveFormat
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
@@ -364,11 +372,10 @@ def _remove_archive(filename: str) -> None:
     responses={
         200: {
             "content": {
-                "application/octet-stream": {},
+                "application/zip": {},
             },
         },
     },
-    response_class=FileResponse,
 )
 async def retrieve_job_directory_as_archive(  # noqa: WPS211
     job_dir: CurrentCompletedJobDir,
@@ -382,7 +389,7 @@ async def retrieve_job_directory_as_archive(  # noqa: WPS211
     # /output that are not also called output. Might improve when globs will be
     # supported in next release (already documented):
     # https://github.com/PyFilesystem/pyfilesystem2/pull/464
-) -> FileResponse:
+) -> StreamingResponse:
     """Download contents of job directory as archive.
 
     Args:
@@ -396,18 +403,29 @@ async def retrieve_job_directory_as_archive(  # noqa: WPS211
             If not provided, uses id of the job.
 
     Returns:
-        FileResponse: Archive containing the content of job_dir
+        StreamingResponse: Archive containing the content of job_dir
 
+    Raises:
+        NotImplementedError: When archive format is not supported.
     """
-    archive_fn = str(job_dir.with_suffix(archive_format))
-    await create_archive(job_dir, exclude, exclude_dirs, archive_format, archive_fn)
-
-    background_tasks.add_task(_remove_archive, archive_fn)
-
-    return_fn = Path(archive_fn).name
-    if filename:
-        return_fn = filename
-    return FileResponse(archive_fn, filename=return_fn)
+    if archive_format != ".zip":
+        raise NotImplementedError("Only zip format is supported for now")
+    fn = filename or job_dir.with_suffix(".zip").name
+    headers = {
+        "Content-Disposition": f'attachment; filename="{fn}"',
+    }
+    all_excludes = []
+    if exclude:
+        all_excludes.extend(exclude)
+    if exclude_dirs:
+        all_excludes.extend(exclude_dirs)
+    wfilter = exclude_filter(all_excludes)
+    generator = async_stream_zip(
+        walk_dir_generator(job_dir, wfilter),
+        chunk_size=chunk_size,
+        get_compressobj=lambda: zlib.compressobj(wbits=-zlib.MAX_WBITS, level=1),
+    )
+    return StreamingResponse(generator, media_type="application/zip", headers=headers)
 
 
 @router.get("/{jobid}/archive/{path:path}")
@@ -419,7 +437,7 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
     exclude: Optional[list[str]] = Query(default=None),
     exclude_dirs: Optional[list[str]] = Query(default=None),
     filename: Optional[str] = Query(default=None),
-) -> FileResponse:
+) -> StreamingResponse:
     """Download job output as archive.
 
     Args:
@@ -434,7 +452,7 @@ async def retrieve_job_subdirectory_as_archive(  # noqa: WPS211
             If not provided, uses id of the job.
 
     Returns:
-        FileResponse: Archive containing the output of job_dir
+        StreamingResponse: Archive containing the output of job_dir
 
     """
     subdirectory = _parse_subdirectory(path, job_dir)

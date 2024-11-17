@@ -107,6 +107,10 @@ per-file-ignores =
   DAR201,
   ; Found too long name: test_ok_running_job_with_input_and_output_file
   WPS118,
+  ; Found too many variables used to unpack a tuple
+  WPS236,
+  ; Found too many `assert` statements
+  WPS218,
   ; all init files
   __init__.py:
   ; ignore not used imports
@@ -115,10 +119,6 @@ per-file-ignores =
   F403,
   ; Found wrong metadata variable
   WPS410,
-  ; Found too many variables used to unpack a tuple
-  WPS236,
-  ; Found too many `assert` statements
-  WPS218,
 
 
 exclude =
