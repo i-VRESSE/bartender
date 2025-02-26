@@ -29,7 +29,7 @@ class DiracFileSystemConfig(BaseModel):
         cls,  # noqa: N805 signature of validator
         v: str,  # noqa: WPS111 signature of validator
     ) -> str:
-        pattern = r"^\/\w+\/user\/([a-zA-Z])\/\1\w+\/.*$"
+        pattern = r"^\/[\w\.]+\/user\/([a-zA-Z])\/\w+\/.*$"
         if not re.match(pattern, v):
             template = "/<VO>/user/<initial>/<username>/<whatever>"
             raise ValueError(

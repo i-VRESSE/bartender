@@ -17,4 +17,4 @@ RUN poetry install --no-root --no-interaction --no-ansi --without dev
 RUN pip install pytest anyio pytest-env
 
 # Workaround `ImportWarning: _SixMetaPathImporter.find_spec() not found; falling back to find_module()` error
-RUN /home/diracuser/diracos/bin/micromamba install m2crypto==0.041.0
+RUN /home/diracuser/diracos/bin/micromamba install -y m2crypto==0.041.0

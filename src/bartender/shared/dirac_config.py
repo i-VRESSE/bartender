@@ -1,7 +1,8 @@
 import pkgutil
+from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, FilePath
 
 DIRAC_INSTALLED = (
     pkgutil.find_loader("DIRAC") is not None
@@ -23,6 +24,27 @@ LogLevel = Literal[
 ]
 
 
+class MyProxyConfig(BaseModel):
+    """Configuration for MyProxy server.
+
+    Args:
+        pshost: The hostname of the MyProxy server.
+        username: Username for the delegated proxy
+        proxy_lifetime: Lifetime of proxies delegated by the server
+        password_file: The path to the file containing the password for the proxy.
+        proxy_rfc: The path to the generated RFC proxy file.
+        proxy: The path to the generated proxy file.
+            This proxy file should be used submit and manage jobs.
+    """
+
+    pshost: str = "px.grid.sara.nl"
+    username: str
+    password_file: FilePath
+    proxy_lifetime: str = "167:59"  # 7 days
+    proxy_rfc: Path
+    proxy: Path
+
+
 class ProxyConfig(BaseModel):
     """Configuration for DIRAC proxy.
 
@@ -33,6 +55,9 @@ class ProxyConfig(BaseModel):
         valid: How long proxy should be valid. Format HH:MM.
             By default is 24 hours.
         password: The password for the private key file.
+        password_file: The path to the file containing
+            the password for the private key file.
+            Should not end with a newline.
         min_life: If proxy has less than this many seconds left, renew it.
             Default 30 minutes.
         log_level: The log level for the DIRAC logger. Default INFO.
@@ -43,5 +68,7 @@ class ProxyConfig(BaseModel):
     group: Optional[str] = None
     valid: Optional[str] = None
     password: Optional[str] = None
+    password_file: Optional[FilePath] = None
     min_life: int = 1800
     log_level: LogLevel = "INFO"
+    myproxy: Optional[MyProxyConfig] = None

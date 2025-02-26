@@ -10,8 +10,10 @@ class DiracSchedulerConfig(BaseModel):
     """Configuration for DIRAC scheduler.
 
     Args:
-        apptainer_image: Path on cvmfs to apptainer image.
-             Will run application command inside apptainer image.
+        apptainer_image: Path on cvmfs or grid storage to apptainer image.
+             When set will run application command inside apptainer image.
+             Image can also be on grid storage,
+             it will then be downloaded to current directory first.
         storage_element: Storage element to upload output files to.
         proxy: Proxy configuration.
     """
