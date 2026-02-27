@@ -1,7 +1,7 @@
 import zlib
 from pathlib import Path
 from shutil import rmtree
-from typing import Annotated, Optional, Set, Tuple
+from typing import Annotated, Literal, Optional, Set, Tuple
 
 from aiofiles.os import unlink
 from fastapi import (
@@ -36,7 +36,6 @@ from bartender.walk_dir import (
     walk_dir,
     walk_dir_generator,
 )
-from bartender.web.api.job.archive import ArchiveFormat
 from bartender.web.api.job.interactive_apps import InteractiveAppResult, run
 from bartender.web.api.job.schema import JobModelDTO
 from bartender.web.api.job.sync import sync_state, sync_states
@@ -365,6 +364,9 @@ def _remove_archive(filename: str) -> None:
         filename: path to the file that should be removed.
     """
     Path(filename).unlink()
+
+
+ArchiveFormat = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
 
 
 @router.get(

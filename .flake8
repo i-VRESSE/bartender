@@ -79,6 +79,8 @@ ignore =
   WPS436,
   ; Found `noqa` comments overuse
   WPS402,
+  ; Sphinx understands those multiline strings as docstrings, so we need to ignore them for flake8
+  WPS462,
 
 per-file-ignores =
   ; all tests
