@@ -366,7 +366,7 @@ def _remove_archive(filename: str) -> None:
     Path(filename).unlink()
 
 
-ArchiveFormat = Literal[".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"]
+ArchiveFormat = Literal[".zip"]
 
 
 @router.get(
