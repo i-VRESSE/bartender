@@ -298,7 +298,7 @@ def current_user(current_user_token: str) -> User:
 
 @pytest.fixture
 def redis_server() -> Generator[RedisContainer, None, None]:
-    with RedisContainer("redis:7") as container:
+    with RedisContainer("valkey/valkey:9") as container:
         yield container
 
 
