@@ -44,14 +44,14 @@ services:
       target: /tmp/jobs
 
   db:
-    image: postgres:15.2-bullseye
+    image: postgres:18.4-trixie
     hostname: bartender-db
     environment:
       POSTGRES_PASSWORD: "bartender"
       POSTGRES_USER: "bartender"
       POSTGRES_DB: "bartender"
     volumes:
-    - bartender-db-data:/var/lib/postgresql/data
+    - bartender-db-data:/var/lib/postgresql
     restart: always
     healthcheck:
       test: pg_isready -U bartender

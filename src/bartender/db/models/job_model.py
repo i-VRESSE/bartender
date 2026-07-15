@@ -14,7 +14,7 @@ State = Literal[
     "staging_out",
     "ok",
     "error",
-]  # noqa: WPS462
+]
 """Possible states of a job.
 
 * new: Job has been created by web service,
@@ -28,7 +28,7 @@ State = Literal[
 * error: Job has completed unsuccesfully and
     files of job have been copied back.
     Look at stdout/stderr/returncode to get more information.
-"""  # noqa: WPS428
+"""
 
 CompletedStates: set[State] = {"ok", "error"}
 

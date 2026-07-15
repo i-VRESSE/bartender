@@ -57,8 +57,8 @@ at <https://i-vresse-bartender.readthedocs.io> .
         -e "POSTGRES_PASSWORD=bartender" \
         -e "POSTGRES_USER=bartender" \
         -e "POSTGRES_DB=bartender" \
-        --mount type=volume,source=bartender-db,target=/var/lib/postgresql/data \
-        postgres:15.2-bullseye
+        --mount type=volume,source=bartender-db,target=/var/lib/postgresql \
+        postgres:18.4-trixie
     ```
 
     (Use `docker volume rm bartender-db` to clear the database storage`)

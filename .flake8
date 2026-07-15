@@ -79,6 +79,12 @@ ignore =
   WPS436,
   ; Found `noqa` comments overuse
   WPS402,
+  ; Sphinx understands those multiline strings as docstrings, so we need to ignore them for flake8
+  WPS462,
+  ; Worked fine before wps uprade
+  WPS476, WPS243, WPS479, WPS480, WPS504,
+
+
 
 per-file-ignores =
   ; all tests
@@ -107,6 +113,10 @@ per-file-ignores =
   DAR201,
   ; Found too long name: test_ok_running_job_with_input_and_output_file
   WPS118,
+  ; Found too many variables used to unpack a tuple
+  WPS236,
+  ; Found too many `assert` statements
+  WPS218,
   ; all init files
   __init__.py:
   ; ignore not used imports

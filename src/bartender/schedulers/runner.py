@@ -130,7 +130,7 @@ class SshCommandRunner(CommandRunner):
             self.conn = await ssh_connect(self.config)
 
         result = await self.conn.run(remote_command, input=stdin)
-        if (  # noqa: WPS337
+        if (
             result.returncode is None
             or not isinstance(result.stdout, str)
             or not isinstance(result.stderr, str)

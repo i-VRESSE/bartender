@@ -41,9 +41,7 @@ def build(config: SchedulerConfig) -> AbstractScheduler:
             return schedulercls(config)
     if isinstance(config, DiracSchedulerConfig):
         if DIRAC_INSTALLED:
-            from bartender.schedulers.dirac import (  # noqa: WPS433 is optional import
-                DiracScheduler,
-            )
+            from bartender.schedulers.dirac import DiracScheduler  # is optional import
 
             return DiracScheduler(config)
         raise ValueError("DIRAC package is not installed")

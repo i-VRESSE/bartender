@@ -35,9 +35,9 @@ class ArqSchedulerConfig(BaseModel):
     type: Literal["arq"] = "arq"
     redis_dsn: RedisDsn = parse_obj_as(RedisDsn, "redis://localhost:6379")
     queue: str = "arq:queue"
-    max_jobs: PositiveInt = 10  # noqa: WPS462
-    """Maximum number of jobs to run at a time inside a single worker."""  # noqa: E501, WPS322, WPS428
-    job_timeout: Union[PositiveInt, timedelta] = 3600  # noqa: WPS462
+    max_jobs: PositiveInt = 10
+    """Maximum number of jobs to run at a time inside a single worker."""
+    job_timeout: Union[PositiveInt, timedelta] = 3600
     """Maximum job run time.
 
     Default is one hour.
@@ -46,7 +46,7 @@ class ArqSchedulerConfig(BaseModel):
     `ISO 8601 duration format <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
 
     For example, "PT12H" represents a max runtime of "twelve hours".
-    """  # noqa: WPS428
+    """
 
     @property
     def redis_settings(self) -> RedisSettings:

@@ -1,12 +1,10 @@
-import pkgutil
+from importlib.util import find_spec
 from typing import Literal, Optional
 
 from pydantic import BaseModel
 
-DIRAC_INSTALLED = (
-    pkgutil.find_loader("DIRAC") is not None
-)  # noqa: WPS462 sphinx understands
-"""True if DIRAC package is installed, False otherwise."""  # noqa: E501, WPS322, WPS428 sphinx understands
+DIRAC_INSTALLED = find_spec("DIRAC") is not None
+"""True if DIRAC package is installed, False otherwise."""  # noqa: E501 sphinx understands
 
 
 # Levels from

@@ -235,8 +235,8 @@ destinations:
 
 ### Example of running jobs on an async Redis queue (arq) with single worker
 
-Requires a Redis server on default port to be running
-with `docker run --detach --publish 6379:6379 redis:7`.
+Requires a Redis compatible server on default port to be running
+with `docker run --publish 6379:6379 valkey/valkey:9`.
 
 Requires at least one arq worker to run in another shell
 with same config file with `bartender perform --config config.yaml`.

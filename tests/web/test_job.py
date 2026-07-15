@@ -1,4 +1,5 @@
 import io
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
@@ -6,8 +7,6 @@ from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI, HTTPException
-from fs.tarfs import TarFS
-from fs.zipfs import ZipFS
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -514,7 +513,7 @@ async def test_files_given_jobdir_is_symlink(
         # to .. up to /etc/passwd use
         # escape / with %2F as un-escaped will
         # use resolve to URL that does not exist.
-        "..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd",  # noqa: WPS323
+        "..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd",
     ],
 )
 @pytest.mark.anyio
@@ -718,17 +717,13 @@ def create_symlinked_job_dir(mock_ok_job: int, job_root_dir: Path) -> str:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "archive_format",
-    [".zip", ".tar", ".tar.xz", ".tar.gz", ".tar.bz2"],
-)
 async def test_job_directory_as_archive(
     fastapi_app: FastAPI,
     client: AsyncClient,
     auth_headers: Dict[str, str],
     mock_ok_job: int,
-    archive_format: str,
 ) -> None:
+    archive_format = ".zip"
     url = (
         fastapi_app.url_path_for(
             "retrieve_job_directory_as_archive",
@@ -749,27 +744,21 @@ async def test_job_directory_as_archive(
     assert response.headers["content-type"] == expected_content_type
     assert response.headers["content-disposition"] == expected_content_disposition
 
-    fs = ZipFS if archive_format == ".zip" else TarFS
-
     with io.BytesIO(response.content) as responsefile:
-        with fs(responsefile) as archive:
-            stdout = archive.readtext("stdout.txt")
+        with zipfile.ZipFile(responsefile) as archive:
+            stdout = archive.read("stdout.txt").decode()
 
     assert stdout == "this is stdout"
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "archive_format",
-    [".zip"],
-)
 async def test_job_directory_as_named_archive(
     fastapi_app: FastAPI,
     client: AsyncClient,
     auth_headers: Dict[str, str],
     mock_ok_job: int,
-    archive_format: str,
 ) -> None:
+    archive_format = ".zip"
     url = (
         fastapi_app.url_path_for(
             "retrieve_job_directory_as_archive",
@@ -788,11 +777,9 @@ async def test_job_directory_as_named_archive(
     assert response.headers["content-type"] == expected_content_type
     assert response.headers["content-disposition"] == expected_content_disposition
 
-    fs = ZipFS if archive_format == ".zip" else TarFS
-
     with io.BytesIO(response.content) as responsefile:
-        with fs(responsefile) as archive:
-            stdout = archive.readtext("stdout.txt")
+        with zipfile.ZipFile(responsefile) as archive:
+            stdout = archive.read("stdout.txt").decode()
 
     assert stdout == "this is stdout"
 
@@ -818,8 +805,8 @@ async def test_job_subdirectory_as_archive(
     )
 
     with io.BytesIO(response.content) as responsefile:
-        with ZipFS(responsefile) as archive:
-            stdout = archive.readtext("readme.txt")
+        with zipfile.ZipFile(responsefile) as archive:
+            stdout = archive.read("readme.txt").decode()
 
     assert stdout == "hi from output dir"
 
@@ -846,8 +833,8 @@ async def test_job_subdirectory_as_named_archive(
     assert response.headers["content-disposition"] == 'attachment; filename="bar.zip"'
 
     with io.BytesIO(response.content) as responsefile:
-        with ZipFS(responsefile) as archive:
-            stdout = archive.readtext("readme.txt")
+        with zipfile.ZipFile(responsefile) as archive:
+            stdout = archive.read("readme.txt").decode()
 
     assert stdout == "hi from output dir"
 
@@ -1092,7 +1079,7 @@ async def test_delete_staging_out_job(
             job_root_dir=demo_context.job_root_dir,
         )
 
-    assert e_info.value.status_code == status.HTTP_409_CONFLICT  # noqa: WPS441
+    assert e_info.value.status_code == status.HTTP_409_CONFLICT
 
 
 @pytest.mark.anyio

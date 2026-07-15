@@ -1,8 +1,17 @@
+from collections.abc import AsyncIterable
+from datetime import datetime
 from pathlib import Path
 
 import pytest
+from stream_zip import ZIP_32
 
-from bartender.walk_dir import DirectoryItem, walk_dir
+from bartender.walk_dir import (
+    DirectoryItem,
+    exclude_filter,
+    read_only_file_mode,
+    walk_dir,
+    walk_dir_generator,
+)
 
 
 class TestWalkDir:
@@ -161,3 +170,112 @@ class TestWalkDir:
             ],
         )
         assert result == expected
+
+
+async def slurp_content(content_iter: AsyncIterable[bytes]) -> bytes:
+    return b"".join([chunk async for chunk in content_iter])
+
+
+@pytest.mark.anyio
+class TestWalkDirGenerator:
+    async def test_given_empty_dir_yields_nothing(self, tmp_path: Path) -> None:
+        results = [entry async for entry in walk_dir_generator(tmp_path)]
+        assert not results
+
+    async def test_given_single_file_yields_one_entry(self, tmp_path: Path) -> None:
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        nr_files = 0
+        async for entry in walk_dir_generator(tmp_path):
+            nr_files += 1
+            name, mtime, mode, method, content_iter = entry
+            assert name == "test.txt"
+            assert isinstance(mtime, datetime)
+            assert mode == read_only_file_mode
+            assert method == ZIP_32
+            contents = await slurp_content(content_iter)
+            assert contents == b"content"
+
+        assert nr_files == 1
+
+    async def test_given_nested_files_yields_all(self, tmp_path: Path) -> None:
+        (tmp_path / "dir1").mkdir()
+        (tmp_path / "dir1" / "file1.txt").write_text("content1")
+        (tmp_path / "dir1" / "dir2").mkdir()
+        (tmp_path / "dir1" / "dir2" / "file2.txt").write_text("content2")
+
+        files = []
+        async for entry in walk_dir_generator(tmp_path):
+            name, mtime, mode, method, content_iter = entry
+            assert isinstance(mtime, datetime)
+            assert mode == read_only_file_mode
+            assert method == ZIP_32
+            contents = await slurp_content(content_iter)
+            files.append((name, contents))
+
+        assert len(files) == 2
+        assert ("dir1/file1.txt", b"content1") in files
+        assert ("dir1/dir2/file2.txt", b"content2") in files
+
+    async def test_exclude_dir(self, tmp_path: Path) -> None:
+        (tmp_path / "dir1").mkdir()
+        (tmp_path / "dir1" / "file1.txt").write_text("content1")
+        # Follow should be excluded
+        (tmp_path / "dir1" / "dir2").mkdir()
+        (tmp_path / "dir1" / "dir2" / "file2.txt").write_text("content2")
+
+        files = []
+        async for entry in walk_dir_generator(tmp_path, exclude_filter(["dir1/dir2"])):
+            name, mtime, mode, method, content_iter = entry
+            assert isinstance(mtime, datetime)
+            assert mode == read_only_file_mode
+            assert method == ZIP_32
+            contents = await slurp_content(content_iter)
+
+            files.append((name, contents))
+
+        assert len(files) == 1
+        assert ("dir1/file1.txt", b"content1") in files
+
+    async def test_exclude_file(self, tmp_path: Path) -> None:
+        (tmp_path / "dir1").mkdir()
+        (tmp_path / "dir1" / "file1.txt").write_text("content1")
+        # Follow should be excluded
+        (tmp_path / "dir1" / "file2.txt").write_text("content2")
+
+        files = []
+        async for entry in walk_dir_generator(tmp_path, exclude_filter(["file2.txt"])):
+            name, mtime, mode, method, content_iter = entry
+            assert isinstance(mtime, datetime)
+            assert mode == read_only_file_mode
+            assert method == ZIP_32
+            contents = await slurp_content(content_iter)
+
+            files.append((name, contents))
+
+        assert len(files) == 1
+        assert ("dir1/file1.txt", b"content1") in files
+
+    async def test_exclude_files_dirs(self, tmp_path: Path) -> None:
+        (tmp_path / "dir1").mkdir()
+        (tmp_path / "dir1" / "file1.txt").write_text("content1")
+        (tmp_path / "dir1" / "file2.txt").write_text("content2")
+        (tmp_path / "dir1" / "dir2").mkdir()
+        (tmp_path / "dir1" / "dir2" / "file3.txt").write_text("content3")
+        (tmp_path / "dir1" / "dir2" / "file4.txt").write_text("content4")
+        (tmp_path / "dir3").mkdir()
+        (tmp_path / "dir3" / "file5.txt").write_text("content5")
+
+        files = []
+        wfilter = exclude_filter(["file2.txt", "file4.txt", "dir2", "dir3"])
+        async for entry in walk_dir_generator(tmp_path, wfilter):
+            name, mtime, mode, method, content_iter = entry
+            assert isinstance(mtime, datetime)
+            assert mode == read_only_file_mode
+            assert method == ZIP_32
+            contents = await slurp_content(content_iter)
+            files.append((name, contents))
+
+        assert len(files) == 1
+        assert ("dir1/file1.txt", b"content1") in files

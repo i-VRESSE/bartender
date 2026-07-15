@@ -56,10 +56,10 @@ async def test_make_valid_dirac_proxy_given_bad_cert(tmp_path: Path) -> None:
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         await make_valid_dirac_proxy(ProxyConfig(cert=bad_cert))
 
-    assert excinfo.value.returncode == 1  # noqa: WPS441 according to pytest docs
+    assert excinfo.value.returncode == 1  # according to pytest docs
     assert (
         "Cannot load certificate"
-        in excinfo.value.stdout.decode()  # noqa: WPS441 according to pytest docs
+        in excinfo.value.stdout.decode()  # according to pytest docs
     )
 
 
