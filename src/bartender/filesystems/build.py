@@ -31,7 +31,7 @@ def build(config: FileSystemConfig) -> AbstractFileSystem:
         return SftpFileSystem(config)
     if isinstance(config, DiracFileSystemConfig):
         if DIRAC_INSTALLED:
-            from bartender.filesystems.dirac import (  # noqa: WPS433 is optional import
+            from bartender.filesystems.dirac import (  # is optional import
                 DiracFileSystem,
             )
 

@@ -11,12 +11,12 @@ from bartender.destinations import Destination
 from bartender.filesystems.abstract import AbstractFileSystem
 from bartender.schedulers.abstract import JobDescription
 
-FileStagingQueue = Queue[tuple[int, str, State]]  # noqa: WPS462
+FileStagingQueue = Queue[tuple[int, str, State]]
 """Custom type for file staging queue.
 
 The `item` argument in `queue.put(item)` method should be
 an async function without any arguments.
-"""  # noqa: WPS428
+"""
 
 
 async def perform_download(
@@ -69,7 +69,7 @@ async def _file_staging_worker(
     destinations: dict[str, Destination],
     factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    while True:  # noqa: WPS457 can be escaped by task.cancel() throwing CancelledError
+    while True:  # can be escaped by task.cancel() throwing CancelledError
         (job_id, destination_name, state) = await queue.get()
         async with factory() as session:
             filesystem = destinations[destination_name].filesystem

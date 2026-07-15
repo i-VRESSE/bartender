@@ -115,7 +115,7 @@ def add_generate_token_subcommand(
     generate_token_sp = subparsers.add_parser(
         "generate-token",
         formatter_class=Formatter,
-        description=dedent(  # noqa: WPS462 -- docs
+        description=dedent(  # -- docs
             """\
             Generate token.
 
@@ -188,7 +188,7 @@ def add_link_job_subcommand(subparsers: Any) -> None:
         "link",
         help="Link external directory as job",
         formatter_class=Formatter,
-        description=dedent(  # noqa: WPS462 -- docs
+        description=dedent(  # -- docs
             """\
             Link external directory as job.
 
@@ -219,7 +219,7 @@ def add_link_job_subcommand(subparsers: Any) -> None:
     link_job_sp.add_argument(
         "directory",
         type=Path,
-        help=dedent(  # noqa: WPS462 -- docs
+        help=dedent(  # -- docs
             """Directory to link as job.
             Its content should be readable by the user running bartender serve.
             To run an interactive application on the linked job,
@@ -235,7 +235,7 @@ def add_link_job_subcommand(subparsers: Any) -> None:
     link_job_sp.add_argument(
         "--application",
         default="ln",
-        help=dedent(  # noqa: WPS462 -- docs
+        help=dedent(  # -- docs
             """Application of job.
             To run interative application on the linked job,
             the application of the job should match the name of

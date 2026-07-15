@@ -15,7 +15,7 @@ class JobDAO:
     def __init__(self, session: CurrentSession):
         self.session = session
 
-    async def create_job(  # noqa: WPS211
+    async def create_job(
         self,
         name: Optional[str],
         application: str,

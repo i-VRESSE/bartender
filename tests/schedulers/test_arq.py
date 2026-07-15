@@ -7,8 +7,12 @@ from arq.jobs import JobStatus
 from pydantic import RedisDsn
 
 from bartender.db.models.job_model import State
-from bartender.schedulers.arq import _map_arq_status  # noqa: WPS450
-from bartender.schedulers.arq import ArqScheduler, ArqSchedulerConfig, arq_worker
+from bartender.schedulers.arq import (
+    ArqScheduler,
+    ArqSchedulerConfig,
+    _map_arq_status,
+    arq_worker,
+)
 from tests.schedulers.helpers import assert_output, prepare_input
 
 

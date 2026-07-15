@@ -199,5 +199,5 @@ class SlurmScheduler(AbstractScheduler):
             #SBATCH --error=stderr.txt
             {description.command}
             echo -n $? > returncode
-        """  # noqa: WPS221
+        """
         return dedent(script)

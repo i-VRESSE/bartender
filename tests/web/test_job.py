@@ -513,7 +513,7 @@ async def test_files_given_jobdir_is_symlink(
         # to .. up to /etc/passwd use
         # escape / with %2F as un-escaped will
         # use resolve to URL that does not exist.
-        "..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd",  # noqa: WPS323
+        "..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd",
     ],
 )
 @pytest.mark.anyio
@@ -1079,7 +1079,7 @@ async def test_delete_staging_out_job(
             job_root_dir=demo_context.job_root_dir,
         )
 
-    assert e_info.value.status_code == status.HTTP_409_CONFLICT  # noqa: WPS441
+    assert e_info.value.status_code == status.HTTP_409_CONFLICT
 
 
 @pytest.mark.anyio

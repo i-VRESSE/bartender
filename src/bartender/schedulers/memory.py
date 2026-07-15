@@ -57,7 +57,7 @@ async def _exec(job: _Job) -> None:  # noqa: WPS210
 
 
 async def _worker(queue: Queue[_Job], jobs: dict[str, _Job], worker_index: int) -> None:
-    while True:  # noqa: WPS457
+    while True:
         job = await queue.get()
         # cannot delete job from queue to cancel it
         # workaround is to skip job when it is not in jobs dict

@@ -98,7 +98,7 @@ async def renew_proxy_task(config: ProxyConfig) -> None:
         config: How to create a new proxy.
 
     """
-    while True:  # noqa: WPS457 should run lifetime of app
+    while True:  # should run lifetime of app
         time_left = await make_valid_dirac_proxy(config)
         await asyncio.sleep(time_left - config.min_life)
 
@@ -146,7 +146,7 @@ def setup_proxy_renewer(config: ProxyConfig) -> None:
             initialize()
         gLogger.setLevel(config.log_level)
         task = asyncio.create_task(renew_proxy_task(config))
-        renewer = (task, config)  # noqa: WPS442 simpler then singleton
+        renewer = (task, config)  # simpler then singleton
         return
     if renewer[1] != config:
         raise ValueError(
@@ -161,4 +161,4 @@ async def teardown_proxy_renewer() -> None:
         task = renewer[0]
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
-        renewer = None  # noqa: WPS442 simpler then singleton
+        renewer = None  # simpler then singleton

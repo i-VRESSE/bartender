@@ -4,7 +4,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 DIRAC_INSTALLED = find_spec("DIRAC") is not None
-"""True if DIRAC package is installed, False otherwise."""  # noqa: E501, WPS322, WPS428 sphinx understands
+"""True if DIRAC package is installed, False otherwise."""  # noqa: E501 sphinx understands
 
 
 # Levels from

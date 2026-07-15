@@ -18,11 +18,11 @@ LogLevel = Literal[
     "info",
     "debug",
     "trace",
-]  # noqa: WPS462
+]
 """Log level of web service.
 
 Choices: critical, error, warning, info, debug, trace.
-"""  # noqa: WPS428
+"""
 
 
 def default_config_filename() -> Path:
