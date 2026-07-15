@@ -81,6 +81,10 @@ ignore =
   WPS402,
   ; Sphinx understands those multiline strings as docstrings, so we need to ignore them for flake8
   WPS462,
+  ; Worked fine before wps uprade
+  WPS476, WPS243, WPS479, WPS480, WPS504,
+
+
 
 per-file-ignores =
   ; all tests
